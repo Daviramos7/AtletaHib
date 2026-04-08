@@ -653,6 +653,28 @@ function renderMeals(){
         <button class="add-btn" onclick="addItem('${meal.id}')">+</button>
       </div>
       <div class="prev-txt" id="p-${meal.id}">Selecione e informe os gramas</div>
+      <div id="manual-toggle-${meal.id}" style="margin-top:6px;">
+        <button onclick="toggleManual('${meal.id}')" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;letter-spacing:.5px;padding:0;font-family:'Syne',sans-serif;">
+          + Não encontrei — adicionar manual
+        </button>
+      </div>
+      <div id="manual-form-${meal.id}" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+        <div class="add-row" style="margin-bottom:6px;">
+          <input type="text" id="mn-${meal.id}" placeholder="Nome do alimento" style="flex:2;" autocomplete="off">
+          <input type="number" id="mk-${meal.id}" placeholder="kcal/100g" min="1" max="999" style="flex:1;min-width:90px;">
+        </div>
+        <div class="add-row">
+          <input type="number" id="mg-${meal.id}" placeholder="Gramas" min="1" max="2000" style="flex:1;" oninput="updateManualPrev('${meal.id}')">
+          <button class="add-btn" onclick="addManualItem('${meal.id}')" style="background:var(--orange);">+ ADD</button>
+        </div>
+        <div class="prev-txt" id="mp-${meal.id}" style="margin-top:6px;">Digite nome, kcal/100g e quantidade</div>
+        <div style="margin-top:6px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);cursor:pointer;">
+            <input type="checkbox" id="msave-${meal.id}" style="accent-color:var(--accent);">
+            Salvar no meu banco de alimentos
+          </label>
+        </div>
+      </div>
     `;
 
     sec.appendChild(hdr);
@@ -670,8 +692,10 @@ function onSearch(mid){
   const sug=document.getElementById(`sug-${mid}`);
   if(q.length<2){sug.style.display='none';return;}
 
-  // Mostra locais imediatamente
-  const localMatches=FOODS_LOCAL.filter(f=>f.name.toLowerCase().includes(q.toLowerCase())).slice(0,4);
+  // Alimentos personalizados primeiro
+  const customs=getCustomFoods().filter(f=>f.name.toLowerCase().includes(q.toLowerCase())).slice(0,3);
+  // Locais do banco
+  const localMatches=[...customs,...FOODS_LOCAL.filter(f=>f.name.toLowerCase().includes(q.toLowerCase()))].slice(0,5);
   if(localMatches.length){
     renderSuggestions(mid, localMatches, true);
   }
@@ -947,6 +971,78 @@ function renderWeek(){
   grid.appendChild(tot);
 }
 
+
+// ══════════════════════════════════════
+// BANCO PERSONALIZADO
+// ══════════════════════════════════════
+function getCustomFoods(){
+  try{return JSON.parse(localStorage.getItem('atletahib_custom_foods')||'[]');}catch{return [];}
+}
+function saveCustomFoods(arr){
+  localStorage.setItem('atletahib_custom_foods',JSON.stringify(arr));
+}
+
+function toggleManual(mid){
+  const form=document.getElementById(`manual-form-${mid}`);
+  const btn=document.querySelector(`#manual-toggle-${mid} button`);
+  const open=form.style.display==='none';
+  form.style.display=open?'block':'none';
+  btn.style.color=open?'var(--accent)':'var(--muted)';
+  btn.textContent=open?'✕ Fechar adição manual':'+ Não encontrei — adicionar manual';
+}
+
+function updateManualPrev(mid){
+  const name=document.getElementById(`mn-${mid}`).value.trim();
+  const kcalP100=parseFloat(document.getElementById(`mk-${mid}`).value);
+  const g=parseFloat(document.getElementById(`mg-${mid}`).value);
+  const p=document.getElementById(`mp-${mid}`);
+  if(name&&kcalP100>0&&g>0){
+    const k=Math.round((kcalP100*g)/100);
+    p.innerHTML=`<strong>${g}g de ${name} = ${k} kcal</strong>`;
+  }else{
+    p.textContent='Digite nome, kcal/100g e quantidade';
+  }
+}
+
+function addManualItem(mid){
+  const name=document.getElementById(`mn-${mid}`).value.trim();
+  const kcalP100=parseFloat(document.getElementById(`mk-${mid}`).value);
+  const g=parseFloat(document.getElementById(`mg-${mid}`).value);
+  const shouldSave=document.getElementById(`msave-${mid}`).checked;
+
+  if(!name){alert('Digite o nome do alimento');return;}
+  if(!kcalP100||kcalP100<=0){alert('Digite as calorias por 100g');return;}
+  if(!g||g<=0){alert('Digite a quantidade em gramas');return;}
+
+  const k=Math.round((kcalP100*g)/100);
+  const day=getDayData(currentDate);
+  day.meals[mid].push({name,grams:g,kcal:k});
+  saveDayData(currentDate,day);
+
+  // Salva no banco personalizado se marcado
+  if(shouldSave){
+    const customs=getCustomFoods();
+    const exists=customs.some(f=>f.name.toLowerCase()===name.toLowerCase());
+    if(!exists){
+      customs.push({name,kcal:kcalP100,custom:true});
+      saveCustomFoods(customs);
+    }
+  }
+
+  // Reset form
+  document.getElementById(`mn-${mid}`).value='';
+  document.getElementById(`mk-${mid}`).value='';
+  document.getElementById(`mg-${mid}`).value='';
+  document.getElementById(`mp-${mid}`).textContent='Digite nome, kcal/100g e quantidade';
+  document.getElementById(`msave-${mid}`).checked=false;
+  document.getElementById(`manual-form-${mid}`).style.display='none';
+  document.querySelector(`#manual-toggle-${mid} button`).textContent='+ Não encontrei — adicionar manual';
+  document.querySelector(`#manual-toggle-${mid} button`).style.color='var(--muted)';
+
+  renderKcalSummary();
+  renderMeals();
+  renderDash();
+}
 
 // ══════════════════════════════════════
 // BACKUP
