@@ -1,0 +1,7 @@
+# Copie este arquivo para gradle.properties e preencha com os dados do Supabase.
+# Nunca suba gradle.properties real para GitHub público.
+SUPABASE_URL=https://SEU-PROJETO.supabase.co
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx_ou_anon_key
+android.useAndroidX=true
+org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+kotlin.code.style=official

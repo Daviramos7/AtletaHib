@@ -1,0 +1,13 @@
+{
+  "name": "Atleta Híbrido Cloud",
+  "short_name": "Atleta Cloud",
+  "description": "Registro pessoal de dieta, treino, corrida, peso e check-in diário com sincronização em nuvem.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#080808",
+  "theme_color": "#c8ff00",
+  "orientation": "portrait-primary",
+  "categories": ["health", "fitness", "productivity"],
+  "icons": []
+}
