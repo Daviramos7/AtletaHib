@@ -20,11 +20,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +37,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.daviramos.atletabridge.data.AuthResponse
+import com.daviramos.atletabridge.data.AuthUser
+import com.daviramos.atletabridge.data.SessionStore
 import com.daviramos.atletabridge.data.SupabaseRestClient
 import com.daviramos.atletabridge.data.WearableDailyMetricUpsert
 import com.daviramos.atletabridge.health.HealthConnectBridgeConfig
@@ -63,12 +67,52 @@ fun BridgeApp() {
     val scope = rememberCoroutineScope()
     val supabase = remember { SupabaseRestClient() }
     val health = remember { HealthConnectReader(context) }
+    val sessionStore = remember { SessionStore(context) }
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var auth by remember { mutableStateOf<AuthResponse?>(null) }
-    var status by remember { mutableStateOf("Pronto para configurar.") }
+    var status by remember { mutableStateOf("Abrindo app...") }
     var lastSummary by remember { mutableStateOf<String?>(null) }
+    var restoringSession by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        val saved = sessionStore.load()
+        if (saved == null) {
+            status = "Pronto para configurar."
+            restoringSession = false
+            return@LaunchedEffect
+        }
+
+        email = saved.email.orEmpty()
+        saved.toAuthResponse()?.let { auth = it }
+        status = "Sessão encontrada. Validando login salvo..."
+
+        val refreshToken = saved.refreshToken
+        if (refreshToken.isNullOrBlank()) {
+            status = "Login salvo encontrado. Se a sincronização falhar, entre novamente."
+            restoringSession = false
+            return@LaunchedEffect
+        }
+
+        try {
+            val refreshed = supabase.refreshSession(refreshToken)
+            val normalized = AuthResponse(
+                accessToken = refreshed.accessToken,
+                refreshToken = refreshed.refreshToken ?: refreshToken,
+                user = refreshed.user ?: AuthUser(id = saved.userId, email = saved.email)
+            )
+            auth = normalized
+            sessionStore.save(email = normalized.user?.email ?: saved.email.orEmpty(), auth = normalized)
+            status = "Login restaurado. Pode sincronizar."
+        } catch (e: Exception) {
+            auth = null
+            sessionStore.clear()
+            status = "Não consegui restaurar o login salvo. Entre novamente. Motivo: ${e.message ?: e::class.simpleName}"
+        } finally {
+            restoringSession = false
+        }
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = HealthConnectBridgeConfig.requestPermissionsContract
@@ -96,45 +140,98 @@ fun BridgeApp() {
 
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("1. Entrar na sua conta", style = MaterialTheme.typography.titleMedium)
-                Text("Use o mesmo e-mail e senha do Atleta Híbrido Cloud. A chave service_role nunca deve entrar neste app.")
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("E-mail") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text("Senha") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation()
-                )
-                Button(
-                    onClick = {
-                        scope.launch {
-                            try {
-                                status = "Entrando no Supabase..."
-                                auth = supabase.signIn(email.trim(), password)
-                                status = "Login feito. Agora peça permissões do Health Connect."
-                            } catch (e: Exception) {
-                                status = "Erro no login: ${e.message ?: e::class.simpleName}"
+                Text("1. Conta", style = MaterialTheme.typography.titleMedium)
+
+                if (auth != null) {
+                    val connectedEmail = auth?.user?.email ?: email.ifBlank { "conta conectada" }
+                    Text("Conectado como: $connectedEmail")
+                    Text("O app vai lembrar esta sessão. A senha não fica salva no celular.")
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = {
+                                sessionStore.clear()
+                                auth = null
+                                password = ""
+                                lastSummary = null
+                                status = "Sessão local removida. Entre novamente para sincronizar."
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Sair") }
+
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    val saved = sessionStore.load()
+                                    val refreshToken = saved?.refreshToken
+                                    if (refreshToken.isNullOrBlank()) {
+                                        status = "Não há refresh token salvo. Saia e entre novamente."
+                                        return@launch
+                                    }
+
+                                    try {
+                                        status = "Atualizando sessão salva..."
+                                        val refreshed = supabase.refreshSession(refreshToken)
+                                        val normalized = AuthResponse(
+                                            accessToken = refreshed.accessToken,
+                                            refreshToken = refreshed.refreshToken ?: refreshToken,
+                                            user = refreshed.user ?: AuthUser(id = saved.userId, email = saved.email)
+                                        )
+                                        auth = normalized
+                                        sessionStore.save(email = normalized.user?.email ?: saved.email.orEmpty(), auth = normalized)
+                                        status = "Sessão atualizada."
+                                    } catch (e: Exception) {
+                                        auth = null
+                                        sessionStore.clear()
+                                        status = "Sessão expirada. Entre novamente. Motivo: ${e.message ?: e::class.simpleName}"
+                                    }
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Atualizar sessão") }
+                    }
+                } else {
+                    Text("Use o mesmo e-mail e senha do Atleta Híbrido Cloud. A senha não será salva.")
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("E-mail") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("Senha") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation()
+                    )
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                try {
+                                    status = "Entrando no Supabase..."
+                                    val signedIn = supabase.signIn(email.trim(), password)
+                                    auth = signedIn
+                                    password = ""
+                                    sessionStore.save(email = signedIn.user?.email ?: email.trim(), auth = signedIn)
+                                    status = "Login feito e sessão salva. Agora peça permissões do Health Connect."
+                                } catch (e: Exception) {
+                                    status = "Erro no login: ${e.message ?: e::class.simpleName}"
+                                }
                             }
-                        }
-                    },
-                    enabled = email.isNotBlank() && password.isNotBlank(),
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Entrar") }
+                        },
+                        enabled = !restoringSession && email.isNotBlank() && password.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text(if (restoringSession) "Verificando sessão..." else "Entrar") }
+                }
             }
         }
 
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("2. Permissões do Health Connect", style = MaterialTheme.typography.titleMedium)
-                Text("Antes: abra o Mi Fitness e permita escrever/sincronizar dados no Health Connect. Depois, permita este app ler esses dados.")
+                Text("Abra o Mi Fitness e permita escrever/sincronizar dados no Health Connect. Depois, permita este app ler esses dados.")
                 Button(
                     onClick = {
                         scope.launch { status = "Abrindo tela de permissões do Health Connect..." }
@@ -182,7 +279,7 @@ fun BridgeApp() {
                                 syncDay(health, supabase, auth, LocalDate.now(), { status = it }, { lastSummary = it })
                             }
                         },
-                        enabled = auth != null,
+                        enabled = auth != null && !restoringSession,
                         modifier = Modifier.weight(1f)
                     ) { Text("Hoje") }
 
@@ -195,7 +292,7 @@ fun BridgeApp() {
                                 status = "Últimos 7 dias sincronizados."
                             }
                         },
-                        enabled = auth != null,
+                        enabled = auth != null && !restoringSession,
                         modifier = Modifier.weight(1f)
                     ) { Text("7 dias") }
                 }
@@ -273,7 +370,7 @@ private suspend fun syncDay(
         )
         val response = supabase.upsertDailyMetric(auth.accessToken, payload)
         val permissionStatus = health.permissionStatusText()
-        setStatus("Sincronização de $day concluída e enviada ao Supabase. HTTP ${response.status.value}. Alguns campos podem vir zerados se o Mi Fitness não gravou ou se a permissão não foi liberada.")
+        setStatus("Sincronização de $day concluída e enviada ao Supabase. HTTP ${response.status.value}.")
         setSummary(
             "Data: ${summary.date}\n" +
                 "Permissões:\n$permissionStatus\n" +
