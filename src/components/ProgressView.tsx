@@ -57,7 +57,7 @@ export default function ProgressView({ userId, profile, refreshBoot, onError }) 
   }
 
   return (
-    <div>
+    <div className="progress-page">
       <div className="page-title">
         <div>
           <p className="eyebrow">Progresso</p>
@@ -137,7 +137,7 @@ function WeightChart({ data, target }) {
 
   return (
     <div className="weight-chart-wrap">
-      <svg className="weight-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Gráfico semanal de peso">
+      <svg className="weight-chart" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Gráfico semanal de peso">
         {ticks.map((tick) => (
           <g key={tick}>
             <line x1={pad.left} x2={width - pad.right} y1={yOf(tick)} y2={yOf(tick)} className="chart-grid-line" />

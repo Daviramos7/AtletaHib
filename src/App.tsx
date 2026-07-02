@@ -19,7 +19,7 @@ import OnboardingView from './components/OnboardingView';
 import OfflineBanner from './components/OfflineBanner';
 
 const NAV = [
-  { id: 'dashboard', label: 'Início', icon: Activity },
+  { id: 'dashboard', label: 'Hoje', icon: Activity },
   { id: 'diet', label: 'Dieta', icon: Salad },
   { id: 'training', label: 'Treino', icon: Dumbbell },
   { id: 'run', label: '1 km', icon: Timer },
@@ -27,10 +27,12 @@ const NAV = [
   { id: 'checkin', label: 'Check-in', icon: ClipboardCheck },
   { id: 'progress', label: 'Progresso', icon: LineChart },
   { id: 'review', label: 'Semana', icon: BarChart3 },
-  { id: 'integrations', label: 'Integrações', icon: Watch },
+  { id: 'integrations', label: 'Saúde', icon: Watch },
   { id: 'builder', label: 'Criador', icon: SlidersHorizontal },
   { id: 'profile', label: 'Perfil', icon: User },
 ];
+
+const MOBILE_NAV = NAV.filter((item) => ['dashboard', 'diet', 'training', 'progress', 'integrations'].includes(item.id));
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -91,7 +93,7 @@ export default function App() {
   }
 
   if (loading) {
-    return <div className="center-screen"><div className="loader" /><p>Carregando Atleta Híbrido Cloud...</p></div>;
+    return <div className="center-screen"><div className="loader" /><p>Carregando Atleta Híbrido 2.0...</p></div>;
   }
 
   if (!session) {
@@ -123,23 +125,23 @@ export default function App() {
   }[active];
 
   return (
-    <div className="app-shell">
+    <div className="app-shell app-shell-v2">
       <OfflineBanner />
-      <header className="topbar">
+      <header className="topbar topbar-v2">
         <div>
-          <p className="eyebrow">Atleta Híbrido</p>
-          <h1>Cloud OS</h1>
+          <p className="eyebrow">Atleta Híbrido 2.0</p>
+          <h1>Seu painel diário</h1>
         </div>
         <div className="top-actions">
-          <button className="ghost-btn" onClick={() => setActive('profile')}><Settings size={16} /> Perfil</button>
-          <button className="ghost-btn danger" onClick={signOut}><LogOut size={16} /> Sair</button>
+          <button className="ghost-btn" type="button" onClick={() => setActive('profile')}><Settings size={16} /> Perfil</button>
+          <button className="ghost-btn danger" type="button" onClick={signOut}><LogOut size={16} /> Sair</button>
         </div>
       </header>
 
       {error && <div className="alert error" onClick={() => setError('')}>{error}</div>}
 
-      <main className="main-grid">
-        <aside className="sidebar">
+      <main className="main-grid main-grid-v2">
+        <aside className="sidebar sidebar-v2">
           <div className="profile-mini">
             <div className="avatar"><Waves size={22} /></div>
             <div>
@@ -151,7 +153,7 @@ export default function App() {
             {NAV.map((item) => {
               const Icon = item.icon;
               return (
-                <button key={item.id} className={active === item.id ? 'active' : ''} onClick={() => setActive(item.id)}>
+                <button key={item.id} type="button" className={active === item.id ? 'active' : ''} onClick={() => setActive(item.id)}>
                   <Icon size={18} /> {item.label}
                 </button>
               );
@@ -159,10 +161,22 @@ export default function App() {
           </nav>
         </aside>
 
-        <section className="content-card">
+        <section className="content-card content-card-v2">
           <Current {...pageProps} onError={setError} />
         </section>
       </main>
+
+      <nav className="bottom-nav" aria-label="Navegação principal no celular">
+        {MOBILE_NAV.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button key={item.id} type="button" className={active === item.id ? 'active' : ''} onClick={() => setActive(item.id)} aria-label={item.label}>
+              <Icon size={19} />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }

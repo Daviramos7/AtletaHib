@@ -1,6 +1,6 @@
 {
   "name": "atleta-hibrido-cloud",
-  "version": "1.5.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,22 +13,18 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
-    "date-fns": "^4.1.0",
-    "lucide-react": "^0.468.0",
+    "vite": "^7.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "vite": "^7.0.0"
+    "lucide-react": "^0.468.0",
+    "date-fns": "^4.1.0"
   },
   "devDependencies": {
-    "@types/babel__core": "^7.20.5",
-    "@types/babel__generator": "^7.27.0",
-    "@types/babel__template": "^7.4.4",
-    "@types/babel__traverse": "^7.28.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
-    "@vitejs/plugin-react": "^4.3.0",
     "eslint": "^9.0.0",
     "eslint-plugin-react": "^7.37.0",
     "eslint-plugin-react-hooks": "^5.0.0",
