@@ -195,6 +195,16 @@ export default function IntegrationsView({ userId, profile, onError }) {
         </section>
       )}
 
+      <section className="panel compact-panel">
+        <p className="eyebrow">Resumo de saúde 7 dias</p>
+        <div className="dashboard-review-grid">
+          <div><strong>{weekly.avgSleep ? `${weekly.avgSleep.toFixed(1)}h` : '--'}</strong><span>sono médio registrado</span></div>
+          <div><strong>{weekly.workoutMinutes} min</strong><span>atividade/treino sincronizado</span></div>
+          <div><strong>{metrics.length}</strong><span>registros disponíveis</span></div>
+          <div><strong>{lastMetric ? formatWearableSource(lastMetric.source, lastMetric.provider) : '--'}</strong><span>última fonte</span></div>
+        </div>
+      </section>
+
       <section className="panel">
         <p className="eyebrow">Configuração da integração</p>
         <form className="form-grid" onSubmit={handleSaveIntegration}>
@@ -307,7 +317,7 @@ export default function IntegrationsView({ userId, profile, onError }) {
                   <span>{item.active_kcal ?? '--'} kcal</span>
                   <span>{minutesToHours(item.sleep_minutes)}</span>
                   <span>{item.distance_km ? `${Number(item.distance_km).toFixed(2)} km` : '-- km'}</span>
-                  <button className="icon-danger" onClick={() => handleDeleteMetric(item.id)}><Trash2 size={16} /></button>
+                  <button className="icon-danger" type="button" aria-label="Remover registro de métricas" title="Remover registro" onClick={() => handleDeleteMetric(item.id)}><Trash2 size={16} /></button>
                 </div>
               </div>
             ))}

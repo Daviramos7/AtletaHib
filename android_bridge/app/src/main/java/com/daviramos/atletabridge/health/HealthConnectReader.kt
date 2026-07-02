@@ -15,8 +15,11 @@ import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import com.daviramos.atletabridge.data.DailyHealthSummary
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
+import kotlin.math.ceil
 import kotlin.math.roundToLong
 
 object HealthConnectBridgeConfig {
@@ -52,6 +55,14 @@ object HealthConnectBridgeConfig {
 
 class HealthConnectReader(private val context: Context) {
     private val client by lazy { HealthConnectClient.getOrCreate(context) }
+
+    private val preferredSourcePackages = setOf(
+        "com.xiaomi.wearable",
+        "com.xiaomi.wearable.global",
+        "com.mi.health",
+        "com.mi.health.global",
+        "com.xiaomi.hm.health"
+    )
 
     fun isAvailable(): Boolean =
         HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE
@@ -94,6 +105,17 @@ class HealthConnectReader(private val context: Context) {
         val end = date.plusDays(1).atStartOfDay(zone).toInstant()
         val range = TimeRangeFilter.between(start, end)
 
+        // Sono cruza meia-noite com frequência.
+        // Esta janela captura o sono principal que terminou no dia consultado.
+        val sleepSearchStart = date.minusDays(1).atTime(LocalTime.of(18, 0)).atZone(zone).toInstant()
+        val sleepSearchEnd = date.atTime(LocalTime.of(18, 0)).atZone(zone).toInstant()
+        val sleepSearchRange = TimeRangeFilter.between(sleepSearchStart, sleepSearchEnd)
+
+        // FC repouso nativa pode vir em uma janela diferente do log diário.
+        val restingSearchStart = date.minusDays(1).atStartOfDay(zone).toInstant()
+        val restingSearchEnd = date.plusDays(1).atStartOfDay(zone).toInstant()
+        val restingSearchRange = TimeRangeFilter.between(restingSearchStart, restingSearchEnd)
+
         val stepsPermission = HealthPermission.getReadPermission(StepsRecord::class)
         val distancePermission = HealthPermission.getReadPermission(DistanceRecord::class)
         val activeKcalPermission = HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class)
@@ -102,68 +124,115 @@ class HealthConnectReader(private val context: Context) {
         val sleepPermission = HealthPermission.getReadPermission(SleepSessionRecord::class)
         val exercisePermission = HealthPermission.getReadPermission(ExerciseSessionRecord::class)
 
-        val steps = if (stepsPermission in granted) {
+        val sleepRecords = if (sleepPermission in granted) {
             runCatching {
                 client.readRecords(
+                    ReadRecordsRequest(SleepSessionRecord::class, timeRangeFilter = sleepSearchRange)
+                ).records.preferSleepSource()
+            }.getOrElse { emptyList() }
+        } else emptyList()
+
+        // Aqui está a parte "inteligente":
+        // O horário de dormir/acordar vindo do próprio registro de sono é a janela mestra.
+        // A FC só entra no cálculo de repouso se o timestamp dela estiver dentro dessa janela.
+        // Exemplo: se acordou 06:10 e a FC só registrou 06:30, o ponto 06:30 fica fora.
+        val sleepWindows = sleepRecords.mapNotNull { it.toExactSleepWindow() }
+
+        val steps = if (stepsPermission in granted) {
+            runCatching {
+                val records = client.readRecords(
                     ReadRecordsRequest(StepsRecord::class, timeRangeFilter = range)
-                ).records.sumOf { it.count }
+                ).records.preferStepSource()
+                records.sumOf { it.count }
             }.getOrNull()
         } else null
 
         val distanceKm = if (distancePermission in granted) {
             runCatching {
-                client.readRecords(
+                val records = client.readRecords(
                     ReadRecordsRequest(DistanceRecord::class, timeRangeFilter = range)
-                ).records.sumOf { it.distance.inKilometers }
+                ).records.preferDistanceSource()
+                records.sumOf { it.distance.inKilometers }
             }.getOrNull()
         } else null
 
         val activeKcal = if (activeKcalPermission in granted) {
             runCatching {
-                client.readRecords(
+                val records = client.readRecords(
                     ReadRecordsRequest(ActiveCaloriesBurnedRecord::class, timeRangeFilter = range)
-                ).records.sumOf { it.energy.inKilocalories }
+                ).records.preferActiveCaloriesSource()
+                records.sumOf { it.energy.inKilocalories }
             }.getOrNull()
         } else null
 
-        val avgHeartRate = if (heartRatePermission in granted) {
+        val dayHeartRateRecords = if (heartRatePermission in granted) {
             runCatching {
-                val samples = client.readRecords(
+                client.readRecords(
                     ReadRecordsRequest(HeartRateRecord::class, timeRangeFilter = range)
-                ).records.flatMap { record -> record.samples.map { it.beatsPerMinute.toDouble() } }
-                samples.takeIf { it.isNotEmpty() }?.average()
-            }.getOrNull()
-        } else null
+                ).records.preferHeartRateSource()
+            }.getOrElse { emptyList() }
+        } else emptyList()
 
-        val restingHeartRate = if (restingHeartRatePermission in granted) {
+        val avgHeartRate = dayHeartRateRecords
+            .flatMap { record -> record.samples.map { it.beatsPerMinute.toDouble() } }
+            .takeIf { it.isNotEmpty() }
+            ?.average()
+
+        val nativeRestingHeartRate = if (restingHeartRatePermission in granted) {
             runCatching {
                 val records = client.readRecords(
-                    ReadRecordsRequest(RestingHeartRateRecord::class, timeRangeFilter = range)
-                ).records.map { it.beatsPerMinute.toDouble() }
-                records.takeIf { it.isNotEmpty() }?.average()
+                    ReadRecordsRequest(RestingHeartRateRecord::class, timeRangeFilter = restingSearchRange)
+                ).records.preferRestingHeartRateSource()
+                records.map { it.beatsPerMinute.toDouble() }
+                    .takeIf { it.isNotEmpty() }
+                    ?.average()
             }.getOrNull()
         } else null
 
-        val sleepMinutes = if (sleepPermission in granted) {
+        // Se o Mi Fitness não grava RestingHeartRateRecord, derivamos a FC de repouso
+        // usando HeartRateRecord normal, mas recortado pelo sono real.
+        // Para reduzir ruído, usamos os 30% menores pontos de FC dentro do sono.
+        // Isso é mais próximo de "FC de repouso" do que a média de toda a noite.
+        val sleepDerivedRestingHeartRate = if (
+            nativeRestingHeartRate == null &&
+            heartRatePermission in granted &&
+            sleepWindows.isNotEmpty()
+        ) {
             runCatching {
-                client.readRecords(
-                    ReadRecordsRequest(SleepSessionRecord::class, timeRangeFilter = range)
-                ).records.sumOf { Duration.between(it.startTime, it.endTime).toMinutes() }
+                val sleepHeartRateRecords = client.readRecords(
+                    ReadRecordsRequest(HeartRateRecord::class, timeRangeFilter = sleepSearchRange)
+                ).records.preferHeartRateSource()
+
+                val sleepHeartRateSamples = sleepWindows.flatMap { window ->
+                    sleepHeartRateRecords
+                        .flatMap { record -> record.samples }
+                        .filter { sample -> sample.time.isWithinInclusive(window.start, window.end) }
+                        .map { it.beatsPerMinute.toDouble() }
+                }
+
+                sleepHeartRateSamples.lowestPercentAverage(percent = 0.30)
             }.getOrNull()
         } else null
+
+        val restingHeartRate = nativeRestingHeartRate ?: sleepDerivedRestingHeartRate
+
+        val sleepMinutes = sleepRecords
+            .sumOf { Duration.between(it.startTime, it.endTime).toMinutes() }
+            .takeIf { it > 0 }
 
         val workoutMinutes = if (exercisePermission in granted) {
             runCatching {
-                client.readRecords(
+                val records = client.readRecords(
                     ReadRecordsRequest(ExerciseSessionRecord::class, timeRangeFilter = range)
-                ).records.sumOf { Duration.between(it.startTime, it.endTime).toMinutes() }
+                ).records.preferExerciseSource()
+                records.sumOf { Duration.between(it.startTime, it.endTime).toMinutes() }
             }.getOrNull()
         } else null
 
         return DailyHealthSummary(
             date = date.toString(),
             steps = steps?.takeIf { it > 0 },
-            sleepMinutes = sleepMinutes?.takeIf { it > 0 },
+            sleepMinutes = sleepMinutes,
             avgHeartRate = avgHeartRate?.round1(),
             restingHeartRate = restingHeartRate?.round1(),
             activeKcal = activeKcal?.takeIf { it > 0.0 }?.round1(),
@@ -171,6 +240,94 @@ class HealthConnectReader(private val context: Context) {
             distanceKm = distanceKm?.takeIf { it > 0.0 }?.round2()
         )
     }
+
+    private fun isPreferredPackage(packageName: String): Boolean {
+        val lower = packageName.lowercase()
+        return lower in preferredSourcePackages ||
+            "xiaomi" in lower ||
+            "mi.health" in lower ||
+            "wearable" in lower ||
+            "mifit" in lower
+    }
+
+    private fun <T : androidx.health.connect.client.records.Record> List<T>.preferred(): List<T> {
+        val preferred = filter { record -> isPreferredPackage(record.metadata.dataOrigin.packageName) }
+        return preferred.ifEmpty { this }
+    }
+
+    private fun List<StepsRecord>.preferStepSource(): List<StepsRecord> {
+        val preferred = preferred()
+        if (preferred.isNotEmpty() && preferred.size != size) return preferred
+        return groupBy { it.metadata.dataOrigin.packageName }
+            .maxByOrNull { (_, records) -> records.sumOf { it.count } }
+            ?.value ?: this
+    }
+
+    private fun List<DistanceRecord>.preferDistanceSource(): List<DistanceRecord> {
+        val preferred = preferred()
+        if (preferred.isNotEmpty() && preferred.size != size) return preferred
+        return groupBy { it.metadata.dataOrigin.packageName }
+            .maxByOrNull { (_, records) -> records.sumOf { it.distance.inKilometers } }
+            ?.value ?: this
+    }
+
+    private fun List<ActiveCaloriesBurnedRecord>.preferActiveCaloriesSource(): List<ActiveCaloriesBurnedRecord> {
+        val preferred = preferred()
+        if (preferred.isNotEmpty() && preferred.size != size) return preferred
+        return groupBy { it.metadata.dataOrigin.packageName }
+            .maxByOrNull { (_, records) -> records.sumOf { it.energy.inKilocalories } }
+            ?.value ?: this
+    }
+
+    private fun List<HeartRateRecord>.preferHeartRateSource(): List<HeartRateRecord> {
+        val preferred = preferred()
+        if (preferred.isNotEmpty() && preferred.size != size) return preferred
+        return groupBy { it.metadata.dataOrigin.packageName }
+            .maxByOrNull { (_, records) -> records.sumOf { it.samples.size } }
+            ?.value ?: this
+    }
+
+    private fun List<RestingHeartRateRecord>.preferRestingHeartRateSource(): List<RestingHeartRateRecord> {
+        val preferred = preferred()
+        if (preferred.isNotEmpty() && preferred.size != size) return preferred
+        return groupBy { it.metadata.dataOrigin.packageName }
+            .maxByOrNull { (_, records) -> records.size }
+            ?.value ?: this
+    }
+
+    private fun List<SleepSessionRecord>.preferSleepSource(): List<SleepSessionRecord> {
+        val preferred = preferred()
+        if (preferred.isNotEmpty() && preferred.size != size) return preferred
+        return groupBy { it.metadata.dataOrigin.packageName }
+            .maxByOrNull { (_, records) -> records.sumOf { Duration.between(it.startTime, it.endTime).toMinutes() } }
+            ?.value ?: this
+    }
+
+    private fun List<ExerciseSessionRecord>.preferExerciseSource(): List<ExerciseSessionRecord> {
+        val preferred = preferred()
+        if (preferred.isNotEmpty() && preferred.size != size) return preferred
+        return groupBy { it.metadata.dataOrigin.packageName }
+            .maxByOrNull { (_, records) -> records.sumOf { Duration.between(it.startTime, it.endTime).toMinutes() } }
+            ?.value ?: this
+    }
+
+    private fun SleepSessionRecord.toExactSleepWindow(): SleepWindow? {
+        val duration = Duration.between(startTime, endTime)
+        if (duration.toMinutes() <= 0) return null
+        return SleepWindow(startTime, endTime)
+    }
+
+    private fun Instant.isWithinInclusive(start: Instant, end: Instant): Boolean =
+        !isBefore(start) && !isAfter(end)
+
+    private fun List<Double>.lowestPercentAverage(percent: Double): Double? {
+        if (isEmpty()) return null
+        val sorted = sorted()
+        val takeCount = ceil(sorted.size * percent).toInt().coerceAtLeast(1)
+        return sorted.take(takeCount).average()
+    }
+
+    private data class SleepWindow(val start: Instant, val end: Instant)
 }
 
 private fun Double.round1(): Double = (this * 10.0).roundToLong() / 10.0
