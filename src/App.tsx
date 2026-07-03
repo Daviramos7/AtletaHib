@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Activity, BarChart3, ClipboardCheck, Dumbbell, LineChart, LogOut, Moon, Salad, Settings, SlidersHorizontal, Timer, TrendingUp, User, Waves, Watch } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Activity, ArrowLeft, BarChart3, ClipboardCheck, Dumbbell, Home, LineChart, LogOut, Menu, Moon, Salad, Settings, SlidersHorizontal, Timer, TrendingUp, User, Waves, Watch, X } from 'lucide-react';
 import { isSupabaseConfigured } from './lib/supabaseClient';
 import { getSession, onAuthStateChange, signOut } from './services/authService';
 import { ensureUserBootstrap } from './services/bootstrapService';
@@ -34,12 +35,13 @@ const NAV = [
   { id: 'profile', label: 'Perfil', icon: User },
 ];
 
-const MOBILE_NAV = NAV.filter((item) => ['dashboard', 'diet', 'training', 'run', 'sleep', 'progress', 'integrations'].includes(item.id));
 
 export default function App() {
   const [session, setSession] = useState(null);
   const [boot, setBoot] = useState(null);
   const [active, setActive] = useState('dashboard');
+  const [quickOpen, setQuickOpen] = useState(false);
+  const tabHistoryRef = useRef([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const userId = session?.user?.id;
@@ -112,6 +114,35 @@ export default function App() {
     );
   }
 
+  function navigateTo(tabId) {
+    if (tabId !== active) {
+      tabHistoryRef.current = [...tabHistoryRef.current, active].slice(-12);
+      setActive(tabId);
+    }
+    setQuickOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function goBack() {
+    const previous = tabHistoryRef.current.pop();
+    if (previous) {
+      setActive(previous);
+      setQuickOpen(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (active !== 'dashboard') {
+      setActive('dashboard');
+      setQuickOpen(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  function goHome() {
+    navigateTo('dashboard');
+  }
+
   const Current = {
     dashboard: Dashboard,
     diet: DietView,
@@ -136,7 +167,7 @@ export default function App() {
           <h1>Seu painel diário</h1>
         </div>
         <div className="top-actions">
-          <button className="ghost-btn" type="button" onClick={() => setActive('profile')}><Settings size={16} /> Perfil</button>
+          <button className="ghost-btn" type="button" onClick={() => navigateTo('profile')}><Settings size={16} /> Perfil</button>
           <button className="ghost-btn danger" type="button" onClick={signOut}><LogOut size={16} /> Sair</button>
         </div>
       </header>
@@ -156,7 +187,7 @@ export default function App() {
             {NAV.map((item) => {
               const Icon = item.icon;
               return (
-                <button key={item.id} type="button" className={active === item.id ? 'active' : ''} onClick={() => setActive(item.id)}>
+                <button key={item.id} type="button" className={active === item.id ? 'active' : ''} onClick={() => navigateTo(item.id)}>
                   <Icon size={18} /> {item.label}
                 </button>
               );
@@ -169,20 +200,85 @@ export default function App() {
         </section>
       </main>
 
-      <nav className="bottom-nav" aria-label="Navegação principal no celular">
-        {MOBILE_NAV.map((item) => {
-          const Icon = item.icon;
-          return (
-            <button key={item.id} type="button" className={active === item.id ? 'active' : ''} onClick={() => setActive(item.id)} aria-label={item.label}>
-              <Icon size={19} />
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
-      </nav>
+      <QuickAccessDock
+        active={active}
+        isOpen={quickOpen}
+        onToggle={() => setQuickOpen((value) => !value)}
+        onClose={() => setQuickOpen(false)}
+        onNavigate={navigateTo}
+        onBack={goBack}
+        onHome={goHome}
+      />
     </div>
   );
 }
+
+
+function QuickAccessDock({ active, isOpen, onToggle, onClose, onNavigate, onBack, onHome }) {
+  const dock = (
+    <div className={`quick-access-dock ${isOpen ? 'open' : ''}`}>
+      <button
+        className="quick-access-backdrop"
+        type="button"
+        aria-label="Fechar acesso rápido"
+        onClick={onClose}
+      />
+
+      <nav className="quick-access-panel" aria-label="Acesso rápido">
+        <div className="quick-access-head">
+          <div>
+            <p className="eyebrow">Navegação</p>
+            <strong>Acesso rápido</strong>
+          </div>
+          <button className="quick-access-close" type="button" onClick={onClose} aria-label="Fechar menu">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="quick-access-grid">
+          {NAV.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={active === item.id ? 'active' : ''}
+                onClick={() => onNavigate(item.id)}
+              >
+                <Icon size={18} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      <div className="quick-access-bar" role="group" aria-label="Controles rápidos">
+        <button className="quick-side-btn" type="button" onClick={onBack} aria-label="Voltar para a aba anterior">
+          <ArrowLeft size={20} />
+        </button>
+
+        <button
+          className="quick-access-main"
+          type="button"
+          aria-label={isOpen ? 'Fechar acesso rápido' : 'Abrir acesso rápido'}
+          aria-expanded={isOpen}
+          onClick={onToggle}
+        >
+          {isOpen ? <X size={21} /> : <Menu size={21} />}
+          <span>Acesso rápido</span>
+        </button>
+
+        <button className="quick-side-btn home" type="button" onClick={onHome} aria-label="Ir para a tela inicial">
+          <Home size={20} />
+        </button>
+      </div>
+    </div>
+  );
+
+  return createPortal(dock, document.body);
+}
+
 
 function SetupWarning() {
   return (
