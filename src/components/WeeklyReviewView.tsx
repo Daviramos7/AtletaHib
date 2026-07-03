@@ -26,7 +26,7 @@ export default function WeeklyReviewView({ userId, profile, onError }) {
     try {
       await navigator.clipboard.writeText(exportText);
       onError('Relatório semanal copiado. Agora envie para o chat Analista Semanal.');
-    } catch (err) {
+    } catch {
       onError('Não consegui copiar automaticamente. Selecione o texto e copie manualmente.');
     }
   }
@@ -199,3 +199,5 @@ function formatDate(value) {
   const [year, month, day] = value.split('-').map(Number);
   return new Date(year, month - 1, day).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit' });
 }
+
+
