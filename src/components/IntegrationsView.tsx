@@ -184,13 +184,19 @@ export default function IntegrationsView({ userId, profile, onError }) {
       </div>
 
       {lastMetric && (
-        <section className="panel compact-panel">
-          <p className="eyebrow">Última sincronização recebida</p>
-          <div className="dashboard-review-grid wearable-grid">
-            <div><strong>{formatDate(lastMetric.metric_date)}</strong><span>data</span></div>
-            <div><strong>{formatWearableSource(lastMetric.source, lastMetric.provider)}</strong><span>fonte</span></div>
-            <div><strong>{lastMetric.avg_heart_rate ? `${lastMetric.avg_heart_rate} bpm` : '--'}</strong><span>FC média</span></div>
-            <div><strong>{lastMetric.active_kcal ?? '--'}</strong><span>kcal ativas</span></div>
+        <section className="panel compact-panel last-sync-panel">
+          <div className="section-title-row">
+            <div>
+              <p className="eyebrow">Última sincronização recebida</p>
+              <h3>Registro mais recente do Health Connect</h3>
+            </div>
+            <span className="pill">{formatWearableSource(lastMetric.source, lastMetric.provider)}</span>
+          </div>
+          <div className="last-sync-grid">
+            <SyncItem label="Data" value={formatDate(lastMetric.metric_date)} helper="última data recebida" />
+            <SyncItem label="Fonte" value={formatWearableSource(lastMetric.source, lastMetric.provider)} helper={lastMetric.provider ?? 'wearable'} />
+            <SyncItem label="FC média" value={lastMetric.avg_heart_rate ? `${lastMetric.avg_heart_rate} bpm` : '--'} helper="registro do dia" />
+            <SyncItem label="Kcal ativas" value={lastMetric.active_kcal ?? '--'} helper="não somar com cardio importado" />
           </div>
         </section>
       )}
@@ -357,6 +363,16 @@ function Metric({ icon: Icon, label, value, sub }) {
       <div className="metric-head"><Icon size={20} /><span>{label}</span></div>
       <strong>{value}</strong>
       <p>{sub}</p>
+    </div>
+  );
+}
+
+function SyncItem({ label, value, helper }) {
+  return (
+    <div className="last-sync-item">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{helper}</small>
     </div>
   );
 }

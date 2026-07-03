@@ -68,7 +68,7 @@ export default function Dashboard({ userId, profile, trainingPlan, onError }) {
         <div>
           <p className="eyebrow">Hoje</p>
           <h2>{profile?.name ? `Bora, ${firstName(profile.name)}` : 'Seu plano de hoje'}</h2>
-          <p className="muted-text">Acompanhe o básico do dia sem se perder: comida, água, treino, sono e progresso.</p>
+          <p className="muted-text">Acompanhe o básico do dia: comida, água, treino, sono, cardio e progresso.</p>
         </div>
         <span className="pill"><CalendarDays size={16} /> {new Date().toLocaleDateString('pt-BR')}</span>
       </div>
@@ -93,7 +93,7 @@ export default function Dashboard({ userId, profile, trainingPlan, onError }) {
         <div className="section-title-row">
           <div>
             <p className="eyebrow">Confiabilidade dos dados</p>
-            <h3>O que o app sabe hoje</h3>
+            <h3>Dados disponíveis hoje</h3>
           </div>
           <span className={`pill quality-${quality.tone}`}><ShieldCheck size={16} /> {quality.label}</span>
         </div>
