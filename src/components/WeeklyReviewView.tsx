@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BarChart3, CheckCircle2, Droplets, Dumbbell, Flame, Footprints, Moon, NotebookTabs, Scale, Target, TrendingUp, TriangleAlert } from 'lucide-react';
+import { BarChart3, CheckCircle2, Copy, Download, Droplets, Dumbbell, Flame, Footprints, Moon, NotebookTabs, Scale, Target, TrendingUp, TriangleAlert } from 'lucide-react';
 import { loadWeeklyReview } from '../services/analyticsService';
 
 export default function WeeklyReviewView({ userId, profile, onError }) {
   const [review, setReview] = useState(null);
   const [days, setDays] = useState(7);
+  const [showExport, setShowExport] = useState(false);
 
   const load = useCallback(async (selectedDays = days) => {
     try {
@@ -19,6 +20,26 @@ export default function WeeklyReviewView({ userId, profile, onError }) {
   if (!review) return <p>Carregando revisão...</p>;
 
   const report = review.ruleReport;
+  const exportText = JSON.stringify(review.exportPayload, null, 2);
+
+  async function copyExport() {
+    try {
+      await navigator.clipboard.writeText(exportText);
+      onError('Relatório semanal copiado. Agora envie para o chat Analista Semanal.');
+    } catch (err) {
+      onError('Não consegui copiar automaticamente. Selecione o texto e copie manualmente.');
+    }
+  }
+
+  function downloadExport() {
+    const blob = new Blob([exportText], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `atleta-hibrido-relatorio-semanal-${review.exportPayload.period.start_date}_${review.exportPayload.period.end_date}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div className="weekly-review-page">
@@ -28,11 +49,16 @@ export default function WeeklyReviewView({ userId, profile, onError }) {
           <h2>Resumo inteligente da semana</h2>
           <p className="muted-text">Análise automática por regras claras: treino, cardio, sono, água, dieta e check-in.</p>
         </div>
-        <select className="date-input" value={days} onChange={(e) => setDays(Number(e.target.value))}>
-          <option value={7}>Últimos 7 dias</option>
-          <option value={14}>Últimos 14 dias</option>
-          <option value={30}>Últimos 30 dias</option>
-        </select>
+        <div className="weekly-actions">
+          <select className="date-input" value={days} onChange={(e) => setDays(Number(e.target.value))}>
+            <option value={7}>Últimos 7 dias</option>
+            <option value={14}>Últimos 14 dias</option>
+            <option value={30}>Últimos 30 dias</option>
+          </select>
+          <button className="ghost-btn" type="button" onClick={() => setShowExport((value) => !value)}>
+            <Copy size={16} /> Exportar JSON
+          </button>
+        </div>
       </div>
 
       <section className={`panel weekly-score-panel ${report.tone}`}>
@@ -53,6 +79,23 @@ export default function WeeklyReviewView({ userId, profile, onError }) {
           ))}
         </div>
       </section>
+
+      {showExport && (
+        <section className="panel weekly-export-panel">
+          <div className="section-title-row">
+            <div>
+              <p className="eyebrow">Exportação completa</p>
+              <h3>JSON para o chat Analista Semanal</h3>
+              <p className="muted-text">Inclui resumo, aderência diária, treinos, cardio, sono corrigido, dados do relógio, peso e check-ins.</p>
+            </div>
+            <div className="form-actions compact-actions">
+              <button className="ghost-btn" type="button" onClick={copyExport}><Copy size={16} /> Copiar</button>
+              <button className="ghost-btn" type="button" onClick={downloadExport}><Download size={16} /> Baixar</button>
+            </div>
+          </div>
+          <textarea className="json-import-box weekly-export-box" value={exportText} readOnly />
+        </section>
+      )}
 
       <div className="metric-grid four">
         <Metric icon={Flame} label="Média kcal" value={review.avgKcal ? review.avgKcal.toFixed(0) : '--'} sub={`${review.mealLoggedDays}/${review.days} dias registrados`} />

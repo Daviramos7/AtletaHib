@@ -7,6 +7,7 @@ import { listRuns } from '../services/runService';
 import { listCardioSessions } from '../services/cardioService';
 import { RUN_PLAN } from '../data/defaultPlan';
 import { getTodayWearableMetric } from '../services/wearableService';
+import { listSleepSessions } from '../services/sleepService';
 
 export default function Dashboard({ userId, profile, trainingPlan, onError }) {
   const [daily, setDaily] = useState(null);
@@ -15,18 +16,20 @@ export default function Dashboard({ userId, profile, trainingPlan, onError }) {
   const [cardios, setCardios] = useState([]);
   const [review, setReview] = useState(null);
   const [wearableToday, setWearableToday] = useState(null);
+  const [correctedSleepToday, setCorrectedSleepToday] = useState(null);
 
   useEffect(() => {
     async function load() {
       try {
         const date = todayKey();
-        const [dailyLog, mealsData, runData, cardioData, reviewData, wearableData] = await Promise.all([
+        const [dailyLog, mealsData, runData, cardioData, reviewData, wearableData, sleepData] = await Promise.all([
           getOrCreateDailyLog(userId, date),
           listMeals(userId, date),
           listRuns(userId),
           listCardioSessions(userId, 10),
           loadWeeklyReview(userId, profile, 7),
           getTodayWearableMetric(userId),
+          listSleepSessions(userId, 7),
         ]);
         setDaily(dailyLog);
         setMeals(mealsData);
@@ -34,6 +37,7 @@ export default function Dashboard({ userId, profile, trainingPlan, onError }) {
         setCardios(cardioData);
         setReview(reviewData);
         setWearableToday(wearableData);
+        setCorrectedSleepToday((sleepData ?? []).find((item) => item.sleep_date === date) ?? null);
       } catch (err) {
         onError(err.message);
       }
@@ -48,8 +52,9 @@ export default function Dashboard({ userId, profile, trainingPlan, onError }) {
   const todayTraining = getTodayTraining(trainingPlan);
   const lastRun = runs[0];
   const lastCardio = cardios[0] ?? lastRun;
-  const coach = buildCoachInsight({ totalKcal, kcalGoal, water, waterGoal, wearableToday, review, todayTraining });
-  const quality = buildDataQuality({ meals, daily, wearableToday, review });
+  const displaySleepMinutes = correctedSleepToday?.duration_minutes ?? wearableToday?.sleep_minutes ?? null;
+  const coach = buildCoachInsight({ totalKcal, kcalGoal, water, waterGoal, wearableToday, displaySleepMinutes, review, todayTraining });
+  const quality = buildDataQuality({ meals, daily, wearableToday, correctedSleepToday, review });
 
   async function addWater(amount) {
     try {
@@ -121,7 +126,7 @@ export default function Dashboard({ userId, profile, trainingPlan, onError }) {
             <WearableCard icon={Flame} value={wearableToday.active_kcal} fallback="--" label="kcal ativas" />
             <WearableCard icon={HeartPulse} value={wearableToday.avg_heart_rate} fallback="--" suffix=" bpm" label="FC média" />
             <WearableCard icon={HeartPulse} value={wearableToday.resting_heart_rate} fallback="--" suffix=" bpm" label="FC repouso" />
-            <WearableCard icon={Moon} value={wearableToday.sleep_minutes ? (Number(wearableToday.sleep_minutes) / 60).toFixed(1) : null} fallback="--" suffix=" h" label="sono" />
+            <WearableCard icon={Moon} value={displaySleepMinutes ? (Number(displaySleepMinutes) / 60).toFixed(1) : null} fallback="--" suffix=" h" label={correctedSleepToday ? 'sono corrigido' : 'sono'} />
             <WearableCard icon={Activity} value={wearableToday.workout_minutes} fallback="0" suffix=" min" label="atividade" />
           </div>
           <div className="decision-strip"><strong>Leitura do relógio</strong><span>{wearableToday.readiness_hint ?? 'Use estes dados junto do check-in subjetivo.'}</span></div>
@@ -190,8 +195,8 @@ function WearableCard({ icon: Icon, value, fallback, suffix = '', label }) {
   );
 }
 
-function buildCoachInsight({ totalKcal, kcalGoal, water, waterGoal, wearableToday, review, todayTraining }) {
-  const sleepHours = Number(wearableToday?.sleep_minutes || 0) / 60;
+function buildCoachInsight({ totalKcal, kcalGoal, water, waterGoal, wearableToday, displaySleepMinutes, review, todayTraining }) {
+  const sleepHours = Number(displaySleepMinutes || 0) / 60;
   const restingHr = Number(wearableToday?.resting_heart_rate || 0);
 
   if (sleepHours && sleepHours < 5.5) {
@@ -243,7 +248,7 @@ function buildCoachInsight({ totalKcal, kcalGoal, water, waterGoal, wearableToda
   };
 }
 
-function buildDataQuality({ meals, daily, wearableToday, review }) {
+function buildDataQuality({ meals, daily, wearableToday, correctedSleepToday, review }) {
   const items = [
     {
       label: 'Dieta',
@@ -259,6 +264,11 @@ function buildDataQuality({ meals, daily, wearableToday, review }) {
       label: 'Relógio',
       ok: Boolean(wearableToday),
       text: wearableToday ? `${formatWearableSource(wearableToday.source, wearableToday.provider)} sincronizado` : 'sem dado de wearable hoje',
+    },
+    {
+      label: 'Sono',
+      ok: Boolean(correctedSleepToday || wearableToday?.sleep_minutes),
+      text: correctedSleepToday ? 'sono corrigido por print' : wearableToday?.sleep_minutes ? 'sono automático recebido' : 'sem sono hoje',
     },
     {
       label: 'Semana',
