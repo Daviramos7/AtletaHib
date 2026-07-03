@@ -4,6 +4,7 @@ import { getOrCreateDailyLog, setWater, todayKey } from '../services/dailyServic
 import { loadWeeklyReview } from '../services/analyticsService';
 import { listMeals } from '../services/mealService';
 import { listRuns } from '../services/runService';
+import { listCardioSessions } from '../services/cardioService';
 import { RUN_PLAN } from '../data/defaultPlan';
 import { getTodayWearableMetric } from '../services/wearableService';
 
@@ -11,6 +12,7 @@ export default function Dashboard({ userId, profile, trainingPlan, onError }) {
   const [daily, setDaily] = useState(null);
   const [meals, setMeals] = useState([]);
   const [runs, setRuns] = useState([]);
+  const [cardios, setCardios] = useState([]);
   const [review, setReview] = useState(null);
   const [wearableToday, setWearableToday] = useState(null);
 
@@ -18,16 +20,18 @@ export default function Dashboard({ userId, profile, trainingPlan, onError }) {
     async function load() {
       try {
         const date = todayKey();
-        const [dailyLog, mealsData, runData, reviewData, wearableData] = await Promise.all([
+        const [dailyLog, mealsData, runData, cardioData, reviewData, wearableData] = await Promise.all([
           getOrCreateDailyLog(userId, date),
           listMeals(userId, date),
           listRuns(userId),
+          listCardioSessions(userId, 10),
           loadWeeklyReview(userId, profile, 7),
           getTodayWearableMetric(userId),
         ]);
         setDaily(dailyLog);
         setMeals(mealsData);
         setRuns(runData);
+        setCardios(cardioData);
         setReview(reviewData);
         setWearableToday(wearableData);
       } catch (err) {
@@ -43,6 +47,7 @@ export default function Dashboard({ userId, profile, trainingPlan, onError }) {
   const water = daily?.water_ml ?? 0;
   const todayTraining = getTodayTraining(trainingPlan);
   const lastRun = runs[0];
+  const lastCardio = cardios[0] ?? lastRun;
   const coach = buildCoachInsight({ totalKcal, kcalGoal, water, waterGoal, wearableToday, review, todayTraining });
   const quality = buildDataQuality({ meals, daily, wearableToday, review });
 
@@ -80,7 +85,7 @@ export default function Dashboard({ userId, profile, trainingPlan, onError }) {
       <div className="today-focus-grid">
         <Metric icon={Flame} label="Calorias" value={`${totalKcal}`} sub={`de ${kcalGoal} kcal`} percent={(totalKcal / kcalGoal) * 100} />
         <Metric icon={Droplets} label="Água" value={`${water} ml`} sub={`de ${waterGoal} ml`} percent={(water / waterGoal) * 100} />
-        <Metric icon={Footprints} label="Última corrida" value={lastRun ? `${Number(lastRun.distance_km).toFixed(2)} km` : '0 km'} sub={lastRun ? secondsToPace(lastRun.duration_seconds, lastRun.distance_km) : 'sem registro'} percent={lastRun ? Math.min((lastRun.distance_km / 1) * 100, 100) : 0} />
+        <Metric icon={Footprints} label="Último cardio" value={lastCardio ? `${Number(lastCardio.distance_km || 0).toFixed(2)} km` : '0 km'} sub={lastCardio ? `${cardioLabel(lastCardio)} · ${secondsToPace(lastCardio.duration_seconds, lastCardio.distance_km)}` : 'sem registro'} percent={lastCardio ? Math.min((Number(lastCardio.distance_km || 0) / 1) * 100, 100) : 0} />
         <Metric icon={Goal} label="Peso" value={`${Number(profile?.current_weight_kg ?? 0).toFixed(1)} kg`} sub={`meta ${profile?.target_weight_kg ?? '--'} kg`} percent={weightProgress(profile)} />
       </div>
 
@@ -165,7 +170,7 @@ export default function Dashboard({ userId, profile, trainingPlan, onError }) {
       )}
 
       <section className="panel">
-        <p className="eyebrow">Corrida 1 km</p>
+        <p className="eyebrow">Cardio / corrida 1 km</p>
         <h3>Progressão recomendada</h3>
         <div className="run-plan-mini">
           {RUN_PLAN.map((week) => <span key={week.week}>S{week.week}: {week.protocol}</span>)}
@@ -268,6 +273,18 @@ function buildDataQuality({ meals, daily, wearableToday, review }) {
     label: score >= 3 ? 'boa' : score >= 2 ? 'parcial' : 'baixa',
     tone: score >= 3 ? 'good' : score >= 2 ? 'warning' : 'danger',
   };
+}
+
+function cardioLabel(session) {
+  if (!session) return 'Cardio';
+  return session.activity_label || ({
+    treadmill: 'Esteira',
+    outdoor_run: 'Corrida',
+    walk: 'Caminhada',
+    stairs: 'Escada',
+    bike: 'Bike',
+    elliptical: 'Elíptico',
+  })[session.activity_type] || 'Cardio';
 }
 
 function formatWearableSource(source, provider) {

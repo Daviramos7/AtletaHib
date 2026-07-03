@@ -570,7 +570,7 @@ button:disabled { opacity: .62; cursor: not-allowed; }
     bottom: 10px;
     z-index: 60;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 4px;
     padding: 8px;
     border: 1px solid var(--border);
@@ -725,5 +725,81 @@ button:disabled { opacity: .62; cursor: not-allowed; }
 
   .chart-point {
     r: 4;
+  }
+}
+
+
+/* v2.1 — Cardio importado por JSON sem duplicar métricas diárias */
+.cardio-page {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.cardio-dedupe-panel {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.cardio-import-panel textarea.json-import-box {
+  min-height: 230px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre;
+  overflow: auto;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.cardio-preview {
+  margin-top: 12px;
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid rgba(200,255,0,.32);
+  background: rgba(200,255,0,.06);
+}
+
+.cardio-preview span,
+.cardio-preview small,
+.cardio-entry small {
+  color: var(--muted);
+}
+
+.cardio-entry {
+  align-items: flex-start;
+}
+
+.cardio-entry > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cardio-entry .pill {
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .cardio-dedupe-panel {
+    display: grid;
+  }
+
+  .cardio-import-panel textarea.json-import-box {
+    min-height: 260px;
+    font-size: 11px;
+  }
+
+  .bottom-nav button {
+    padding-left: 2px;
+    padding-right: 2px;
   }
 }
