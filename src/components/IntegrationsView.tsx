@@ -21,6 +21,7 @@ const EMPTY_INTEGRATION = {
   notes: 'Fluxo recomendado para Android: Mi Fitness → Health Connect → app Android ponte → Supabase.',
 };
 
+
 const EMPTY_METRIC = {
   metric_date: todayKey(),
   provider: 'redmi_mi_fitness',
@@ -130,6 +131,7 @@ export default function IntegrationsView({ userId, profile, onError }) {
       onError(err.message);
     }
   }
+
 
   async function handleFileImport(event) {
     const file = event.target.files?.[0];
@@ -253,7 +255,6 @@ export default function IntegrationsView({ userId, profile, onError }) {
           <button className="primary-btn" disabled={busy}><Save size={16} /> Salvar integração</button>
         </form>
       </section>
-
       <section className="panel">
         <p className="eyebrow">Registro manual / Mi Fitness</p>
         <h3>Enquanto a ponte Android não existe, registre ou importe os dados principais.</h3>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Activity, BarChart3, ClipboardCheck, Dumbbell, LineChart, LogOut, Salad, Settings, SlidersHorizontal, Timer, TrendingUp, User, Waves, Watch } from 'lucide-react';
+import { Activity, BarChart3, ClipboardCheck, Dumbbell, LineChart, LogOut, Moon, Salad, Settings, SlidersHorizontal, Timer, TrendingUp, User, Waves, Watch } from 'lucide-react';
 import { isSupabaseConfigured } from './lib/supabaseClient';
 import { getSession, onAuthStateChange, signOut } from './services/authService';
 import { ensureUserBootstrap } from './services/bootstrapService';
@@ -9,6 +9,7 @@ import DietView from './components/DietView';
 import TrainingView from './components/TrainingView';
 import StrengthView from './components/StrengthView';
 import RunView from './components/RunView';
+import SleepView from './components/SleepView';
 import ProgressView from './components/ProgressView';
 import ProfileView from './components/ProfileView';
 import CheckInView from './components/CheckInView';
@@ -23,6 +24,7 @@ const NAV = [
   { id: 'diet', label: 'Dieta', icon: Salad },
   { id: 'training', label: 'Treino', icon: Dumbbell },
   { id: 'run', label: 'Cardio', icon: Timer },
+  { id: 'sleep', label: 'Sono', icon: Moon },
   { id: 'strength', label: 'Força', icon: TrendingUp },
   { id: 'checkin', label: 'Check-in', icon: ClipboardCheck },
   { id: 'progress', label: 'Progresso', icon: LineChart },
@@ -32,7 +34,7 @@ const NAV = [
   { id: 'profile', label: 'Perfil', icon: User },
 ];
 
-const MOBILE_NAV = NAV.filter((item) => ['dashboard', 'diet', 'training', 'run', 'progress', 'integrations'].includes(item.id));
+const MOBILE_NAV = NAV.filter((item) => ['dashboard', 'diet', 'training', 'run', 'sleep', 'progress', 'integrations'].includes(item.id));
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -115,6 +117,7 @@ export default function App() {
     diet: DietView,
     training: TrainingView,
     run: RunView,
+    sleep: SleepView,
     strength: StrengthView,
     checkin: CheckInView,
     progress: ProgressView,

@@ -21,19 +21,20 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
   const kcalGoal = Number(profile?.kcal_goal ?? 2300);
   const waterGoal = Number(profile?.water_goal_ml ?? 3000);
 
-  const [dailyRes, mealRes, workoutRes, setRes, runRes, cardioRes, wearableRes, weightRes, checkinRes] = await Promise.all([
+  const [dailyRes, mealRes, workoutRes, setRes, runRes, cardioRes, sleepRes, wearableRes, weightRes, checkinRes] = await Promise.all([
     client.from('daily_logs').select('*').eq('user_id', userId).gte('log_date', fromDate),
     client.from('meal_entries').select('*').eq('user_id', userId).gte('log_date', fromDate),
     client.from('workout_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).order('performed_at', { ascending: false }),
     client.from('workout_exercise_sets').select('*').eq('user_id', userId).gte('performed_at', fromIso),
     client.from('run_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).order('performed_at', { ascending: false }),
     client.from('cardio_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).order('performed_at', { ascending: false }),
+    client.from('sleep_sessions').select('*').eq('user_id', userId).gte('sleep_date', fromDate).order('sleep_date', { ascending: false }),
     client.from('wearable_daily_metrics').select('*').eq('user_id', userId).gte('metric_date', fromDate).order('metric_date', { ascending: false }),
     client.from('weight_logs').select('*').eq('user_id', userId).order('log_date', { ascending: false }).limit(8),
     client.from('daily_checkins').select('*').eq('user_id', userId).gte('log_date', fromDate),
   ]);
 
-  [dailyRes, mealRes, workoutRes, setRes, runRes, cardioRes, wearableRes, weightRes, checkinRes].forEach((res) => {
+  [dailyRes, mealRes, workoutRes, setRes, runRes, cardioRes, sleepRes, wearableRes, weightRes, checkinRes].forEach((res) => {
     if (res.error) throw res.error;
   });
 
@@ -41,30 +42,39 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
   const dailyByDate = new Map((dailyRes.data ?? []).map((row) => [row.log_date, row]));
   const checkinByDate = new Map((checkinRes.data ?? []).map((row) => [row.log_date, row]));
   const wearableByDate = new Map((wearableRes.data ?? []).map((row) => [row.metric_date, row]));
+  const correctedSleepByDate = new Map((sleepRes.data ?? []).map((row) => [row.sleep_date, row]));
 
   const daysData = dates.map((date) => {
     const kcal = mealsByDate.get(date) ?? 0;
     const water = Number(dailyByDate.get(date)?.water_ml ?? 0);
     const checkin = checkinByDate.get(date);
     const wearable = wearableByDate.get(date);
+    const correctedSleep = correctedSleepByDate.get(date);
     const readiness = calculateReadiness(checkin);
-    const sleepHours = wearable?.sleep_minutes ? Number(wearable.sleep_minutes) / 60 : 0;
+    const sleepMinutes = correctedSleep?.duration_minutes ?? wearable?.sleep_minutes ?? 0;
+    const sleepHours = sleepMinutes ? Number(sleepMinutes) / 60 : 0;
     const steps = Number(wearable?.steps ?? 0);
     return {
       date,
       kcal,
       water,
       sleepHours,
+      sleepMinutes: Number(sleepMinutes || 0),
+      sleepSource: correctedSleep ? 'sleep_screenshot_corrected' : wearable?.sleep_minutes ? formatSource(wearable.source, wearable.provider) : null,
+      correctedSleep: correctedSleep ?? null,
       steps,
       activeKcal: Number(wearable?.active_kcal ?? 0),
-      avgHeartRate: Number(wearable?.avg_heart_rate ?? 0),
+      avgHeartRate: Number(correctedSleep?.avg_heart_rate ?? wearable?.avg_heart_rate ?? 0),
       restingHeartRate: Number(wearable?.resting_heart_rate ?? 0),
+      avgSpo2: Number(correctedSleep?.avg_spo2 ?? 0),
+      breathingScore: Number(correctedSleep?.breathing_score ?? 0),
       kcalHit: kcal >= kcalGoal - 450 && kcal <= kcalGoal + 100,
       waterHit: water >= waterGoal,
       readiness,
       hasMeals: kcal > 0,
       hasCheckin: Boolean(checkin),
       hasWearable: Boolean(wearable),
+      hasCorrectedSleep: Boolean(correctedSleep),
     };
   });
 
@@ -77,6 +87,7 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
 
   const wearableDays = daysData.filter((day) => day.hasWearable).length;
   const sleepDays = daysData.filter((day) => day.sleepHours > 0).length;
+  const correctedSleepDays = daysData.filter((day) => day.hasCorrectedSleep).length;
   const avgSleepHours = sleepDays ? sum(daysData.map((day) => day.sleepHours)) / sleepDays : 0;
   const stepDays = daysData.filter((day) => day.steps > 0).length;
   const avgSteps = stepDays ? sum(daysData.map((day) => day.steps)) / stepDays : 0;
@@ -113,18 +124,42 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
     weightChange,
     wearableDays,
     sleepDays,
+    correctedSleepDays,
     avgSleepHours,
     stepDays,
     avgSteps,
     avgActiveKcal,
   };
 
+  const decision = buildDecision(stats);
+  const ruleReport = buildRuleReport(stats);
+  const exportPayload = buildWeeklyReportExport({
+    profile,
+    stats,
+    daysData,
+    decision,
+    ruleReport,
+    daily: dailyRes.data ?? [],
+    meals: mealRes.data ?? [],
+    strengthSessions: workoutRes.data ?? [],
+    strengthSets: setRes.data ?? [],
+    runSessions: runRes.data ?? [],
+    cardioSessions: cardioRes.data ?? [],
+    sleepSessions: sleepRes.data ?? [],
+    wearableMetrics: wearableRes.data ?? [],
+    weightLogs: weightRes.data ?? [],
+    checkins: checkinRes.data ?? [],
+    fromDate,
+    toDate: dates[dates.length - 1],
+  });
+
   return {
     ...stats,
     runs: cardioSessions,
     daysData,
-    decision: buildDecision(stats),
-    ruleReport: buildRuleReport(stats),
+    decision,
+    ruleReport,
+    exportPayload,
   };
 }
 
@@ -283,6 +318,92 @@ function scoreWeight(weightChange, max) {
 function scaledTarget(weeklyTarget, days) {
   return Math.max(1, Math.round((weeklyTarget / 7) * days));
 }
+
+
+function buildWeeklyReportExport({
+  profile,
+  stats,
+  daysData,
+  decision,
+  ruleReport,
+  daily,
+  meals,
+  strengthSessions,
+  strengthSets,
+  runSessions,
+  cardioSessions,
+  sleepSessions,
+  wearableMetrics,
+  weightLogs,
+  checkins,
+  fromDate,
+  toDate,
+}) {
+  return {
+    type: 'weekly_report_export',
+    generated_at: new Date().toISOString(),
+    period: {
+      start_date: fromDate,
+      end_date: toDate,
+      days: stats.days,
+    },
+    user_goal: {
+      main_goal: profile?.objective ?? 'emagrecimento e condicionamento',
+      kcal_goal: stats.kcalGoal,
+      water_goal_ml: stats.waterGoal,
+      strength_goal_weekly: profile?.weekly_strength_days ?? 4,
+      cardio_goal_weekly: profile?.weekly_cardio_days ?? 3,
+      target_weight_kg: profile?.target_weight_kg ?? null,
+      current_weight_kg: profile?.current_weight_kg ?? null,
+    },
+    summary: {
+      meal_logged_days: stats.mealLoggedDays,
+      avg_kcal_logged_days: Math.round(stats.avgKcal || 0),
+      kcal_hit_days: stats.kcalHitDays,
+      water_goal_days_hit: stats.waterHitDays,
+      strength_sessions: stats.workouts,
+      strength_sets: stats.strengthSets,
+      strength_volume_kg: Math.round(stats.strengthVolume || 0),
+      cardio_sessions: stats.cardioSessions,
+      total_cardio_km: Number(stats.totalKm.toFixed(2)),
+      sleep_days: stats.sleepDays,
+      corrected_sleep_days: stats.correctedSleepDays,
+      avg_sleep_hours: Number((stats.avgSleepHours || 0).toFixed(2)),
+      avg_steps: Math.round(stats.avgSteps || 0),
+      avg_active_kcal: Math.round(stats.avgActiveKcal || 0),
+      checkin_days: stats.checkinDays,
+      avg_readiness: Math.round(stats.avgReadiness || 0),
+      latest_weight_kg: stats.latestWeight?.weight_kg ?? null,
+      weight_change_kg: stats.weightChange === null ? null : Number(stats.weightChange.toFixed(2)),
+    },
+    daily: daysData,
+    raw_tables: {
+      daily_logs: daily,
+      meal_entries: meals,
+      strength_sessions: strengthSessions,
+      strength_sets: strengthSets,
+      run_sessions: runSessions,
+      cardio_sessions: cardioSessions,
+      sleep_sessions: sleepSessions,
+      wearable_daily_metrics: wearableMetrics,
+      weight_logs: weightLogs,
+      daily_checkins: checkins,
+    },
+    rules_report: ruleReport,
+    decision,
+    interpretation_prompt_hint: 'Envie este JSON para o chat Analista Semanal do projeto Atleta Híbrido.',
+  };
+}
+
+function formatSource(source, provider) {
+  const raw = String(source || provider || '').toLowerCase();
+  if (raw.includes('health_connect') || raw.includes('bridge')) return 'Health Connect';
+  if (raw.includes('sleep_screenshot') || raw.includes('screenshot')) return 'Sono corrigido por print';
+  if (raw.includes('mi_fitness') || raw.includes('redmi')) return 'Mi Fitness';
+  if (raw.includes('manual')) return 'manual';
+  return source || provider || 'wearable';
+}
+
 
 function getLastDates(days) {
   const today = new Date();
