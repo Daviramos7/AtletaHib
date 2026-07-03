@@ -9,17 +9,18 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
   const kcalGoal = Number(profile?.kcal_goal ?? 2300);
   const waterGoal = Number(profile?.water_goal_ml ?? 3000);
 
-  const [dailyRes, mealRes, workoutRes, setRes, runRes, weightRes, checkinRes] = await Promise.all([
+  const [dailyRes, mealRes, workoutRes, setRes, runRes, cardioRes, weightRes, checkinRes] = await Promise.all([
     client.from('daily_logs').select('*').eq('user_id', userId).gte('log_date', fromDate),
     client.from('meal_entries').select('*').eq('user_id', userId).gte('log_date', fromDate),
     client.from('workout_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).order('performed_at', { ascending: false }),
     client.from('workout_exercise_sets').select('*').eq('user_id', userId).gte('performed_at', fromIso),
     client.from('run_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).order('performed_at', { ascending: false }),
+    client.from('cardio_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).order('performed_at', { ascending: false }),
     client.from('weight_logs').select('*').eq('user_id', userId).order('log_date', { ascending: false }).limit(8),
     client.from('daily_checkins').select('*').eq('user_id', userId).gte('log_date', fromDate),
   ]);
 
-  [dailyRes, mealRes, workoutRes, setRes, runRes, weightRes, checkinRes].forEach((res) => {
+  [dailyRes, mealRes, workoutRes, setRes, runRes, cardioRes, weightRes, checkinRes].forEach((res) => {
     if (res.error) throw res.error;
   });
 
@@ -50,11 +51,14 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
   const waterHitDays = daysData.filter((day) => day.waterHit).length;
   const checkinDays = daysData.filter((day) => day.hasCheckin).length;
   const avgReadiness = checkinDays ? sum(daysData.filter((day) => day.hasCheckin).map((day) => day.readiness.score)) / checkinDays : 0;
-  const totalKm = sum((runRes.data ?? []).map((run) => Number(run.distance_km || 0)));
+  const totalKm = sum([
+    ...(runRes.data ?? []).map((run) => Number(run.distance_km || 0)),
+    ...(cardioRes.data ?? []).map((session) => Number(session.distance_km || 0)),
+  ]);
   const strengthVolume = sum((setRes.data ?? []).map((set) => Number(set.load_kg || 0) * Number(set.reps || 0)));
   const strengthSets = (setRes.data ?? []).length;
   const workouts = (workoutRes.data ?? []).filter((item) => item.completed).length;
-  const runs = (runRes.data ?? []).length;
+  const runs = (runRes.data ?? []).length + (cardioRes.data ?? []).length;
   const latestWeight = weightRes.data?.[0] ?? null;
   const oldestWeight = [...(weightRes.data ?? [])].sort((a, b) => a.log_date.localeCompare(b.log_date))[0] ?? null;
   const weightChange = latestWeight && oldestWeight ? Number(oldestWeight.weight_kg) - Number(latestWeight.weight_kg) : null;

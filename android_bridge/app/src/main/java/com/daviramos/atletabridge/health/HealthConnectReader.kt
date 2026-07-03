@@ -105,13 +105,11 @@ class HealthConnectReader(private val context: Context) {
         val end = date.plusDays(1).atStartOfDay(zone).toInstant()
         val range = TimeRangeFilter.between(start, end)
 
-        // Sono cruza meia-noite com frequência.
-        // Esta janela captura o sono principal que terminou no dia consultado.
+        // Janela da noite que terminou no dia consultado.
         val sleepSearchStart = date.minusDays(1).atTime(LocalTime.of(18, 0)).atZone(zone).toInstant()
         val sleepSearchEnd = date.atTime(LocalTime.of(18, 0)).atZone(zone).toInstant()
         val sleepSearchRange = TimeRangeFilter.between(sleepSearchStart, sleepSearchEnd)
 
-        // FC repouso nativa pode vir em uma janela diferente do log diário.
         val restingSearchStart = date.minusDays(1).atStartOfDay(zone).toInstant()
         val restingSearchEnd = date.plusDays(1).atStartOfDay(zone).toInstant()
         val restingSearchRange = TimeRangeFilter.between(restingSearchStart, restingSearchEnd)
@@ -132,11 +130,18 @@ class HealthConnectReader(private val context: Context) {
             }.getOrElse { emptyList() }
         } else emptyList()
 
-        // Aqui está a parte "inteligente":
-        // O horário de dormir/acordar vindo do próprio registro de sono é a janela mestra.
-        // A FC só entra no cálculo de repouso se o timestamp dela estiver dentro dessa janela.
-        // Exemplo: se acordou 06:10 e a FC só registrou 06:30, o ponto 06:30 fica fora.
-        val sleepWindows = sleepRecords.mapNotNull { it.toExactSleepWindow() }
+        // Correção v2.1:
+        // O Mi Fitness pode escrever vários registros cumulativos com o mesmo início:
+        // 22:57-00:46, 22:57-01:53, 22:57-04:51, 22:57-05:31, 22:57-06:20.
+        // Somar tudo gera +24h de sono. O correto é tratar como registros sobrepostos
+        // e usar o bloco consolidado/mais longo da noite.
+        val mainSleepWindow = sleepRecords
+            .mapNotNull { it.toClampedSleepWindow(sleepSearchStart, sleepSearchEnd) }
+            .mergeOverlaps()
+            .filter { it.durationMinutes in 30..(16 * 60) }
+            .maxByOrNull { it.durationMinutes }
+
+        val sleepWindows = mainSleepWindow?.let { listOf(it) } ?: emptyList()
 
         val steps = if (stepsPermission in granted) {
             runCatching {
@@ -189,10 +194,6 @@ class HealthConnectReader(private val context: Context) {
             }.getOrNull()
         } else null
 
-        // Se o Mi Fitness não grava RestingHeartRateRecord, derivamos a FC de repouso
-        // usando HeartRateRecord normal, mas recortado pelo sono real.
-        // Para reduzir ruído, usamos os 30% menores pontos de FC dentro do sono.
-        // Isso é mais próximo de "FC de repouso" do que a média de toda a noite.
         val sleepDerivedRestingHeartRate = if (
             nativeRestingHeartRate == null &&
             heartRatePermission in granted &&
@@ -215,10 +216,7 @@ class HealthConnectReader(private val context: Context) {
         } else null
 
         val restingHeartRate = nativeRestingHeartRate ?: sleepDerivedRestingHeartRate
-
-        val sleepMinutes = sleepRecords
-            .sumOf { Duration.between(it.startTime, it.endTime).toMinutes() }
-            .takeIf { it > 0 }
+        val sleepMinutes = mainSleepWindow?.durationMinutes?.takeIf { it > 0 }
 
         val workoutMinutes = if (exercisePermission in granted) {
             runCatching {
@@ -298,8 +296,14 @@ class HealthConnectReader(private val context: Context) {
     private fun List<SleepSessionRecord>.preferSleepSource(): List<SleepSessionRecord> {
         val preferred = preferred()
         if (preferred.isNotEmpty() && preferred.size != size) return preferred
+
         return groupBy { it.metadata.dataOrigin.packageName }
-            .maxByOrNull { (_, records) -> records.sumOf { Duration.between(it.startTime, it.endTime).toMinutes() } }
+            .maxByOrNull { (_, records) ->
+                records.mapNotNull { record ->
+                    val minutes = Duration.between(record.startTime, record.endTime).toMinutes()
+                    minutes.takeIf { it in 1..(24 * 60) }
+                }.sum()
+            }
             ?.value ?: this
     }
 
@@ -311,10 +315,35 @@ class HealthConnectReader(private val context: Context) {
             ?.value ?: this
     }
 
-    private fun SleepSessionRecord.toExactSleepWindow(): SleepWindow? {
-        val duration = Duration.between(startTime, endTime)
-        if (duration.toMinutes() <= 0) return null
-        return SleepWindow(startTime, endTime)
+    private fun SleepSessionRecord.toClampedSleepWindow(windowStart: Instant, windowEnd: Instant): SleepWindow? {
+        val clampedStart = maxInstant(startTime, windowStart)
+        val clampedEnd = minInstant(endTime, windowEnd)
+        if (!clampedStart.isBefore(clampedEnd)) return null
+
+        val minutes = Duration.between(clampedStart, clampedEnd).toMinutes()
+        if (minutes <= 0 || minutes > (24 * 60)) return null
+
+        return SleepWindow(clampedStart, clampedEnd)
+    }
+
+    private fun List<SleepWindow>.mergeOverlaps(): List<SleepWindow> {
+        if (isEmpty()) return emptyList()
+        val sorted = sortedBy { it.start }
+        val merged = mutableListOf<SleepWindow>()
+
+        for (window in sorted) {
+            val last = merged.lastOrNull()
+            if (last == null || window.start.isAfter(last.end)) {
+                merged.add(window)
+            } else {
+                merged[merged.lastIndex] = SleepWindow(
+                    start = last.start,
+                    end = maxInstant(last.end, window.end)
+                )
+            }
+        }
+
+        return merged
     }
 
     private fun Instant.isWithinInclusive(start: Instant, end: Instant): Boolean =
@@ -327,7 +356,12 @@ class HealthConnectReader(private val context: Context) {
         return sorted.take(takeCount).average()
     }
 
-    private data class SleepWindow(val start: Instant, val end: Instant)
+    private fun maxInstant(a: Instant, b: Instant): Instant = if (a.isAfter(b)) a else b
+    private fun minInstant(a: Instant, b: Instant): Instant = if (a.isBefore(b)) a else b
+
+    private data class SleepWindow(val start: Instant, val end: Instant) {
+        val durationMinutes: Long get() = Duration.between(start, end).toMinutes()
+    }
 }
 
 private fun Double.round1(): Double = (this * 10.0).roundToLong() / 10.0

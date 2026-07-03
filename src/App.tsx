@@ -22,7 +22,7 @@ const NAV = [
   { id: 'dashboard', label: 'Hoje', icon: Activity },
   { id: 'diet', label: 'Dieta', icon: Salad },
   { id: 'training', label: 'Treino', icon: Dumbbell },
-  { id: 'run', label: '1 km', icon: Timer },
+  { id: 'run', label: 'Cardio', icon: Timer },
   { id: 'strength', label: 'Força', icon: TrendingUp },
   { id: 'checkin', label: 'Check-in', icon: ClipboardCheck },
   { id: 'progress', label: 'Progresso', icon: LineChart },
@@ -32,7 +32,7 @@ const NAV = [
   { id: 'profile', label: 'Perfil', icon: User },
 ];
 
-const MOBILE_NAV = NAV.filter((item) => ['dashboard', 'diet', 'training', 'progress', 'integrations'].includes(item.id));
+const MOBILE_NAV = NAV.filter((item) => ['dashboard', 'diet', 'training', 'run', 'progress', 'integrations'].includes(item.id));
 
 export default function App() {
   const [session, setSession] = useState(null);
