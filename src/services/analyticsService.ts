@@ -21,20 +21,21 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
   const kcalGoal = Number(profile?.kcal_goal ?? 2300);
   const waterGoal = Number(profile?.water_goal_ml ?? 3000);
 
-  const [dailyRes, mealRes, workoutRes, setRes, runRes, cardioRes, sleepRes, wearableRes, weightRes, checkinRes] = await Promise.all([
+  const [dailyRes, mealRes, workoutRes, setRes, runRes, cardioRes, wearableWorkoutRes, sleepRes, wearableRes, weightRes, checkinRes] = await Promise.all([
     client.from('daily_logs').select('*').eq('user_id', userId).gte('log_date', fromDate),
     client.from('meal_entries').select('*').eq('user_id', userId).gte('log_date', fromDate),
     client.from('workout_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).order('performed_at', { ascending: false }),
     client.from('workout_exercise_sets').select('*').eq('user_id', userId).gte('performed_at', fromIso),
     client.from('run_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).order('performed_at', { ascending: false }),
     client.from('cardio_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).order('performed_at', { ascending: false }),
+    client.from('wearable_workout_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).order('performed_at', { ascending: false }),
     client.from('sleep_sessions').select('*').eq('user_id', userId).gte('sleep_date', fromDate).order('sleep_date', { ascending: false }),
     client.from('wearable_daily_metrics').select('*').eq('user_id', userId).gte('metric_date', fromDate).order('metric_date', { ascending: false }),
     client.from('weight_logs').select('*').eq('user_id', userId).order('log_date', { ascending: false }).limit(8),
     client.from('daily_checkins').select('*').eq('user_id', userId).gte('log_date', fromDate),
   ]);
 
-  [dailyRes, mealRes, workoutRes, setRes, runRes, cardioRes, sleepRes, wearableRes, weightRes, checkinRes].forEach((res) => {
+  [dailyRes, mealRes, workoutRes, setRes, runRes, cardioRes, wearableWorkoutRes, sleepRes, wearableRes, weightRes, checkinRes].forEach((res) => {
     if (res.error) throw res.error;
   });
 
@@ -145,6 +146,7 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
     strengthSets: setRes.data ?? [],
     runSessions: runRes.data ?? [],
     cardioSessions: cardioRes.data ?? [],
+    wearableWorkoutSessions: wearableWorkoutRes.data ?? [],
     sleepSessions: sleepRes.data ?? [],
     wearableMetrics: wearableRes.data ?? [],
     weightLogs: weightRes.data ?? [],
@@ -333,6 +335,7 @@ function buildWeeklyReportExport({
   runSessions,
   cardioSessions,
   sleepSessions,
+  wearableWorkoutSessions,
   wearableMetrics,
   weightLogs,
   checkins,
@@ -365,6 +368,7 @@ function buildWeeklyReportExport({
       strength_sets: stats.strengthSets,
       strength_volume_kg: Math.round(stats.strengthVolume || 0),
       cardio_sessions: stats.cardioSessions,
+      wearable_strength_sessions: (wearableWorkoutSessions ?? []).filter((item) => String(item.activity_type).includes('strength')).length,
       total_cardio_km: Number(stats.totalKm.toFixed(2)),
       sleep_days: stats.sleepDays,
       corrected_sleep_days: stats.correctedSleepDays,
@@ -384,6 +388,7 @@ function buildWeeklyReportExport({
       strength_sets: strengthSets,
       run_sessions: runSessions,
       cardio_sessions: cardioSessions,
+      wearable_workout_sessions: wearableWorkoutSessions,
       sleep_sessions: sleepSessions,
       wearable_daily_metrics: wearableMetrics,
       weight_logs: weightLogs,
