@@ -235,10 +235,14 @@ export function buildTrainingPlanFromProfile(profile = PROFILE_FALLBACKS) {
     if (type.includes('corrida')) {
       exercises.push({ position: exercises.length + 1, exercise_name: 'Cardio pós-treino', sets: '1', reps: '10-20min', rest_seconds: 0, notes: cardioNote(profile) });
     }
+    const hasCardio = type.includes('corrida') || type.includes('z2');
     plan.days.push({
       weekday,
       title,
       type,
+      day_kind: hasCardio ? 'strength_cardio' : 'strength',
+      cardio_required: hasCardio,
+      cardio_options: hasCardio ? [{ label: 'Cardio pós-treino', description: cardioNote(profile) }] : [],
       notes: `Treino gerado pelo perfil do usuário. Horário preferencial: ${String(profile.training_time ?? '18:00').slice(0, 5)}. Ajuste cargas pelo registro de força.`,
       exercises,
     });
@@ -263,6 +267,9 @@ export function buildTrainingPlanFromProfile(profile = PROFILE_FALLBACKS) {
       weekday: 3,
       title: 'Cardio principal',
       type: 'corrida',
+      day_kind: 'cardio',
+      cardio_required: true,
+      cardio_options: [{ label: 'Corrida/caminhada progressiva', description: '20-30min · Use a aba 1 km como referência.' }],
       notes: cardioNote(profile),
       exercises: [
         { position: 1, exercise_name: 'Corrida/caminhada progressiva', sets: '1', reps: '20-30min', rest_seconds: 0, notes: 'Use a aba 1 km como referência de progressão.' },
@@ -276,6 +283,12 @@ export function buildTrainingPlanFromProfile(profile = PROFILE_FALLBACKS) {
       weekday: 6,
       title: 'Futebol ou cardio leve',
       type: 'futebol',
+      day_kind: 'cardio',
+      cardio_required: true,
+      cardio_options: [
+        { label: 'Futebol recreativo', description: '40-60min · Aqueça antes.' },
+        { label: 'Alternativa: caminhada/trote leve', description: '20-30min · Sem tiro forte se estiver cansado.' },
+      ],
       notes: 'Se jogar bola, conta como cardio. Aqueça antes e não faça tiro pesado no mesmo dia.',
       exercises: [
         { position: 1, exercise_name: 'Futebol recreativo', sets: '1', reps: '40-60min', rest_seconds: 0, notes: 'Aquecimento de 8-10min antes de entrar forte.' },
@@ -287,6 +300,9 @@ export function buildTrainingPlanFromProfile(profile = PROFILE_FALLBACKS) {
       weekday: 6,
       title: 'Cardio leve opcional',
       type: 'cardio_leve',
+      day_kind: 'cardio',
+      cardio_required: true,
+      cardio_options: [{ label: 'Caminhada, bike ou elíptico', description: '25-40min · Ritmo em que ainda dá para conversar.' }],
       notes: 'Sessão leve para aumentar gasto e consistência sem atrapalhar recuperação.',
       exercises: [
         { position: 1, exercise_name: 'Caminhada, bike ou elíptico', sets: '1', reps: '25-40min', rest_seconds: 0, notes: 'Ritmo em que ainda dá para conversar.' },
@@ -298,6 +314,9 @@ export function buildTrainingPlanFromProfile(profile = PROFILE_FALLBACKS) {
     weekday: 0,
     title: 'Descanso e planejamento',
     type: 'descanso',
+    day_kind: 'rest',
+    cardio_required: false,
+    cardio_options: [],
     notes: 'Recuperar, revisar a semana e organizar refeições. Descanso também faz parte do resultado.',
     exercises: [
       { position: 1, exercise_name: 'Revisão semanal', sets: '1', reps: '10min', rest_seconds: 0, notes: 'Conferir sono, água, peso, treinos e alimentação.' },

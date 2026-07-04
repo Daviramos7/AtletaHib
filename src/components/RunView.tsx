@@ -1,37 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FileJson, Plus, ShieldCheck } from 'lucide-react';
+import { Plus, ShieldCheck } from 'lucide-react';
 import { RUN_PLAN } from '../data/defaultPlan';
 import { listRuns, saveRun } from '../services/runService';
-import { listCardioSessions, normalizeCardioImportPayload, saveCardioSessionFromJson } from '../services/cardioService';
+import { listCardioSessions } from '../services/cardioService';
 
-const EXAMPLE_JSON = `{
-  "type": "cardio_session",
-  "activity_type": "treadmill",
-  "activity_label": "Esteira",
-  "date": "2026-07-02",
-  "start_time": "17:51",
-  "duration_seconds": 1368,
-  "distance_km": 2.0,
-  "active_kcal": 238,
-  "total_kcal": 280,
-  "avg_heart_rate": 131,
-  "max_heart_rate": 170,
-  "avg_pace_min_per_km": "11'24\"",
-  "best_pace_min_per_km": "7'21\"",
-  "steps": 2667,
-  "source": "mi_fitness_screenshot",
-  "source_app": "Mi Fitness",
-  "device_name": "Redmi Watch 5 Active",
-  "counts_toward_daily_totals": false,
-  "metrics_may_already_exist_in_health_connect": true,
-  "confidence": "high"
-}`;
 
 export default function RunView({ userId, onError }) {
   const [runs, setRuns] = useState([]);
   const [cardios, setCardios] = useState([]);
-  const [jsonText, setJsonText] = useState('');
-  const [preview, setPreview] = useState(null);
   const [form, setForm] = useState({ distance_km: '1', minutes: '', seconds: '', run_walk_protocol: RUN_PLAN[0].protocol, notes: '' });
 
   const load = useCallback(async () => {
@@ -73,27 +49,6 @@ export default function RunView({ userId, onError }) {
     }
   }
 
-  function handlePreview() {
-    try {
-      const parsed = JSON.parse(jsonText);
-      setPreview(normalizeCardioImportPayload(parsed));
-    } catch (err) {
-      setPreview(null);
-      onError(err.message);
-    }
-  }
-
-  async function handleImport() {
-    try {
-      const parsed = JSON.parse(jsonText);
-      await saveCardioSessionFromJson(userId, parsed);
-      setJsonText('');
-      setPreview(null);
-      await load();
-    } catch (err) {
-      onError(err.message);
-    }
-  }
 
   return (
     <div className="cardio-page">
@@ -115,31 +70,13 @@ export default function RunView({ userId, onError }) {
         <span className="pill"><ShieldCheck size={16} /> counts_toward_daily_totals = false</span>
       </section>
 
-      <section className="panel cardio-import-panel">
-        <div className="section-title-row">
-          <div>
-            <p className="eyebrow">Importar print lido por IA</p>
-            <h3>Colar JSON de cardio</h3>
-          </div>
-          <button className="ghost-btn" type="button" onClick={() => setJsonText(EXAMPLE_JSON)}><FileJson size={16} /> Usar exemplo</button>
+      <section className="panel centralized-json-note-v364">
+        <div>
+          <p className="eyebrow">Importação por JSON</p>
+          <h3>Agora fica em Registrar &gt; JSON</h3>
+          <p>Esta aba fica só para histórico e registro manual de cardio. Para colar JSON de print, use a central única de importação.</p>
         </div>
-        <textarea
-          className="json-import-box"
-          value={jsonText}
-          onChange={(event) => setJsonText(event.target.value)}
-          placeholder="Cole aqui o JSON retornado pelo chat leitor de imagem do cardio."
-        />
-        <div className="form-actions">
-          <button className="ghost-btn" type="button" onClick={handlePreview} disabled={!jsonText.trim()}>Validar JSON</button>
-          <button className="primary-btn" type="button" onClick={handleImport} disabled={!jsonText.trim()}><Plus size={16} /> Importar sessão</button>
-        </div>
-        {preview && (
-          <div className="cardio-preview">
-            <strong>{preview.activity_label} · {Number(preview.distance_km || 0).toFixed(2)} km · {formatTime(preview.duration_seconds)}</strong>
-            <span>{new Date(preview.performed_at).toLocaleString('pt-BR')} · {preview.active_kcal ?? '--'} kcal ativas · FC {preview.avg_heart_rate ?? '--'} bpm</span>
-            <small>Fonte: {preview.source_app || preview.source}. Não soma nos totais diários.</small>
-          </div>
-        )}
+        <span className="pill">centralizado</span>
       </section>
 
       <section className="panel">

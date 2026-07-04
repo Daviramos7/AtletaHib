@@ -1,58 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { BedDouble, Brain, CheckCircle2, Clock3, Copy, FileJson, HeartPulse, Moon, Plus, ShieldCheck, Sparkles, TriangleAlert, Watch } from 'lucide-react';
-import { listSleepSessions, normalizeSleepImportPayload, saveSleepSessionFromJson } from '../services/sleepService';
+import { BedDouble, Brain, CheckCircle2, Clock3, HeartPulse, Moon, ShieldCheck, Sparkles, TriangleAlert, Watch } from 'lucide-react';
+import { listSleepSessions } from '../services/sleepService';
 
-const EXAMPLE_SLEEP_JSON = `{
-  "type": "sleep_session",
-  "date": "2026-07-03",
-  "sleep_start": "22:57",
-  "sleep_end": "06:20",
-  "duration_minutes": 438,
-  "duration_text": "7h18min",
-  "sleep_score": 76,
-  "sleep_quality_label": "Razoável",
-  "sleep_score_delta": 6,
-  "sleep_percentile_text": "Superior a 62% de usuários na sua faixa etária.",
-  "deep_sleep_minutes": 110,
-  "deep_sleep_text": "1h50min",
-  "deep_sleep_percent": 25,
-  "deep_sleep_reference": "20%-40%",
-  "light_sleep_minutes": 263,
-  "light_sleep_text": "4h23min",
-  "light_sleep_percent": 60,
-  "light_sleep_reference": "20%-60%",
-  "rem_sleep_minutes": 65,
-  "rem_sleep_text": "1h5min",
-  "rem_sleep_percent": 15,
-  "rem_sleep_reference": "10%-30%",
-  "awake_minutes": 5,
-  "awake_text": "5min",
-  "awake_count": 4,
-  "awake_reference": "0-2 despertares",
-  "awake_warning_label": "Alta",
-  "avg_heart_rate": 57,
-  "avg_spo2": 98,
-  "breathing_score": 94,
-  "source": "mi_fitness_screenshot",
-  "source_app": "Mi Fitness",
-  "device_name": "Redmi Watch 5 Active",
-  "import_method": "screenshot_json",
-  "replaces_health_connect_sleep": true,
-  "counts_toward_daily_totals": true,
-  "metrics_may_already_exist_in_health_connect": true,
-  "overlap_detected": false,
-  "corrected_from_overlapping_records": false,
-  "confidence": "high",
-  "dedupe_key": "2026-07-03_sleep_2257_0620_mi_fitness",
-  "warnings": [],
-  "notes": "Sono extraído de print do Mi Fitness. Este registro deve substituir o sono automático do Health Connect para este dia caso haja divergência."
-}`;
 
 export default function SleepView({ userId, onError }) {
   const [sessions, setSessions] = useState([]);
-  const [jsonText, setJsonText] = useState('');
-  const [preview, setPreview] = useState(null);
-  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -67,41 +19,6 @@ export default function SleepView({ userId, onError }) {
   const stats = useMemo(() => buildSleepStats(sessions), [sessions]);
   const last = sessions[0] ?? null;
 
-  function handlePreview() {
-    try {
-      const parsed = JSON.parse(jsonText);
-      setPreview(normalizeSleepImportPayload(parsed));
-    } catch (err) {
-      setPreview(null);
-      onError(err.message);
-    }
-  }
-
-  async function handleImport() {
-    setBusy(true);
-    try {
-      const parsed = JSON.parse(jsonText);
-      await saveSleepSessionFromJson(userId, parsed);
-      setJsonText('');
-      setPreview(null);
-      await load();
-      onError('Sono importado com sucesso. Ele terá prioridade no Dashboard e no relatório semanal.');
-    } catch (err) {
-      onError(err.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function copyPromptHint() {
-    const hint = 'Use o chat Leitor de Sono do projeto Atleta Híbrido. Envie o print do Mi Fitness e peça somente o JSON.';
-    try {
-      await navigator.clipboard.writeText(hint);
-      onError('Instrução copiada para usar no chat leitor de sono.');
-    } catch {
-      onError('Não consegui copiar automaticamente.');
-    }
-  }
 
   return (
     <div className="sleep-page">
@@ -119,7 +36,7 @@ export default function SleepView({ userId, onError }) {
           <div>
             <p className="eyebrow">Último sono confiável</p>
             <h3>{last ? `${minutesToHours(last.duration_minutes)} · ${formatDate(last.sleep_date)}` : 'Nenhum sono corrigido ainda'}</h3>
-            <p>{last ? `${last.sleep_start_time} → ${last.sleep_end_time} · ${last.source_app || last.source} · ${last.confidence}` : 'Cole o JSON gerado pelo leitor de sono para corrigir a sessão do dia.'}</p>
+            <p>{last ? `${last.sleep_start_time} → ${last.sleep_end_time} · ${last.source_app || last.source} · ${last.confidence}` : 'Use Registrar > JSON para importar sono corrigido.'}</p>
           </div>
           <div className="sleep-score-orb">
             <span>{last?.sleep_score ?? '--'}</span>
@@ -142,38 +59,13 @@ export default function SleepView({ userId, onError }) {
         <Metric icon={ShieldCheck} label="SpO₂ médio" value={stats.avgSpo2 ? `${stats.avgSpo2}%` : '--'} sub="quando visível no print" />
       </div>
 
-      <section className="panel sleep-import-panel">
-        <div className="section-title-row">
-          <div>
-            <p className="eyebrow">Importar sono</p>
-            <h3>JSON do leitor de imagem de sono</h3>
-            <p className="muted-text">Esse registro substitui o sono automático do Health Connect naquele dia. Não soma com o sono automático.</p>
-          </div>
-          <div className="form-actions compact-actions">
-            <button className="ghost-btn" type="button" onClick={copyPromptHint}><Copy size={16} /> Instrução</button>
-            <button className="ghost-btn" type="button" onClick={() => setJsonText(EXAMPLE_SLEEP_JSON)}><FileJson size={16} /> Exemplo</button>
-          </div>
+      <section className="panel centralized-json-note-v364">
+        <div>
+          <p className="eyebrow">Importação por JSON</p>
+          <h3>Agora fica em Registrar &gt; JSON</h3>
+          <p>Esta aba mostra histórico e métricas de sono. Para colar JSON do leitor de sono, use a central única de importação.</p>
         </div>
-
-        <textarea
-          className="json-import-box sleep-json-box"
-          value={jsonText}
-          onChange={(event) => setJsonText(event.target.value)}
-          placeholder="Cole aqui o JSON retornado pelo chat leitor de sono."
-        />
-
-        <div className="form-actions">
-          <button className="ghost-btn" type="button" onClick={handlePreview} disabled={!jsonText.trim()}>Validar JSON</button>
-          <button className="primary-btn" type="button" onClick={handleImport} disabled={!jsonText.trim() || busy}><Plus size={16} /> Importar sono</button>
-        </div>
-
-        {preview && (
-          <div className="sleep-preview">
-            <strong>{minutesToHours(preview.duration_minutes)} · {formatDate(preview.sleep_date)}</strong>
-            <span>{preview.sleep_start_time} → {preview.sleep_end_time} · score {preview.sleep_score ?? '--'} · FC {preview.avg_heart_rate ?? '--'} bpm · SpO₂ {preview.avg_spo2 ?? '--'}%</span>
-            <small>Fonte: {preview.source_app || preview.source}. Substitui o sono automático do Health Connect para esse dia.</small>
-          </div>
-        )}
+        <span className="pill">centralizado</span>
       </section>
 
       <section className="panel">
@@ -189,7 +81,7 @@ export default function SleepView({ userId, onError }) {
           <div className="empty-state">
             <BedDouble size={34} />
             <strong>Nenhum sono importado ainda</strong>
-            <p>Cole o JSON do leitor de sono para começar a corrigir divergências do Health Connect.</p>
+            <p>Use Registrar &gt; JSON para importar o primeiro sono corrigido.</p>
           </div>
         ) : (
           <div className="sleep-history-list">

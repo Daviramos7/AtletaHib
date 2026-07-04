@@ -2827,3 +2827,3527 @@ textarea:focus {
     transition: none !important;
   }
 }
+
+
+/* v3.1 — Modo Academia */
+.gym-mode-page {
+  display: grid;
+  gap: 18px;
+}
+
+.gym-today-panel {
+  background:
+    radial-gradient(circle at 0 0, rgba(200,255,0,.12), transparent 24rem),
+    radial-gradient(circle at 100% 0, rgba(67,217,255,.08), transparent 22rem),
+    var(--surface);
+  border-color: rgba(200,255,0,.18);
+}
+
+.gym-today-panel.combo {
+  border-color: rgba(200,255,0,.30);
+}
+
+.gym-today-panel.cardio {
+  border-color: rgba(67,217,255,.28);
+}
+
+.gym-today-panel.rest {
+  border-color: rgba(255,255,255,.10);
+}
+
+.gym-today-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+}
+
+.gym-today-main h3 {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(28px, 4vw, 48px);
+  line-height: .98;
+  letter-spacing: -1.6px;
+  margin: 4px 0 8px;
+}
+
+.gym-today-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.gym-summary-grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mini-metric {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.035);
+  display: grid;
+  gap: 4px;
+}
+
+.mini-metric span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.mini-metric strong {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(20px, 2.3vw, 30px);
+  line-height: 1;
+  letter-spacing: -.8px;
+}
+
+.gym-tabs {
+  position: sticky;
+  top: 8px;
+  z-index: 4;
+  background: rgba(8,10,10,.55);
+  border-radius: 999px;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+.gym-exercise-list {
+  display: grid;
+  gap: 14px;
+}
+
+.gym-exercise-card {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015)),
+    rgba(255,255,255,.02);
+}
+
+.gym-exercise-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.gym-exercise-head strong {
+  display: block;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(22px, 3vw, 34px);
+  line-height: 1.02;
+  letter-spacing: -1px;
+}
+
+.gym-exercise-head span,
+.gym-exercise-head small {
+  display: block;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.gym-exercise-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.gym-exercise-actions select {
+  max-width: 170px;
+}
+
+.gym-set-table {
+  display: grid;
+  gap: 7px;
+}
+
+.gym-set-table > span {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 900;
+}
+
+.gym-set-table,
+.gym-set-row {
+  grid-template-columns: 44px 52px minmax(72px, 1fr) minmax(72px, 1fr) minmax(72px, 1fr);
+}
+
+.gym-set-row {
+  display: grid;
+  gap: 7px;
+  align-items: center;
+  padding: 7px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(255,255,255,.025);
+  transition: border-color .16s ease, background .16s ease, transform .16s ease;
+}
+
+.gym-set-row.done {
+  border-color: rgba(200,255,0,.30);
+  background:
+    radial-gradient(circle at 0 50%, rgba(200,255,0,.10), transparent 60%),
+    rgba(255,255,255,.035);
+}
+
+.gym-set-row strong {
+  text-align: center;
+  color: var(--text);
+}
+
+.set-check-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 13px;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.035);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.set-check-btn span {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,.25);
+}
+
+.gym-finish-panel {
+  align-items: end;
+  border-color: rgba(200,255,0,.18);
+}
+
+.gym-cardio-panel {
+  background:
+    radial-gradient(circle at 0 0, rgba(67,217,255,.10), transparent 22rem),
+    var(--surface);
+}
+
+.gym-cardio-empty {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.025);
+}
+
+.gym-cardio-empty svg {
+  color: var(--orange);
+  flex: 0 0 auto;
+}
+
+.wearable-strength-panel {
+  background:
+    radial-gradient(circle at 0 0, rgba(167,139,250,.12), transparent 22rem),
+    radial-gradient(circle at 100% 0, rgba(67,217,255,.07), transparent 20rem),
+    var(--surface);
+  border-color: rgba(167,139,250,.22);
+}
+
+.wearable-strength-json {
+  min-height: 250px;
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.watch-preview {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid rgba(167,139,250,.24);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.035);
+  display: grid;
+  gap: 5px;
+}
+
+.watch-preview strong {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(20px, 2.5vw, 30px);
+  letter-spacing: -.8px;
+}
+
+.watch-preview span,
+.watch-preview small {
+  color: var(--muted);
+}
+
+.gym-history-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.gym-history-grid h4 {
+  margin: 0 0 10px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 18px;
+}
+
+@media (max-width: 820px) {
+  .gym-today-main,
+  .gym-exercise-head,
+  .gym-history-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gym-today-actions {
+    justify-content: stretch;
+  }
+
+  .gym-today-actions .primary-btn,
+  .gym-today-actions .ghost-btn {
+    width: 100%;
+  }
+
+  .gym-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gym-exercise-actions {
+    flex-wrap: wrap;
+  }
+
+  .gym-exercise-actions select,
+  .gym-exercise-actions button {
+    flex: 1 1 150px;
+  }
+}
+
+@media (max-width: 520px) {
+  .gym-set-table,
+  .gym-set-row {
+    grid-template-columns: 42px 44px 1fr 1fr 1fr;
+  }
+
+  .gym-set-row {
+    gap: 5px;
+    padding: 6px;
+  }
+
+  .gym-set-row input {
+    padding: 9px 7px;
+  }
+
+  .gym-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* v3.1.2 — Correção do cardio do Modo Academia e inputs de série */
+.gym-set-table {
+  display: grid;
+  gap: 8px;
+}
+
+.gym-set-header,
+.gym-set-row {
+  display: grid;
+  grid-template-columns: 44px 52px minmax(68px, 1fr) minmax(68px, 1fr) minmax(68px, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.gym-set-header span {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 900;
+}
+
+.gym-set-list {
+  display: grid;
+  gap: 8px;
+}
+
+.gym-set-row input {
+  width: 100%;
+  min-width: 0;
+  text-align: center;
+}
+
+.gym-cardio-choice-panel {
+  background:
+    radial-gradient(circle at 0 0, rgba(67,217,255,.12), transparent 22rem),
+    radial-gradient(circle at 100% 0, rgba(200,255,0,.08), transparent 20rem),
+    var(--surface);
+  border-color: rgba(67,217,255,.22);
+}
+
+.gym-cardio-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.gym-cardio-choice-grid button {
+  text-align: left;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015)),
+    rgba(255,255,255,.02);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  gap: 8px;
+  min-height: 142px;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.gym-cardio-choice-grid button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(67,217,255,.28);
+  background: rgba(255,255,255,.045);
+}
+
+.gym-cardio-choice-grid button.active {
+  border-color: rgba(200,255,0,.42);
+  background:
+    radial-gradient(circle at 0 0, rgba(200,255,0,.16), transparent 60%),
+    rgba(255,255,255,.045);
+  box-shadow: 0 14px 42px rgba(200,255,0,.08), inset 0 1px 0 rgba(255,255,255,.10);
+}
+
+.gym-cardio-choice-grid strong {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(22px, 3vw, 34px);
+  line-height: 1.02;
+  letter-spacing: -1px;
+}
+
+.gym-cardio-choice-grid span,
+.gym-cardio-choice-grid small {
+  color: var(--muted);
+}
+
+.gym-cardio-choice-grid small {
+  margin-top: auto;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent);
+}
+
+@media (max-width: 720px) {
+  .gym-cardio-choice-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .gym-set-header,
+  .gym-set-row {
+    grid-template-columns: 42px 42px minmax(48px, 1fr) minmax(48px, 1fr) minmax(48px, 1fr);
+    gap: 6px;
+  }
+
+  .gym-set-row input {
+    padding: 10px 6px;
+  }
+}
+
+
+/* v3.1.4 — Modo Academia inspirado em Hevy + correção de segunda-feira */
+.gym-routine-panel {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.gym-log-panel {
+  overflow: hidden;
+  padding: 0;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.018)),
+    rgba(255,255,255,.02);
+}
+
+.gym-log-top {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 13px 14px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  background:
+    radial-gradient(circle at 0 0, rgba(200,255,0,.11), transparent 28rem),
+    linear-gradient(180deg, rgba(20,23,22,.98), rgba(12,14,13,.94));
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  backdrop-filter: blur(18px) saturate(1.2);
+}
+
+.gym-log-top h3 {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(22px, 3vw, 34px);
+  line-height: 1.02;
+  letter-spacing: -1px;
+}
+
+.gym-log-top span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.hevy-exercise-list {
+  padding: 14px;
+}
+
+.hevy-exercise-card {
+  padding: 0;
+  overflow: hidden;
+  border-radius: 22px;
+  border-color: rgba(255,255,255,.12);
+  background: #141716;
+}
+
+.hevy-exercise-head {
+  padding: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-bottom: 0;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.hevy-exercise-title {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+}
+
+.hevy-exercise-avatar {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  color: #111;
+  background: linear-gradient(135deg, var(--accent), #7dd3fc);
+  font-weight: 950;
+  text-transform: uppercase;
+  box-shadow: 0 12px 28px rgba(200,255,0,.10);
+}
+
+.hevy-rest-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  color: #80bfff;
+  font-size: 13px;
+  font-weight: 800;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  background: rgba(59,130,246,.07);
+}
+
+.hevy-set-table {
+  padding: 0;
+}
+
+.hevy-set-header,
+.hevy-set-row {
+  grid-template-columns: 48px minmax(70px, 1fr) minmax(62px, .8fr) minmax(62px, .8fr) minmax(58px, .7fr) 46px;
+}
+
+.hevy-set-header {
+  padding: 10px 12px 6px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+.hevy-set-row {
+  border: 0;
+  border-radius: 0;
+  padding: 8px 12px;
+  background: transparent;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+.hevy-set-row:last-child {
+  border-bottom: 0;
+}
+
+.hevy-set-row.done {
+  background: rgba(165,255,77,.34);
+  color: #102005;
+  border-color: rgba(165,255,77,.20);
+}
+
+.hevy-set-row.done input,
+.hevy-set-row.done .previous-value {
+  color: #102005;
+  background: rgba(255,255,255,.35);
+  border-color: rgba(16,32,5,.15);
+}
+
+.set-index {
+  color: var(--text);
+  text-align: center;
+  font-weight: 950;
+}
+
+.hevy-set-row.done .set-index {
+  color: #102005;
+}
+
+.previous-value {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 850;
+  text-align: center;
+}
+
+.hevy-set-row input {
+  height: 38px;
+  padding: 8px 6px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 850;
+  color: var(--text);
+  background: rgba(255,255,255,.045);
+}
+
+.hevy-check-btn {
+  width: 36px;
+  height: 36px;
+  margin-left: auto;
+  color: #1d7d22;
+  background: rgba(34,197,94,.15);
+  border-color: rgba(34,197,94,.28);
+}
+
+.hevy-check-btn span {
+  width: 13px;
+  height: 13px;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,.32);
+}
+
+.hevy-session-panel {
+  margin-top: -2px;
+}
+
+@media (max-width: 760px) {
+  .gym-routine-panel {
+    display: grid;
+  }
+
+  .gym-log-top {
+    grid-template-columns: 1fr;
+  }
+
+  .gym-log-top .ghost-btn,
+  .gym-log-top .primary-btn {
+    width: 100%;
+  }
+
+  .hevy-exercise-head {
+    grid-template-columns: 1fr;
+  }
+
+  .hevy-set-header,
+  .hevy-set-row {
+    grid-template-columns: 38px minmax(48px, .9fr) minmax(52px, 1fr) minmax(52px, 1fr) minmax(48px, .9fr) 38px;
+    gap: 5px;
+  }
+
+  .hevy-set-header {
+    padding: 9px 8px 5px;
+  }
+
+  .hevy-set-row {
+    padding: 7px 8px;
+  }
+
+  .hevy-set-header span {
+    font-size: 9.5px;
+  }
+
+  .previous-value {
+    font-size: 11px;
+  }
+
+  .hevy-set-row input {
+    height: 36px;
+    padding: 7px 4px;
+    font-size: 13px;
+  }
+
+  .hevy-check-btn {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+
+/* v3.2 — Simplificação geral */
+.simple-page { display: grid; gap: 16px; }
+.compact-title h2 { margin-bottom: 0; }
+
+.simple-hero {
+  padding: 24px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at 0 0, rgba(200,255,0,.12), transparent 22rem),
+    radial-gradient(circle at 100% 0, rgba(67,217,255,.08), transparent 20rem),
+    var(--surface);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.simple-hero h2 {
+  margin: 4px 0 8px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(34px, 7vw, 70px);
+  line-height: .95;
+  letter-spacing: -2px;
+}
+
+.simple-hero p { color: var(--muted); }
+
+.simple-panel {
+  padding: 18px;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)), var(--surface);
+}
+
+.day-kind-badge {
+  padding: 10px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  white-space: nowrap;
+  font-weight: 950;
+}
+
+.day-kind-badge.strength,
+.day-kind-badge.strength_cardio,
+.status-tile.active {
+  color: var(--accent);
+  border-color: rgba(200,255,0,.30);
+  background: rgba(200,255,0,.07);
+}
+
+.day-kind-badge.cardio {
+  color: #7dd3fc;
+  border-color: rgba(125,211,252,.30);
+  background: rgba(125,211,252,.08);
+}
+
+.today-binary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.status-tile {
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.025);
+  display: grid;
+  gap: 7px;
+}
+
+.status-tile span {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 900;
+}
+
+.status-tile strong {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(26px, 5vw, 44px);
+  line-height: .95;
+  letter-spacing: -1.4px;
+}
+
+.big-action-btn {
+  width: 100%;
+  margin-top: 14px;
+  min-height: 54px;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.simple-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.simple-section-head h3 {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(23px, 3.5vw, 38px);
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.compact-list { display: grid; gap: 8px; }
+
+.compact-item {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.025);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.compact-item span { color: var(--muted); }
+
+.quick-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.quick-tiles button,
+.simple-tabs button,
+.gym-day-cards button,
+.cardio-choice-list button {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.025);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.quick-tiles button {
+  padding: 14px 10px;
+  display: grid;
+  place-items: center;
+  gap: 7px;
+  font-weight: 900;
+}
+
+.simple-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.simple-tabs button {
+  padding: 10px 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.simple-tabs button.active,
+.gym-day-cards button.active,
+.cardio-choice-list button.active {
+  color: var(--accent);
+  border-color: rgba(200,255,0,.34);
+  background: rgba(200,255,0,.07);
+}
+
+.gym-v32-hero { align-items: center; }
+
+.gym-day-cards {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.gym-day-cards button { padding: 12px 8px; display: grid; gap: 5px; text-align: center; }
+.gym-day-cards strong { font-size: 18px; }
+.gym-day-cards span { color: var(--muted); font-size: 11px; font-weight: 800; }
+
+.gym-log-panel-v32 { padding: 0; overflow: hidden; }
+
+.gym-log-top-v32 {
+  padding: 12px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,.03);
+}
+
+.gym-log-top-v32 h3 {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(24px, 4vw, 40px);
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.hevy-exercise-list-v32 { padding: 12px; display: grid; gap: 12px; }
+
+.hevy-card-v32 {
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  background: #141716;
+}
+
+.hevy-card-head-v32 {
+  padding: 13px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.hevy-card-head-v32 strong {
+  display: block;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(22px, 4vw, 34px);
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.hevy-card-head-v32 span,
+.hevy-card-head-v32 small { color: var(--muted); }
+
+.hevy-rest-v32 {
+  padding: 9px 13px;
+  color: #7dd3fc;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  background: rgba(59,130,246,.07);
+  font-weight: 800;
+}
+
+.hevy-rest-v32 button {
+  padding: 0;
+  border: 0;
+  color: #7dd3fc;
+  background: transparent;
+  font-weight: 900;
+  text-decoration: underline;
+}
+
+.hevy-header-v32,
+.hevy-row-v32 {
+  display: grid;
+  grid-template-columns: 46px minmax(66px, 1fr) minmax(66px, 1fr) minmax(58px, .8fr) 44px;
+  gap: 7px;
+  align-items: center;
+}
+
+.hevy-header-v32 {
+  padding: 9px 10px 5px;
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 900;
+}
+
+.hevy-row-v32 {
+  padding: 8px 10px;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+
+.hevy-row-v32.done {
+  background: rgba(165,255,77,.34);
+  color: #102005;
+}
+
+.hevy-row-v32 input {
+  height: 38px;
+  padding: 8px 6px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 850;
+  color: var(--text);
+  background: rgba(255,255,255,.045);
+}
+
+.hevy-row-v32.done input {
+  color: #102005;
+  background: rgba(255,255,255,.35);
+  border-color: rgba(16,32,5,.15);
+}
+
+.check-v32 {
+  width: 36px;
+  height: 36px;
+  border-radius: 13px;
+  border: 1px solid rgba(34,197,94,.28);
+  background: rgba(34,197,94,.12);
+  color: #22c55e;
+  display: grid;
+  place-items: center;
+}
+
+.check-v32 span {
+  width: 13px;
+  height: 13px;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,.32);
+}
+
+.session-fields-v32 {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cardio-choice-list { display: grid; gap: 8px; }
+
+.cardio-choice-list button { padding: 13px; display: grid; gap: 4px; text-align: left; }
+.cardio-choice-list strong { font-family: 'Inter', system-ui, sans-serif; font-size: 22px; letter-spacing: -.6px; }
+.cardio-choice-list span { color: var(--muted); }
+
+.history-simple { display: grid; gap: 12px; }
+
+@media (max-width: 860px) {
+  .simple-hero,
+  .simple-section-head,
+  .hevy-card-head-v32 { display: grid; }
+
+  .quick-tiles,
+  .gym-day-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  .gym-log-top-v32 { grid-template-columns: 1fr; }
+
+  .gym-log-top-v32 .ghost-btn,
+  .gym-log-top-v32 .primary-btn { width: 100%; }
+}
+
+@media (max-width: 520px) {
+  .today-binary-grid,
+  .session-fields-v32 { grid-template-columns: 1fr; }
+
+  .quick-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  .hevy-header-v32,
+  .hevy-row-v32 {
+    grid-template-columns: 36px minmax(48px, 1fr) minmax(48px, 1fr) minmax(44px, .8fr) 36px;
+    gap: 5px;
+  }
+
+  .hevy-row-v32 { padding: 7px 8px; }
+
+  .hevy-row-v32 input {
+    height: 36px;
+    padding: 7px 4px;
+    font-size: 13px;
+  }
+
+  .check-v32 { width: 34px; height: 34px; }
+}
+
+
+/* v3.2.2 — Cardio progressivo claro */
+.cardio-progress-card {
+  display: grid;
+  gap: 14px;
+  border-color: rgba(125, 211, 252, .22);
+  background:
+    radial-gradient(circle at 0 0, rgba(125,211,252,.13), transparent 20rem),
+    linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)),
+    var(--surface);
+}
+
+.cardio-progress-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.cardio-progress-head h3 {
+  margin: 0 0 4px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(26px, 4vw, 44px);
+  line-height: .98;
+  letter-spacing: -1.3px;
+}
+
+.cardio-progress-head span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.cardio-prescription-card {
+  padding: 15px;
+  border: 1px solid rgba(125,211,252,.22);
+  border-radius: var(--radius-lg);
+  background: rgba(125,211,252,.07);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.cardio-prescription-card h4 {
+  margin: 2px 0 7px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(24px, 4vw, 42px);
+  line-height: 1;
+  letter-spacing: -1.2px;
+}
+
+.cardio-prescription-card strong {
+  color: #7dd3fc;
+  font-size: 18px;
+}
+
+.cardio-prescription-text {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.cardio-progress-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cardio-progress-meta span {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.025);
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.cardio-options-mini {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cardio-options-mini button {
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(255,255,255,.025);
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.cardio-options-mini button.active {
+  color: var(--accent);
+  border-color: rgba(200,255,0,.34);
+  background: rgba(200,255,0,.07);
+}
+
+.cardio-help-text {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+@media (max-width: 620px) {
+  .cardio-progress-head,
+  .cardio-prescription-card {
+    display: grid;
+  }
+
+  .cardio-progress-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* v3.2.3 — Troca de exercício visível */
+.replace-toggle-v32 {
+  padding: 9px 12px;
+  border: 1px solid rgba(200,255,0,.28);
+  border-radius: 999px;
+  background: rgba(200,255,0,.07);
+  color: var(--accent);
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.replacement-panel-v32 {
+  padding: 12px 13px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  background:
+    radial-gradient(circle at 0 0, rgba(200,255,0,.10), transparent 18rem),
+    rgba(255,255,255,.025);
+  display: grid;
+  gap: 10px;
+}
+
+.replacement-panel-v32 p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.replacement-panel-v32 div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.replacement-panel-v32 button {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255,255,255,.035);
+  color: var(--text);
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.replacement-panel-v32 button:hover {
+  border-color: rgba(200,255,0,.34);
+  background: rgba(200,255,0,.07);
+}
+
+@media (max-width: 620px) {
+  .replacement-panel-v32 div {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .replacement-panel-v32 button {
+    text-align: left;
+    border-radius: 14px;
+  }
+}
+
+
+/* v3.3 — Substituições inteligentes */
+.smart-replacement-panel-v33 {
+  padding: 13px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  background:
+    radial-gradient(circle at 0 0, rgba(200,255,0,.12), transparent 20rem),
+    rgba(255,255,255,.025);
+  display: grid;
+  gap: 13px;
+}
+
+.smart-replacement-head-v33 {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.smart-replacement-head-v33 h4 {
+  margin: 2px 0 5px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(24px, 4vw, 38px);
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.smart-replacement-head-v33 span {
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.smart-replacement-head-v33 button {
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255,255,255,.035);
+  color: var(--muted);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.replacement-reason-tabs-v33 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.replacement-reason-tabs-v33 button {
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255,255,255,.025);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+}
+
+.replacement-reason-tabs-v33 button.active {
+  border-color: rgba(200,255,0,.38);
+  background: rgba(200,255,0,.08);
+}
+
+.replacement-reason-tabs-v33 strong {
+  font-size: 13px;
+}
+
+.replacement-reason-tabs-v33 span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.smart-replacement-options-v33 {
+  display: grid;
+  gap: 8px;
+}
+
+.smart-replacement-options-v33 button {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 17px;
+  background: rgba(255,255,255,.035);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+}
+
+.smart-replacement-options-v33 button:hover {
+  border-color: rgba(200,255,0,.34);
+  background: rgba(200,255,0,.07);
+}
+
+.smart-replacement-options-v33 strong {
+  display: block;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(20px, 3vw, 30px);
+  letter-spacing: -.7px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.smart-replacement-options-v33 span {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.smart-replacement-options-v33 small {
+  padding: 7px 9px;
+  border-radius: 999px;
+  background: rgba(125,211,252,.09);
+  color: #7dd3fc;
+  font-weight: 950;
+}
+
+.replacement-safety-v33 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+@media (max-width: 760px) {
+  .smart-replacement-head-v33 {
+    display: grid;
+  }
+
+  .replacement-reason-tabs-v33 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .smart-replacement-options-v33 button {
+    grid-template-columns: 1fr;
+  }
+
+  .smart-replacement-options-v33 small {
+    width: fit-content;
+  }
+}
+
+@media (max-width: 460px) {
+  .replacement-reason-tabs-v33 {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* v3.3.2 — Confirmação e desfazer substituição */
+.smart-replacement-options-v33 button.selected {
+  border-color: rgba(200,255,0,.48);
+  background:
+    radial-gradient(circle at 0 0, rgba(200,255,0,.14), transparent 60%),
+    rgba(200,255,0,.07);
+}
+
+.smart-replacement-options-v33 button.selected small {
+  background: rgba(200,255,0,.14);
+  color: var(--accent);
+}
+
+.replacement-confirm-v332 {
+  padding: 13px;
+  border: 1px solid rgba(200,255,0,.32);
+  border-radius: 18px;
+  background: rgba(200,255,0,.07);
+  display: grid;
+  gap: 12px;
+}
+
+.replacement-confirm-v332 strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 20px;
+  letter-spacing: -.5px;
+}
+
+.replacement-confirm-v332 span {
+  color: var(--muted);
+}
+
+.replacement-confirm-v332 > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.replacement-actions-v332 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.undo-replace-v332 {
+  padding: 9px 12px;
+  border: 1px solid rgba(248,113,113,.28);
+  border-radius: 999px;
+  background: rgba(248,113,113,.08);
+  color: #fca5a5;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+@media (max-width: 620px) {
+  .replacement-actions-v332 {
+    justify-content: flex-start;
+  }
+
+  .replacement-actions-v332,
+  .replacement-actions-v332 button,
+  .replacement-confirm-v332 > div:last-child,
+  .replacement-confirm-v332 > div:last-child button {
+    width: 100%;
+  }
+}
+
+
+/* v3.4 — Performance e progressão */
+.workout-progress-summary-v34 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, .8fr);
+  gap: 14px;
+  align-items: stretch;
+  border-color: rgba(200,255,0,.20);
+  background:
+    radial-gradient(circle at 0 0, rgba(200,255,0,.10), transparent 18rem),
+    linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)),
+    var(--surface);
+}
+
+.workout-progress-summary-v34 h3 {
+  margin: 2px 0 5px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(34px, 7vw, 72px);
+  line-height: .92;
+  letter-spacing: -2px;
+}
+
+.workout-progress-summary-v34 span {
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.progress-summary-grid-v34 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.progress-summary-grid-v34 div {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.025);
+}
+
+.progress-summary-grid-v34 strong {
+  display: block;
+  margin-top: 5px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 25px;
+  letter-spacing: -.8px;
+}
+
+.exercise-progress-mini-v34 {
+  padding: 12px 13px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  background:
+    radial-gradient(circle at 100% 0, rgba(125,211,252,.10), transparent 16rem),
+    rgba(125,211,252,.045);
+  display: grid;
+  gap: 9px;
+}
+
+.exercise-progress-mini-v34.empty {
+  background: rgba(255,255,255,.025);
+}
+
+.exercise-progress-mini-v34 span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .9px;
+  font-weight: 950;
+  margin-bottom: 3px;
+}
+
+.exercise-progress-mini-v34 strong {
+  display: block;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.exercise-progress-stats-v34 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.exercise-progress-stats-v34 small {
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.055);
+  color: #7dd3fc;
+  font-weight: 900;
+}
+
+@media (max-width: 700px) {
+  .workout-progress-summary-v34 {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* v3.5 — Polimento e estabilidade geral */
+:root {
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button:disabled,
+input:disabled,
+textarea:disabled,
+select:disabled {
+  opacity: .58;
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid rgba(200,255,0,.78);
+  outline-offset: 3px;
+}
+
+.loading-card-v35 {
+  width: min(520px, calc(100vw - 32px));
+  padding: 22px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at 0 0, rgba(200,255,0,.12), transparent 20rem),
+    var(--surface);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: var(--shadow-soft);
+}
+
+.loading-card-v35 h1 {
+  margin: 2px 0 4px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(30px, 6vw, 54px);
+  line-height: .95;
+  letter-spacing: -1.8px;
+}
+
+.loading-card-v35 span {
+  color: var(--muted);
+}
+
+.alert {
+  position: sticky;
+  top: 10px;
+  z-index: 40;
+  border-radius: 16px;
+  cursor: pointer;
+  box-shadow: 0 14px 36px rgba(0,0,0,.24);
+}
+
+.alert.success {
+  border-color: rgba(34,197,94,.28);
+  background:
+    radial-gradient(circle at 0 0, rgba(34,197,94,.15), transparent 18rem),
+    rgba(22, 80, 45, .88);
+  color: #dcfce7;
+}
+
+.alert.error {
+  border-color: rgba(248,113,113,.30);
+  background:
+    radial-gradient(circle at 0 0, rgba(248,113,113,.16), transparent 18rem),
+    rgba(98, 31, 31, .90);
+  color: #fee2e2;
+}
+
+.topbar-v2 {
+  gap: 14px;
+}
+
+.topbar-v2 h1 {
+  max-width: 12ch;
+  overflow-wrap: anywhere;
+}
+
+.content-card-v2 {
+  min-width: 0;
+}
+
+.sidebar-v2 nav button {
+  min-height: 44px;
+}
+
+.simple-panel,
+.hevy-card-v32,
+.cardio-progress-card,
+.workout-progress-summary-v34 {
+  transition: border-color .18s ease, transform .18s ease, background .18s ease;
+}
+
+@media (hover: hover) {
+  .simple-panel:hover,
+  .hevy-card-v32:hover {
+    border-color: rgba(255,255,255,.18);
+  }
+}
+
+.gym-log-panel-v32 {
+  scroll-margin-top: 12px;
+}
+
+.gym-log-top-v32 {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  backdrop-filter: blur(14px);
+}
+
+.hevy-row-v32 input {
+  min-width: 0;
+}
+
+.hevy-row-v32 input::-webkit-outer-spin-button,
+.hevy-row-v32 input::-webkit-inner-spin-button {
+  margin: 0;
+}
+
+.watch-import-panel-v35 .simple-section-head {
+  margin-bottom: 0;
+}
+
+.watch-import-body-v35 {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.watch-import-body-v35 textarea {
+  min-height: 150px;
+  resize: vertical;
+}
+
+.quick-access-dock {
+  padding-bottom: var(--safe-bottom);
+}
+
+.quick-access-bar {
+  margin-bottom: calc(10px + var(--safe-bottom));
+}
+
+@media (max-width: 860px) {
+  .topbar-v2 {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    backdrop-filter: blur(18px);
+    border-radius: 0 0 22px 22px;
+    margin: -16px -16px 12px;
+    padding: 16px;
+    background:
+      linear-gradient(180deg, rgba(11,15,14,.94), rgba(11,15,14,.78)),
+      var(--bg);
+  }
+
+  .top-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .top-actions .ghost-btn {
+    justify-content: center;
+  }
+
+  .content-card-v2 {
+    padding: 14px;
+  }
+
+  .simple-hero {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 520px) {
+  .loading-card-v35 {
+    display: grid;
+  }
+
+  .topbar-v2 h1 {
+    font-size: clamp(32px, 12vw, 56px);
+  }
+
+  .hevy-card-head-v32,
+  .smart-replacement-head-v33 {
+    gap: 10px;
+  }
+
+  .gym-log-top-v32 {
+    top: 73px;
+  }
+
+  .form-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+
+/* v3.6 — Prontidão do dia */
+.readiness-card-v36 {
+  display: grid;
+  gap: 14px;
+  border-color: rgba(255,255,255,.14);
+}
+
+.readiness-card-v36.good {
+  border-color: rgba(34,197,94,.28);
+  background:
+    radial-gradient(circle at 0 0, rgba(34,197,94,.13), transparent 20rem),
+    linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)),
+    var(--surface);
+}
+
+.readiness-card-v36.warning {
+  border-color: rgba(250,204,21,.30);
+  background:
+    radial-gradient(circle at 0 0, rgba(250,204,21,.13), transparent 20rem),
+    linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)),
+    var(--surface);
+}
+
+.readiness-card-v36.danger {
+  border-color: rgba(248,113,113,.30);
+  background:
+    radial-gradient(circle at 0 0, rgba(248,113,113,.13), transparent 20rem),
+    linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)),
+    var(--surface);
+}
+
+.readiness-main-v36 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+}
+
+.readiness-main-v36 h3 {
+  margin: 0 0 4px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(44px, 9vw, 92px);
+  line-height: .88;
+  letter-spacing: -3px;
+}
+
+.readiness-main-v36 span {
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.readiness-ring-v36 {
+  width: 96px;
+  height: 96px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.035);
+  display: grid;
+  place-items: center;
+  align-content: center;
+  box-shadow: inset 0 0 0 8px rgba(255,255,255,.025);
+}
+
+.readiness-ring-v36 strong {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.readiness-ring-v36 small {
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.readiness-flags-v36 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.readiness-flags-v36 span {
+  padding: 7px 9px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 999px;
+  background: rgba(255,255,255,.035);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.readiness-actions-v36 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.readiness-card-v36.compact .readiness-actions-v36 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.readiness-advice-v36 {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.025);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 9px;
+  align-items: flex-start;
+}
+
+.readiness-advice-v36 span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .9px;
+  font-weight: 950;
+  margin-bottom: 4px;
+}
+
+.readiness-advice-v36 strong {
+  display: block;
+  line-height: 1.35;
+  font-size: 13px;
+}
+
+.readiness-reasons-v36 {
+  display: grid;
+  gap: 6px;
+}
+
+.readiness-reasons-v36 p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.readiness-checkin-v36 {
+  width: fit-content;
+}
+
+@media (max-width: 760px) {
+  .readiness-main-v36 {
+    grid-template-columns: 1fr;
+  }
+
+  .readiness-ring-v36 {
+    width: 84px;
+    height: 84px;
+  }
+
+  .readiness-actions-v36,
+  .readiness-card-v36.compact .readiness-actions-v36 {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* v3.6.1 — Registro de água exposto */
+.water-hero-v361 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  border-color: rgba(56,189,248,.22);
+  background:
+    radial-gradient(circle at 0 0, rgba(56,189,248,.14), transparent 20rem),
+    linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)),
+    var(--surface);
+}
+
+.water-hero-v361 h3,
+.water-quick-card-v361 h3 {
+  margin: 0 0 5px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(36px, 8vw, 78px);
+  line-height: .92;
+  letter-spacing: -2px;
+}
+
+.water-hero-v361 span,
+.water-quick-card-v361 span {
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.water-progress-track-v361 {
+  height: 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(56,189,248,.20);
+  background: rgba(255,255,255,.045);
+  overflow: hidden;
+}
+
+.water-progress-track-v361 span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #38bdf8, #a5ff4d);
+  transition: width .18s ease;
+}
+
+.water-actions-v361 {
+  display: grid;
+  gap: 12px;
+}
+
+.water-actions-v361 > div,
+.water-quick-actions-v361 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.water-actions-v361 button,
+.water-quick-actions-v361 button {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.035);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 950;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.water-actions-v361 button:hover,
+.water-quick-actions-v361 button:hover {
+  border-color: rgba(56,189,248,.34);
+  background: rgba(56,189,248,.08);
+}
+
+.water-actions-v361 button.danger {
+  color: #fca5a5;
+  border-color: rgba(248,113,113,.25);
+}
+
+.water-custom-v361 {
+  display: grid;
+  gap: 12px;
+}
+
+.water-custom-v361 > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.water-custom-v361 input {
+  min-height: 44px;
+}
+
+.water-note-v361 p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.water-quick-card-v361 {
+  display: grid;
+  gap: 12px;
+  border-color: rgba(56,189,248,.18);
+}
+
+@media (max-width: 620px) {
+  .water-hero-v361 {
+    display: grid;
+  }
+
+  .water-actions-v361 > div,
+  .water-quick-actions-v361,
+  .water-custom-v361 > div {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* v3.6.3 — Resumo inteligente do Hoje */
+.daily-status-card-v363 {
+  display: grid;
+  gap: 14px;
+  border-color: rgba(200,255,0,.16);
+}
+
+.daily-status-card-v363 .simple-section-head h3 {
+  margin-bottom: 4px;
+}
+
+.daily-status-card-v363 .simple-section-head span {
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.daily-status-score-v363 {
+  min-width: 76px;
+  height: 76px;
+  border: 1px solid rgba(200,255,0,.22);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 0 0, rgba(200,255,0,.14), transparent 70%),
+    rgba(255,255,255,.035);
+  display: grid;
+  place-items: center;
+  align-content: center;
+}
+
+.daily-status-score-v363 strong {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.daily-status-score-v363 small {
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.daily-status-grid-v363 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.daily-status-grid-v363 button {
+  min-height: 66px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.025);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  text-align: left;
+}
+
+.daily-status-grid-v363 button.ok {
+  border-color: rgba(34,197,94,.18);
+  background: rgba(34,197,94,.055);
+}
+
+.daily-status-grid-v363 button.missing {
+  border-color: rgba(250,204,21,.20);
+  background: rgba(250,204,21,.045);
+}
+
+.daily-status-grid-v363 button:hover {
+  border-color: rgba(200,255,0,.28);
+  background: rgba(200,255,0,.065);
+}
+
+.daily-status-grid-v363 strong {
+  display: block;
+  margin-bottom: 3px;
+}
+
+.daily-status-grid-v363 span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.daily-next-step-v363 {
+  padding: 12px;
+  border: 1px solid rgba(200,255,0,.20);
+  border-radius: var(--radius-md);
+  background: rgba(200,255,0,.055);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.daily-next-step-v363 span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+}
+
+.daily-next-step-v363 button {
+  padding: 9px 12px;
+  border: 1px solid rgba(200,255,0,.28);
+  border-radius: 999px;
+  background: rgba(200,255,0,.10);
+  color: var(--accent);
+  font-weight: 950;
+  cursor: pointer;
+}
+
+@media (max-width: 620px) {
+  .daily-status-card-v363 .simple-section-head {
+    display: grid;
+  }
+
+  .daily-status-score-v363 {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .daily-status-grid-v363 {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-next-step-v363 {
+    display: grid;
+  }
+
+  .daily-next-step-v363 button {
+    width: 100%;
+  }
+}
+
+
+/* v3.6.4 — Central única de importação por JSON */
+.json-hub-page-v364 {
+  display: grid;
+  gap: 16px;
+}
+
+.json-hub-help-v364,
+.centralized-json-note-v364 {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border-color: rgba(200,255,0,.18);
+  background:
+    radial-gradient(circle at 0 0, rgba(200,255,0,.10), transparent 18rem),
+    rgba(255,255,255,.02);
+}
+
+.json-hub-help-v364 strong,
+.centralized-json-note-v364 strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.json-hub-help-v364 span,
+.centralized-json-note-v364 p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.json-importer-v364 {
+  display: grid;
+  gap: 14px;
+}
+
+.json-type-tabs-v364 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.json-type-tabs-v364 button {
+  min-height: 44px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.025);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 950;
+}
+
+.json-type-tabs-v364 button.active {
+  border-color: rgba(200,255,0,.32);
+  background: rgba(200,255,0,.08);
+  color: var(--accent);
+}
+
+.json-import-head-v364 {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.json-import-head-v364 h3 {
+  margin: 2px 0 5px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(28px, 5vw, 48px);
+  line-height: .95;
+  letter-spacing: -1.5px;
+}
+
+.json-import-head-v364 span {
+  color: var(--muted);
+}
+
+.json-hub-textarea-v364 {
+  min-height: 240px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+}
+
+.json-preview-v364 {
+  padding: 13px;
+  border: 1px solid rgba(34,197,94,.24);
+  border-radius: var(--radius-md);
+  background: rgba(34,197,94,.065);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.json-preview-v364 strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.json-preview-v364 span,
+.json-preview-v364 small {
+  display: block;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.json-rules-v364 {
+  display: grid;
+  gap: 12px;
+}
+
+.json-rules-v364 > div {
+  display: grid;
+  gap: 8px;
+}
+
+.json-rules-v364 span {
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.025);
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+@media (max-width: 760px) {
+  .json-type-tabs-v364 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .json-import-head-v364,
+  .json-hub-help-v364,
+  .centralized-json-note-v364 {
+    display: grid;
+  }
+}
+
+@media (max-width: 440px) {
+  .json-type-tabs-v364 {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* v3.6.7 — Central JSON refinada */
+.json-head-actions-v367 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.json-prompt-hint-v367 {
+  padding: 12px;
+  border: 1px solid rgba(125,211,252,.22);
+  border-radius: var(--radius-md);
+  background:
+    radial-gradient(circle at 0 0, rgba(125,211,252,.10), transparent 16rem),
+    rgba(255,255,255,.025);
+  display: grid;
+  gap: 4px;
+}
+
+.json-prompt-hint-v367 strong {
+  color: var(--text);
+}
+
+.json-prompt-hint-v367 span {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.json-example-list-v367 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.json-example-list-v367 button {
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255,255,255,.035);
+  color: var(--text);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.json-example-list-v367 button:hover {
+  border-color: rgba(200,255,0,.30);
+  background: rgba(200,255,0,.07);
+}
+
+.meal-preview-items-v367 {
+  margin-top: 10px;
+  display: grid;
+  gap: 7px;
+}
+
+.meal-preview-items-v367 div {
+  padding: 9px 10px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 13px;
+  background: rgba(255,255,255,.028);
+}
+
+.meal-preview-items-v367 strong {
+  display: block;
+  margin-bottom: 3px;
+}
+
+.meal-preview-items-v367 span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 620px) {
+  .json-head-actions-v367 {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .json-head-actions-v367 button,
+  .json-example-list-v367 button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .json-example-list-v367 {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* v3.7 — Editor de plano */
+.gym-hero-actions-v37 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.plan-editor-v37 {
+  display: grid;
+  gap: 16px;
+}
+
+.plan-editor-day-v37 .simple-section-head span {
+  display: block;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.plan-day-form-v37,
+.exercise-editor-grid-v37 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.plan-day-form-v37 label,
+.exercise-editor-grid-v37 label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+}
+
+.plan-day-form-v37 label.full,
+.exercise-editor-grid-v37 label.wide {
+  grid-column: 1 / -1;
+}
+
+.plan-day-form-v37 input,
+.plan-day-form-v37 select,
+.plan-day-form-v37 textarea,
+.exercise-editor-grid-v37 input {
+  min-height: 42px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: rgba(255,255,255,.035);
+  color: var(--text);
+  padding: 10px 11px;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 800;
+}
+
+.plan-day-form-v37 textarea {
+  min-height: 86px;
+  resize: vertical;
+}
+
+.plan-day-form-v37 small {
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 700;
+}
+
+.exercise-editor-list-v37 {
+  display: grid;
+  gap: 12px;
+}
+
+.exercise-editor-card-v37 {
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.025);
+  display: grid;
+  gap: 12px;
+}
+
+.exercise-editor-head-v37 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.exercise-editor-head-v37 > div {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ghost-icon-v37,
+.danger-icon-v37 {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255,255,255,.03);
+  color: var(--text);
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.ghost-icon-v37:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.danger-icon-v37 {
+  color: #fca5a5;
+  border-color: rgba(248,113,113,.22);
+}
+
+.plan-editor-add-v37 {
+  display: grid;
+  gap: 12px;
+}
+
+.plan-editor-empty-v37 {
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  .gym-hero-actions-v37 {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .gym-hero-actions-v37 button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .plan-day-form-v37,
+  .exercise-editor-grid-v37 {
+    grid-template-columns: 1fr;
+  }
+
+  .exercise-editor-head-v37 {
+    display: grid;
+  }
+
+  .exercise-editor-head-v37 > div {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .ghost-icon-v37,
+  .danger-icon-v37 {
+    width: 100%;
+  }
+}
+
+
+/* v3.7.2 — Check-in inteligente */
+.smart-checkin-panel-v372 {
+  display: grid;
+  gap: 14px;
+  border-color: rgba(125,211,252,.16);
+}
+
+.smart-checkin-grid-v372 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.auto-metric-v372 {
+  min-height: 92px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.025);
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+.auto-metric-v372.ok {
+  border-color: rgba(34,197,94,.20);
+  background:
+    radial-gradient(circle at 0 0, rgba(34,197,94,.10), transparent 10rem),
+    rgba(255,255,255,.025);
+}
+
+.auto-metric-v372 span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+}
+
+.auto-metric-v372 strong {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.auto-metric-v372 small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.checkin-autofill-note-v372 {
+  padding: 12px;
+  border: 1px solid rgba(125,211,252,.20);
+  border-radius: var(--radius-md);
+  background: rgba(125,211,252,.06);
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.smart-checkin-form-v372 .eyebrow.full {
+  margin-top: 2px;
+}
+
+@media (max-width: 900px) {
+  .smart-checkin-grid-v372 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .smart-checkin-grid-v372 {
+    grid-template-columns: 1fr;
+  }
+
+  .smart-checkin-panel-v372 .section-title-row {
+    display: grid;
+  }
+
+  .smart-checkin-panel-v372 .section-title-row button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+
+/* v3.8 — Histórico detalhado por exercício */
+.strength-history-v38 {
+  display: grid;
+  gap: 16px;
+}
+
+.strength-history-toolbar-v38 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.strength-history-toolbar-v38 label {
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.035);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.strength-history-toolbar-v38 input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font-weight: 850;
+}
+
+.strength-range-v38 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.strength-range-v38 button {
+  min-height: 38px;
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255,255,255,.025);
+  color: var(--text);
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.strength-range-v38 button.active {
+  border-color: rgba(200,255,0,.30);
+  background: rgba(200,255,0,.08);
+  color: var(--accent);
+}
+
+.strength-history-layout-v38 {
+  display: grid;
+  grid-template-columns: minmax(240px, 330px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.strength-exercise-list-v38 {
+  position: sticky;
+  top: 82px;
+  display: grid;
+  gap: 12px;
+}
+
+.exercise-pick-list-v38 {
+  display: grid;
+  gap: 8px;
+  max-height: 620px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.exercise-pick-list-v38 button {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.025);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+}
+
+.exercise-pick-list-v38 button.active {
+  border-color: rgba(200,255,0,.30);
+  background:
+    radial-gradient(circle at 0 0, rgba(200,255,0,.10), transparent 11rem),
+    rgba(255,255,255,.035);
+}
+
+.exercise-pick-list-v38 span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.strength-detail-v38 {
+  display: grid;
+  gap: 16px;
+}
+
+.strength-main-card-v38 {
+  border-color: rgba(200,255,0,.18);
+}
+
+.strength-main-card-v38 .simple-section-head span {
+  display: block;
+  color: var(--muted);
+  margin-top: 5px;
+}
+
+.strength-metric-grid-v38 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.strength-metric-v38 {
+  min-height: 92px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.025);
+  display: grid;
+  align-content: start;
+  gap: 5px;
+}
+
+.strength-metric-v38 span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+}
+
+.strength-metric-v38 strong {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.strength-metric-v38 small {
+  color: var(--muted);
+}
+
+.weekly-bars-v38 {
+  display: grid;
+  gap: 9px;
+}
+
+.weekly-row-v38 {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) 74px;
+  gap: 10px;
+  align-items: center;
+}
+
+.weekly-row-v38 span,
+.weekly-row-v38 strong {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.weekly-row-v38 div {
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.06);
+  overflow: hidden;
+}
+
+.weekly-row-v38 i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(200,255,0,.35), rgba(200,255,0,.95));
+}
+
+.strength-session-list-v38 {
+  display: grid;
+  gap: 10px;
+}
+
+.strength-session-card-v38 {
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.025);
+  display: grid;
+  gap: 10px;
+}
+
+.strength-session-card-v38 strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.strength-session-card-v38 span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.session-set-pills-v38 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.session-set-pills-v38 span {
+  padding: 7px 9px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 999px;
+  background: rgba(255,255,255,.035);
+  color: var(--text);
+  font-weight: 850;
+}
+
+@media (max-width: 950px) {
+  .strength-history-layout-v38,
+  .strength-history-toolbar-v38 {
+    grid-template-columns: 1fr;
+  }
+
+  .strength-exercise-list-v38 {
+    position: static;
+  }
+
+  .exercise-pick-list-v38 {
+    max-height: 320px;
+  }
+
+  .strength-range-v38 {
+    justify-content: flex-start;
+  }
+
+  .strength-metric-grid-v38 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .strength-metric-grid-v38 {
+    grid-template-columns: 1fr;
+  }
+
+  .weekly-row-v38 {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .weekly-row-v38 strong {
+    grid-column: 2;
+  }
+}
+
+
+/* v3.9 — Experiência mobile/app */
+:root {
+  --tap-target-v39: 46px;
+}
+
+button,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+.mobile-safe-bottom-v39 {
+  height: env(safe-area-inset-bottom);
+}
+
+@media (max-width: 760px) {
+  body {
+    overscroll-behavior-y: none;
+  }
+
+  .app-shell,
+  .simple-page,
+  .today-simple-page,
+  .cardio-page,
+  .sleep-page,
+  .json-hub-page-v364,
+  .strength-history-v38,
+  .plan-editor-v37 {
+    padding-bottom: calc(82px + env(safe-area-inset-bottom));
+  }
+
+  .page-title,
+  .compact-title,
+  .simple-hero {
+    gap: 12px;
+  }
+
+  .page-title h2,
+  .compact-title h2,
+  .simple-hero h2 {
+    font-size: clamp(34px, 10vw, 54px);
+    line-height: .9;
+  }
+
+  .simple-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .simple-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .simple-tabs button {
+    min-width: max-content;
+    min-height: var(--tap-target-v39);
+    padding-inline: 14px;
+  }
+
+  .primary-btn,
+  .ghost-btn,
+  .danger-btn,
+  .date-input {
+    min-height: var(--tap-target-v39);
+  }
+
+  .form-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .simple-panel,
+  .panel {
+    border-radius: 22px;
+  }
+
+  .simple-section-head,
+  .section-title-row {
+    gap: 12px;
+  }
+
+  .section-title-row {
+    display: grid;
+  }
+
+  .section-title-row .form-actions,
+  .section-title-row button {
+    width: 100%;
+  }
+
+  .today-binary-grid,
+  .metric-grid,
+  .metric-grid.four,
+  .small-stat-grid,
+  .strength-metric-grid-v38,
+  .daily-status-grid-v363,
+  .smart-checkin-grid-v372 {
+    grid-template-columns: 1fr;
+  }
+
+  .json-hub-textarea-v364,
+  .json-import-box {
+    min-height: 220px;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .json-type-tabs-v364 {
+    grid-template-columns: 1fr;
+  }
+
+  .json-type-tabs-v364 button {
+    min-height: var(--tap-target-v39);
+  }
+
+  .gym-day-cards {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .gym-day-cards::-webkit-scrollbar {
+    display: none;
+  }
+
+  .gym-day-cards button {
+    min-width: 118px;
+    min-height: 62px;
+  }
+
+  .gym-log-top-v32 {
+    position: sticky;
+    bottom: calc(74px + env(safe-area-inset-bottom));
+    z-index: 30;
+    margin-inline: -10px;
+    border: 1px solid rgba(200,255,0,.18);
+    border-radius: 22px;
+    background:
+      linear-gradient(180deg, rgba(15,23,42,.96), rgba(15,23,42,.92)),
+      rgba(15,23,42,.95);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 -18px 40px rgba(0,0,0,.28);
+  }
+
+  .gym-log-top-v32 .primary-btn,
+  .gym-log-top-v32 .ghost-btn {
+    min-width: 84px;
+    min-height: var(--tap-target-v39);
+  }
+
+  .hevy-card-v32 {
+    border-radius: 22px;
+  }
+
+  .hevy-card-head-v32 {
+    display: grid;
+    gap: 12px;
+  }
+
+  .replacement-actions-v332 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .replacement-actions-v332 button {
+    width: 100%;
+    justify-content: center;
+    min-height: var(--tap-target-v39);
+  }
+
+  .hevy-table-v32 {
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .hevy-header-v32,
+  .hevy-row-v32 {
+    min-width: 420px;
+  }
+
+  .hevy-row-v32 input {
+    min-height: 42px;
+    text-align: center;
+  }
+
+  .check-v32 {
+    min-width: 42px;
+    min-height: 42px;
+  }
+
+  .session-fields-v32 {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-day-form-v37 input,
+  .plan-day-form-v37 select,
+  .plan-day-form-v37 textarea,
+  .exercise-editor-grid-v37 input,
+  .smart-checkin-form-v372 input,
+  .smart-checkin-form-v372 textarea,
+  .form-grid input,
+  .form-grid select,
+  .form-grid textarea {
+    min-height: var(--tap-target-v39);
+  }
+
+  .exercise-editor-card-v37,
+  .strength-session-card-v38,
+  .sleep-history-card,
+  .daily-status-card-v363 {
+    border-radius: 22px;
+  }
+
+  .exercise-editor-head-v37 > div,
+  .json-head-actions-v367,
+  .json-example-list-v367,
+  .gym-hero-actions-v37 {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .exercise-editor-head-v37 button,
+  .json-head-actions-v367 button,
+  .json-example-list-v367 button,
+  .gym-hero-actions-v37 button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .strength-history-layout-v38 {
+    grid-template-columns: 1fr;
+  }
+
+  .strength-exercise-list-v38 {
+    position: static;
+  }
+
+  .exercise-pick-list-v38 {
+    max-height: 300px;
+  }
+
+  .weekly-row-v38 {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .weekly-row-v38 strong {
+    grid-column: 2;
+  }
+
+  .quick-dock,
+  .quick-dock-v29,
+  .quick-dock-portal,
+  .floating-quick-access,
+  .quick-access-dock {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 420px) {
+  .simple-panel,
+  .panel {
+    padding-inline: 12px;
+  }
+
+  .page-title h2,
+  .compact-title h2,
+  .simple-hero h2 {
+    font-size: clamp(30px, 12vw, 46px);
+  }
+
+  .daily-status-score-v363 {
+    height: 62px;
+  }
+
+  .daily-status-score-v363 strong {
+    font-size: 24px;
+  }
+
+  .hevy-header-v32,
+  .hevy-row-v32 {
+    min-width: 390px;
+  }
+}
+
+/* Modo app instalado: mais estável em tela pequena */
+@media (display-mode: standalone) {
+  .app-shell,
+  .simple-page,
+  .today-simple-page {
+    padding-top: max(12px, env(safe-area-inset-top));
+  }
+}
+
+
+/* v3.9.1 — Correção de scroll mobile */
+html,
+body,
+#root {
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+body {
+  overscroll-behavior-y: auto;
+}
+
+@media (max-width: 760px) {
+  body {
+    overscroll-behavior-y: auto;
+    touch-action: pan-y;
+  }
+
+  .app-shell,
+  .main-content,
+  main,
+  .simple-page,
+  .today-simple-page,
+  .cardio-page,
+  .sleep-page,
+  .json-hub-page-v364,
+  .strength-history-v38,
+  .plan-editor-v37,
+  .gym-v32-page {
+    overflow: visible;
+    touch-action: pan-y;
+  }
+
+  .gym-log-top-v32 {
+    position: static;
+    margin-inline: 0;
+    box-shadow: none;
+  }
+}
+
+
+/* v3.9.2 — Correção de cortes/layout mobile */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+img,
+svg,
+canvas,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+@media (max-width: 760px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  .app-shell,
+  .main-content,
+  main,
+  .simple-page,
+  .today-simple-page,
+  .cardio-page,
+  .sleep-page,
+  .gym-v32-page,
+  .json-hub-page-v364,
+  .strength-history-v38,
+  .plan-editor-v37 {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    padding-inline: 12px;
+  }
+
+  .simple-panel,
+  .panel,
+  .simple-hero,
+  .today-card,
+  .today-focus-card,
+  .gym-card,
+  .cardio-card,
+  .sleep-card,
+  .json-card,
+  .strength-history-card,
+  .cardio-plan-card,
+  .cardio-plan-card-v322,
+  .daily-status-card-v363,
+  .smart-checkin-panel-v372,
+  .strength-main-card-v38,
+  .watch-import-panel-v35 {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin-inline: 0;
+  }
+
+  .simple-panel *,
+  .panel *,
+  .simple-hero *,
+  .cardio-plan-card *,
+  .cardio-plan-card-v322 *,
+  .daily-status-card-v363 *,
+  .smart-checkin-panel-v372 *,
+  .strength-main-card-v38 *,
+  .watch-import-panel-v35 * {
+    min-width: 0;
+  }
+
+  .simple-panel,
+  .panel,
+  .simple-hero,
+  .cardio-plan-card,
+  .cardio-plan-card-v322 {
+    overflow: hidden;
+  }
+
+  .simple-panel h1,
+  .simple-panel h2,
+  .simple-panel h3,
+  .panel h1,
+  .panel h2,
+  .panel h3,
+  .simple-hero h1,
+  .simple-hero h2,
+  .simple-hero h3 {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .simple-panel p,
+  .panel p,
+  .simple-hero p,
+  .muted-text {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .chip-row,
+  .pill-row,
+  .tag-row,
+  .option-row,
+  .action-row,
+  .button-row,
+  .today-focus-actions,
+  .cardio-choice-row,
+  .cardio-options,
+  .cardio-option-row,
+  .substitution-reason-row,
+  .json-example-list-v367,
+  .session-set-pills-v38 {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .chip,
+  .pill,
+  .tag,
+  .option-chip,
+  .action-chip,
+  .cardio-option-chip,
+  .substitution-chip,
+  .session-set-pills-v38 span {
+    max-width: 100%;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .cardio-plan-card button,
+  .cardio-plan-card-v322 button,
+  .cardio-choice-row button,
+  .cardio-options button,
+  .cardio-option-row button {
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
+  }
+
+  .cardio-plan-card,
+  .cardio-plan-card-v322 {
+    contain: layout;
+  }
+
+  .cardio-plan-card > *,
+  .cardio-plan-card-v322 > * {
+    max-width: 100%;
+  }
+
+  .cardio-plan-card .pill,
+  .cardio-plan-card-v322 .pill {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    max-width: 100%;
+  }
+
+  .gym-day-cards,
+  .simple-tabs {
+    max-width: 100%;
+  }
+
+  .hevy-table-v32 {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .hevy-table-v32,
+  .json-hub-textarea-v364,
+  .json-import-box {
+    overscroll-behavior-x: contain;
+  }
+
+  .strength-history-toolbar-v38,
+  .json-import-head-v364,
+  .daily-next-step-v363,
+  .smart-checkin-panel-v372 .section-title-row {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .strength-history-toolbar-v38 label,
+  .json-import-head-v364 > div,
+  .daily-next-step-v363 > *,
+  .smart-checkin-panel-v372 .section-title-row > * {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 420px) {
+  .app-shell,
+  .main-content,
+  main,
+  .simple-page,
+  .today-simple-page,
+  .cardio-page,
+  .sleep-page,
+  .gym-v32-page,
+  .json-hub-page-v364,
+  .strength-history-v38,
+  .plan-editor-v37 {
+    padding-inline: 10px;
+  }
+
+  .simple-panel,
+  .panel,
+  .simple-hero {
+    padding-inline: 12px;
+  }
+}

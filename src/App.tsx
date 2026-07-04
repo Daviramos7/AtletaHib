@@ -1,37 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Activity, ArrowLeft, BarChart3, ClipboardCheck, Dumbbell, Home, LineChart, LogOut, Menu, Moon, Salad, Settings, SlidersHorizontal, Timer, TrendingUp, User, Waves, Watch, X } from 'lucide-react';
+import { Activity, ArrowLeft, BarChart3, Dumbbell, Home, LogOut, Menu, Salad, Settings, User, Waves, Watch, X } from 'lucide-react';
 import { isSupabaseConfigured } from './lib/supabaseClient';
 import { getSession, onAuthStateChange, signOut } from './services/authService';
 import { ensureUserBootstrap } from './services/bootstrapService';
 import LoginView from './components/LoginView';
-import Dashboard from './components/Dashboard';
-import DietView from './components/DietView';
-import TrainingView from './components/TrainingView';
-import StrengthView from './components/StrengthView';
-import RunView from './components/RunView';
-import SleepView from './components/SleepView';
-import ProgressView from './components/ProgressView';
+import TodayView from './components/TodayView';
+import GymModeView from './components/GymModeView';
+import RegisterHubView from './components/RegisterHubView';
+import ProgressHubView from './components/ProgressHubView';
 import ProfileView from './components/ProfileView';
-import CheckInView from './components/CheckInView';
-import WeeklyReviewView from './components/WeeklyReviewView';
-import PlanBuilderView from './components/PlanBuilderView';
 import IntegrationsView from './components/IntegrationsView';
 import OnboardingView from './components/OnboardingView';
 import OfflineBanner from './components/OfflineBanner';
 
 const NAV = [
   { id: 'dashboard', label: 'Hoje', icon: Activity },
-  { id: 'diet', label: 'Dieta', icon: Salad },
-  { id: 'training', label: 'Treino', icon: Dumbbell },
-  { id: 'run', label: 'Cardio', icon: Timer },
-  { id: 'sleep', label: 'Sono', icon: Moon },
-  { id: 'strength', label: 'Força', icon: TrendingUp },
-  { id: 'checkin', label: 'Check-in', icon: ClipboardCheck },
-  { id: 'progress', label: 'Progresso', icon: LineChart },
-  { id: 'review', label: 'Semana', icon: BarChart3 },
+  { id: 'register', label: 'Registrar', icon: Salad },
+  { id: 'gym', label: 'Academia', icon: Dumbbell },
+  { id: 'progressHub', label: 'Progresso', icon: BarChart3 },
   { id: 'integrations', label: 'Saúde', icon: Watch },
-  { id: 'builder', label: 'Criador', icon: SlidersHorizontal },
   { id: 'profile', label: 'Perfil', icon: User },
 ];
 
@@ -89,15 +77,35 @@ export default function App() {
     userId,
     profile: boot?.profile,
     trainingPlan: boot?.trainingPlan,
-    refreshBoot: async () => setBoot(await ensureUserBootstrap(userId)),
+    refreshBoot: async () => {
+      if (!userId) return;
+      setBoot(await ensureUserBootstrap(userId));
+    },
   }), [userId, boot]);
+
+  useEffect(() => {
+    if (!error) return undefined;
+    const timer = window.setTimeout(() => setError(''), classifyNotice(error) === 'error' ? 7000 : 3500);
+    return () => window.clearTimeout(timer);
+  }, [error]);
 
   if (!isSupabaseConfigured) {
     return <SetupWarning />;
   }
 
   if (loading) {
-    return <div className="center-screen"><div className="loader" /><p>Carregando Atleta Híbrido 2.0...</p></div>;
+    return (
+      <div className="center-screen">
+        <div className="loading-card-v35">
+          <div className="loader" />
+          <div>
+            <p className="eyebrow">Atleta Híbrido</p>
+            <h1>Carregando</h1>
+            <span>Preparando seus dados do dia.</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!session) {
@@ -108,17 +116,20 @@ export default function App() {
     return (
       <div className="app-shell">
         <OfflineBanner />
-        {error && <div className="alert error" onClick={() => setError('')}>{error}</div>}
+        {error && <div className={`alert ${classifyNotice(error)}`} onClick={() => setError('')} role="status" aria-live="polite">{error}</div>}
         <OnboardingView userId={userId} profile={boot.profile} onReady={setBoot} onError={setError} />
       </div>
     );
   }
 
   function navigateTo(tabId) {
+    if (!NAV.some((item) => item.id === tabId)) return;
+
     if (tabId !== active) {
       tabHistoryRef.current = [...tabHistoryRef.current, active].slice(-12);
       setActive(tabId);
     }
+
     setQuickOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -144,35 +155,31 @@ export default function App() {
   }
 
   const Current = {
-    dashboard: Dashboard,
-    diet: DietView,
-    training: TrainingView,
-    run: RunView,
-    sleep: SleepView,
-    strength: StrengthView,
-    checkin: CheckInView,
-    progress: ProgressView,
-    review: WeeklyReviewView,
+    dashboard: TodayView,
+    register: RegisterHubView,
+    gym: GymModeView,
+    progressHub: ProgressHubView,
     integrations: IntegrationsView,
-    builder: PlanBuilderView,
     profile: ProfileView,
-  }[active];
+  }[active] ?? TodayView;
+
+  const activeNavItem = NAV.find((item) => item.id === active) ?? NAV[0];
 
   return (
     <div className="app-shell app-shell-v2">
       <OfflineBanner />
       <header className="topbar topbar-v2">
         <div>
-          <p className="eyebrow">Atleta Híbrido 2.0</p>
-          <h1>Seu painel diário</h1>
+          <p className="eyebrow">Atleta Híbrido</p>
+          <h1>{activeNavItem.label}</h1>
         </div>
         <div className="top-actions">
           <button className="ghost-btn" type="button" onClick={() => navigateTo('profile')}><Settings size={16} /> Perfil</button>
-          <button className="ghost-btn danger" type="button" onClick={signOut}><LogOut size={16} /> Sair</button>
+          <button className="ghost-btn danger" type="button" onClick={() => window.confirm('Sair da conta?') && signOut()}><LogOut size={16} /> Sair</button>
         </div>
       </header>
 
-      {error && <div className="alert error" onClick={() => setError('')}>{error}</div>}
+      {error && <div className={`alert ${classifyNotice(error)}`} onClick={() => setError('')} role="status" aria-live="polite">{error}</div>}
 
       <main className="main-grid main-grid-v2">
         <aside className="sidebar sidebar-v2">
@@ -196,7 +203,7 @@ export default function App() {
         </aside>
 
         <section className="content-card content-card-v2">
-          <Current {...pageProps} onError={setError} />
+          <Current {...pageProps} onError={setError} onNavigate={navigateTo} />
         </section>
       </main>
 
@@ -279,6 +286,23 @@ function QuickAccessDock({ active, isOpen, onToggle, onClose, onNavigate, onBack
   return createPortal(dock, document.body);
 }
 
+
+function classifyNotice(message) {
+  const text = String(message ?? '').toLowerCase();
+
+  if (
+    text.includes('salv') ||
+    text.includes('importad') ||
+    text.includes('iniciad') ||
+    text.includes('copiad') ||
+    text.includes('atualizad') ||
+    text.includes('conclu')
+  ) {
+    return 'success';
+  }
+
+  return 'error';
+}
 
 function SetupWarning() {
   return (

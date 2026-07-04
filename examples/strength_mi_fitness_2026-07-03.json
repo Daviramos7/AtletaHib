@@ -1,0 +1,32 @@
+{
+  "type": "strength_wearable_session",
+  "activity_type": "strength_training",
+  "activity_label": "Força",
+  "date": "2026-07-03",
+  "start_time": "18:10",
+  "duration_seconds": 1569,
+  "duration_text": "00:26:09",
+  "active_kcal": 178,
+  "total_kcal": 226,
+  "avg_heart_rate": 96,
+  "max_heart_rate": 133,
+  "heart_rate_zones": {
+    "light_seconds": 589,
+    "intensive_seconds": 195,
+    "aerobic_seconds": 0,
+    "anaerobic_seconds": 0,
+    "vo2max_seconds": 0
+  },
+  "training_effect": 1,
+  "vitality_score": 1,
+  "source": "mi_fitness_screenshot",
+  "source_app": "Mi Fitness",
+  "device_name": "Redmi Watch 5 Active",
+  "import_method": "screenshot_json",
+  "counts_toward_daily_totals": false,
+  "metrics_may_already_exist_in_health_connect": true,
+  "confidence": "high",
+  "dedupe_key": "2026-07-03_strength_training_1810_1569s_mi_fitness",
+  "warnings": [],
+  "notes": "Sessão de força extraída de print do Mi Fitness. Complementa o treino registrado no app, sem duplicar calorias ou frequência cardíaca diária."
+}
