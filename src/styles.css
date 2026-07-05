@@ -6393,3 +6393,130 @@ video {
     min-height: 52px;
   }
 }
+
+
+/* v4.0 — Data Quality & Logic Hardening */
+.session-frozen-v40 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid rgba(148, 163, 184, .22);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: .85rem;
+}
+
+.data-quality-card-v40 {
+  border: 1px solid rgba(148, 163, 184, .16);
+}
+
+.data-quality-card-v40.good {
+  border-color: rgba(74, 222, 128, .2);
+}
+
+.data-quality-card-v40.warning {
+  border-color: rgba(251, 191, 36, .28);
+}
+
+.data-quality-card-v40.danger {
+  border-color: rgba(248, 113, 113, .3);
+}
+
+.quality-score-v40 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .06);
+  color: var(--text);
+  font-weight: 800;
+}
+
+.quality-ok-v40,
+.quality-warning-v40 {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.quality-ok-v40 {
+  color: #bbf7d0;
+}
+
+.quality-list-v40 {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.quality-warning-v40 {
+  padding: 11px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .045);
+  border: 1px solid rgba(255, 255, 255, .07);
+}
+
+.quality-warning-v40 strong {
+  display: block;
+  margin-bottom: 3px;
+}
+
+.quality-warning-v40 p {
+  margin: 0;
+  color: var(--muted);
+  font-size: .9rem;
+}
+
+.quality-warning-v40.high,
+.quality-warning-v40.medium {
+  border-color: rgba(251, 191, 36, .24);
+}
+
+.quality-warning-v40.high svg {
+  color: #fca5a5;
+}
+
+.quality-warning-v40.medium svg {
+  color: #fcd34d;
+}
+
+.quality-warning-v40.info svg {
+  color: #93c5fd;
+}
+
+.quality-actions-v40 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+@media (max-width: 760px) {
+  .session-frozen-v40,
+  .quality-actions-v40 button {
+    width: 100%;
+  }
+
+  .quality-warning-v40 {
+    padding: 10px;
+  }
+}
+
+
+/* v4.0.1 — Check-in preserva valores exatos do relógio */
+.field-hint-v401 {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: .78rem;
+  line-height: 1.35;
+}
+
+.smart-checkin-panel-v372 input[type="number"] {
+  font-variant-numeric: tabular-nums;
+}

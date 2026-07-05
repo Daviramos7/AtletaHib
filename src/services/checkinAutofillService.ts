@@ -14,9 +14,9 @@ export async function loadCheckinAutofill(userId, logDate) {
   ]);
 
   const correctedSleep = sleep?.[0] ?? null;
-  const sleepMinutes = Number(correctedSleep?.duration_minutes ?? wearable?.sleep_minutes ?? 0);
+  const sleepMinutes = integerOrNull(correctedSleep?.duration_minutes ?? wearable?.sleep_minutes);
   const sleepHours = sleepMinutes ? Number((sleepMinutes / 60).toFixed(2)) : null;
-  const steps = numberOrNull(wearable?.steps);
+  const steps = integerOrNull(wearable?.steps);
   const waterMl = Number(daily?.water_ml ?? 0);
   const kcal = sum(meals, 'kcal');
   const protein = sum(meals, 'protein_g');
@@ -28,7 +28,7 @@ export async function loadCheckinAutofill(userId, logDate) {
     log_date: logDate,
     sleep_hours: sleepHours,
     sleep_minutes: sleepMinutes || null,
-    sleep_source: correctedSleep ? 'Sono importado' : wearable?.sleep_minutes ? sourceLabel(wearable) : null,
+    sleep_source: correctedSleep ? 'Sono importado corrigido' : wearable?.sleep_minutes ? sourceLabel(wearable) : null,
     steps,
     steps_source: steps ? sourceLabel(wearable) : null,
     water_ml: waterMl,
@@ -82,8 +82,13 @@ function sourceLabel(row) {
 
 function numberOrNull(value) {
   if (value === '' || value === null || value === undefined) return null;
-  const number = Number(value);
+  const number = Number(String(value).replace(',', '.'));
   return Number.isFinite(number) ? number : null;
+}
+
+function integerOrNull(value) {
+  const number = numberOrNull(value);
+  return number === null ? null : Math.round(number);
 }
 
 function sum(rows, field) {
