@@ -26,6 +26,59 @@ export async function saveCardioSessionFromJson(userId, rawPayload) {
   return data;
 }
 
+export async function saveManualCardioSession(userId, payload) {
+  const client = requireSupabase();
+  const performedAt = payload.performed_at ?? new Date().toISOString();
+  const activityType = normalizeActivityType(payload.activity_type ?? 'other');
+  const durationSeconds = toSeconds(payload.duration_seconds ?? (Number(payload.duration_minutes || 0) * 60));
+
+  if (!durationSeconds || durationSeconds <= 0) {
+    throw new Error('Informe uma duração para finalizar o cardio.');
+  }
+
+  const activityLabel = payload.activity_label ?? labelForActivity(activityType);
+  const source = payload.source ?? 'manual';
+  const dedupeKey = String(payload.dedupe_key ?? buildDedupeKey({
+    date: dateFromPerformedAt(performedAt),
+    activityType,
+    distanceKm: payload.distance_km ?? null,
+    durationSeconds,
+    source: `${source}_${slug(activityLabel)}`,
+  }));
+
+  const row = {
+    user_id: userId,
+    performed_at: performedAt,
+    activity_type: activityType,
+    activity_label: activityLabel,
+    source,
+    import_method: 'manual',
+    source_app: payload.source_app ?? 'Atleta Híbrido',
+    device_name: payload.device_name ?? null,
+    distance_km: toNumber(payload.distance_km),
+    duration_seconds: durationSeconds,
+    active_kcal: toInteger(payload.active_kcal),
+    total_kcal: toInteger(payload.total_kcal),
+    avg_heart_rate: toInteger(payload.avg_heart_rate),
+    max_heart_rate: toInteger(payload.max_heart_rate),
+    confidence: 'manual_review',
+    counts_toward_daily_totals: false,
+    metrics_may_already_exist_in_health_connect: true,
+    dedupe_key: dedupeKey,
+    notes: payload.notes ?? null,
+    raw_json: payload,
+  };
+
+  const { data, error } = await client
+    .from('cardio_sessions')
+    .upsert(row, { onConflict: 'user_id,dedupe_key' })
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 export function normalizeCardioImportPayload(raw) {
   if (!raw || typeof raw !== 'object') {
     throw new Error('JSON inválido: envie um objeto de sessão de cardio.');
@@ -178,4 +231,14 @@ function normalizeConfidence(value) {
 function buildDedupeKey({ date, activityType, distanceKm, durationSeconds, source }) {
   const distance = distanceKm === null || distanceKm === undefined ? 'sem-distancia' : `${Number(distanceKm).toFixed(2)}km`;
   return `${date}_${activityType}_${distance}_${durationSeconds}s_${String(source || 'manual').toLowerCase()}`;
+}
+
+function slug(value) {
+  return String(value ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40) || 'cardio';
 }

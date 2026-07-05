@@ -6381,3 +6381,15 @@ video {
     justify-content: center;
   }
 }
+
+
+/* v3.9.4 — Finalizar treino/cardio sempre visível */
+.finish-session-v394 {
+  border-color: rgba(200,255,0,.34);
+}
+
+@media (max-width: 760px) {
+  .finish-session-v394 {
+    min-height: 52px;
+  }
+}
