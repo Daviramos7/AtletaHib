@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Clock3, RotateCcw, Save, Square } from 'lucide-react';
 import { calculateVolumeKg, completeWorkoutWithSets, listStrengthSets, listWorkoutHistory } from '../services/workoutService';
-import { listCardioSessions } from '../services/cardioService';
+import { listCardioSessions, saveManualCardioSession } from '../services/cardioService';
 import { listWearableWorkoutSessions } from '../services/strengthWearableService';
 import { getCardioOptions, getDayKindLabel, getStrengthEntries, getWeekdayLabel, isCardioDay, isRestDay, isStrengthDay, normalizeTrainingDays, resolveDayKind } from '../utils/trainingPlanUtils';
 import ReadinessCard from './ReadinessCard';
@@ -93,6 +93,8 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
   const completedSets = setRows.filter((row) => row.done).length;
   const totalSets = setRows.length;
   const totalVolume = calculateVolumeKg(setRows.filter((row) => row.done && Number(row.reps) > 0));
+  const canFinishSession = Boolean(startedAt || duration || (isStrengthDay(selectedDay) && setRows.some((row) => row.done)));
+  const finishLabel = isStrengthDay(selectedDay) ? 'Finalizar treino' : isCardioDay(selectedDay) ? 'Finalizar cardio' : 'Salvar sessão';
 
   function selectDay(day) {
     setSelectedDayId(day.id);
@@ -210,6 +212,15 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
             notes: [row.notes, row.original_exercise_name ? `Original: ${row.original_exercise_name}` : null].filter(Boolean).join(' · ') || null,
           })),
         });
+      } else if (isCardioDay(selectedDay)) {
+        const minutes = Number(duration || 0) || elapsedMinutes(startedAt) || 20;
+        await saveManualCardioSession(userId, {
+          performed_at: startedAt ?? new Date().toISOString(),
+          activity_type: inferCardioActivityType(selectedCardioChoice || selectedDay.title),
+          activity_label: selectedCardioChoice || selectedDay.title || 'Cardio',
+          duration_minutes: minutes,
+          notes: `${selectedDay.title} · registrado pela Academia`,
+        });
       }
 
       if (storageKey) localStorage.removeItem(storageKey);
@@ -278,6 +289,11 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
             </>
           ) : (
             <button className="primary-btn" type="button" onClick={startSession}><Clock3 size={16} /> {duration ? `Retomar (${duration} min)` : 'Iniciar'}</button>
+          )}
+          {canFinishSession && (
+            <button className="primary-btn finish-session-v394" type="button" onClick={finishWorkout} disabled={saving}>
+              <Save size={16} /> {finishLabel}
+            </button>
           )}
         </div>
       </div>
@@ -441,6 +457,18 @@ function groupRowsByExercise(rows) {
     map.set(row.exercise_entry_id, existing);
   });
   return [...map.values()];
+}
+
+function inferCardioActivityType(label) {
+  const text = String(label ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (text.includes('futebol')) return 'other';
+  if (text.includes('esteira')) return 'treadmill';
+  if (text.includes('corrida') || text.includes('trote')) return 'outdoor_run';
+  if (text.includes('caminhada')) return 'walk';
+  if (text.includes('bike') || text.includes('bicicleta')) return 'bike';
+  if (text.includes('escada')) return 'stairs';
+  if (text.includes('eliptico')) return 'elliptical';
+  return 'other';
 }
 
 function readJson(key, fallback) { try { const value = localStorage.getItem(key); return value ? JSON.parse(value) : fallback; } catch { return fallback; } }
