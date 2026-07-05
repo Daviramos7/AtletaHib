@@ -6,6 +6,7 @@ import CardioPlanCard from './CardioPlanCard';
 import ReadinessCard from './ReadinessCard';
 import { WaterQuickCard } from './WaterView';
 import DailyStatusCard from './DailyStatusCard';
+import DataQualityCard from './DataQualityCard';
 
 export default function TodayView(props: any) {
   const { userId, trainingPlan, onNavigate, onError } = props;
@@ -59,6 +60,8 @@ export default function TodayView(props: any) {
       <WaterQuickCard userId={userId} profile={props.profile} onError={onError} onNavigate={onNavigate} />
 
       <DailyStatusCard userId={userId} profile={props.profile} todayPlan={todayPlan} onError={onError} onNavigate={onNavigate} />
+
+      <DataQualityCard userId={userId} todayPlan={todayPlan} onNavigate={onNavigate} />
 
       {todayPlan.strength && (
         <section className="simple-panel">

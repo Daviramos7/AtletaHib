@@ -146,7 +146,7 @@ function normalizeMealItem(raw, defaultMealType, index) {
   const foodName = String(raw.food_name ?? raw.name ?? raw.alimento ?? raw.description ?? `Alimento importado ${index + 1}`).trim();
   const mealType = normalizeMealType(raw.meal_type ?? raw.meal ?? raw.refeicao ?? raw.refeição ?? defaultMealType);
 
-  const grams = positiveNumber(raw.grams ?? raw.gramas ?? raw.quantity_g ?? raw.weight_g ?? raw.portion_grams ?? raw.peso_g) ?? 100;
+  const grams = positiveNumber(raw.grams ?? raw.gramas ?? raw.quantity_g ?? raw.weight_g ?? raw.portion_grams ?? raw.peso_g);
   const kcalPer100g = numberOrNull(raw.kcal_per_100g ?? raw.calories_per_100g ?? raw.calorias_por_100g);
   const proteinPer100g = numberOrNull(raw.protein_per_100g ?? raw.proteina_por_100g ?? raw.protein_100g);
   const carbsPer100g = numberOrNull(raw.carbs_per_100g ?? raw.carboidratos_por_100g ?? raw.carbs_100g);
@@ -157,10 +157,15 @@ function normalizeMealItem(raw, defaultMealType, index) {
   const carbsRaw = numberOrNull(raw.carbs_g ?? raw.carbs ?? raw.carboidratos_g ?? raw.carboidratos);
   const fatRaw = numberOrNull(raw.fat_g ?? raw.fat ?? raw.gordura_g ?? raw.gordura);
 
+  if (!foodName) throw new Error('Item de comida sem nome.');
+
+  if (!grams) {
+    throw new Error(`Item "${foodName}" sem gramas. Não vou assumir 100g sozinho; informe grams/gramas ou uma porção estimada.`);
+  }
+
   const factor = grams / 100;
   const kcal = kcalRaw ?? (kcalPer100g !== null ? Math.round(kcalPer100g * factor) : null);
 
-  if (!foodName) throw new Error('Item de comida sem nome.');
   if (!kcal && kcal !== 0) throw new Error(`Item "${foodName}" sem kcal. Informe kcal ou kcal_per_100g.`);
 
   return {
@@ -168,17 +173,17 @@ function normalizeMealItem(raw, defaultMealType, index) {
     food_name: foodName,
     grams: Number(grams.toFixed(1)),
     kcal: Math.max(0, Math.round(kcal)),
-    protein_g: roundMacro(proteinRaw ?? (proteinPer100g !== null ? proteinPer100g * factor : 0)),
-    carbs_g: roundMacro(carbsRaw ?? (carbsPer100g !== null ? carbsPer100g * factor : 0)),
-    fat_g: roundMacro(fatRaw ?? (fatPer100g !== null ? fatPer100g * factor : 0)),
+    protein_g: roundMacroOrNull(proteinRaw ?? (proteinPer100g !== null ? proteinPer100g * factor : null)),
+    carbs_g: roundMacroOrNull(carbsRaw ?? (carbsPer100g !== null ? carbsPer100g * factor : null)),
+    fat_g: roundMacroOrNull(fatRaw ?? (fatPer100g !== null ? fatPer100g * factor : null)),
   };
 }
 
 function normalizeMealType(value) {
   const text = normalizeText(value);
 
-  if (text.includes('cafe') || text.includes('manha')) return 'cafe';
   if (text.includes('lanche') && text.includes('manha')) return 'lanche1';
+  if (text.includes('cafe') || text.includes('manha')) return 'cafe';
   if (text.includes('almoco') || text.includes('almoço')) return 'almoco';
   if (text.includes('pre') || text.includes('pos') || text.includes('treino') || text.includes('tarde')) return 'lanche2';
   if (text.includes('jantar') || text.includes('noite')) return 'jantar';
@@ -212,16 +217,25 @@ function normalizeText(value) {
 }
 
 function positiveNumber(value) {
-  const number = Number(value);
+  const number = parseLocaleNumber(value);
   return Number.isFinite(number) && number > 0 ? number : null;
 }
 
 function numberOrNull(value) {
   if (value === '' || value === null || value === undefined) return null;
-  const number = Number(value);
+  const number = parseLocaleNumber(value);
   return Number.isFinite(number) ? number : null;
 }
 
-function roundMacro(value) {
-  return Number(Number(value || 0).toFixed(1));
+function parseLocaleNumber(value) {
+  if (typeof value === 'number') return value;
+  const cleaned = String(value ?? '').replace(',', '.').replace(/[^0-9.-]/g, '');
+  if (!cleaned) return Number.NaN;
+  return Number(cleaned);
+}
+
+function roundMacroOrNull(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? Number(number.toFixed(1)) : null;
 }

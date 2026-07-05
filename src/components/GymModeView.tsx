@@ -16,6 +16,7 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
   const todayKeyValue = dateKey(new Date());
   const [selectedDayId, setSelectedDayId] = useState(null);
   const [startedAt, setStartedAt] = useState(null);
+  const [timerRunning, setTimerRunning] = useState(false);
   const [setRows, setSetRows] = useState([]);
   const [duration, setDuration] = useState('');
   const [effort, setEffort] = useState('7');
@@ -79,8 +80,10 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
     }
 
     const saved = readJson(storageKey, []);
+    const savedStart = startStorageKey ? localStorage.getItem(startStorageKey) : null;
     setSetRows(mergePlanWithDraft(strengthEntries, saved));
-    setStartedAt(startStorageKey ? localStorage.getItem(startStorageKey) : null);
+    setStartedAt(savedStart);
+    setTimerRunning(Boolean(savedStart));
     setSelectedCardioChoice(cardioOptions[0]?.label ?? '');
   }, [selectedDay, storageKey, startStorageKey, strengthEntries, cardioOptions]);
 
@@ -104,6 +107,8 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
   function startSession() {
     const now = new Date().toISOString();
     setStartedAt(now);
+    setTimerRunning(true);
+    setDuration('');
     if (startStorageKey) localStorage.setItem(startStorageKey, now);
     onError('Sessão iniciada.');
   }
@@ -111,9 +116,10 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
   function stopSessionTimer() {
     if (!startedAt) return;
     const elapsed = elapsedMinutes(startedAt);
-    setDuration((current) => current || String(elapsed));
-    setStartedAt(null);
-    if (startStorageKey) localStorage.removeItem(startStorageKey);
+    setDuration(String(elapsed));
+    setTimerRunning(false);
+    // Importante: não removemos startedAt/localStorage aqui.
+    // Parar o timer não pode mudar a data real de início da sessão.
     onError?.(`Timer parado em ${elapsed} min. As séries marcadas continuam salvas.`);
   }
 
@@ -182,6 +188,7 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
     if (startStorageKey) localStorage.removeItem(startStorageKey);
     setSetRows(buildInitialSetRows(strengthEntries));
     setStartedAt(null);
+    setTimerRunning(false);
   }
 
   async function finishWorkout() {
@@ -212,6 +219,25 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
             notes: [row.notes, row.original_exercise_name ? `Original: ${row.original_exercise_name}` : null].filter(Boolean).join(' · ') || null,
           })),
         });
+
+        if (isCardioDay(selectedDay)) {
+          const shouldSaveCardio = window.confirm('Também registrar o cardio planejado deste dia?');
+          if (shouldSaveCardio) {
+            const suggestedMinutes = selectedCardioChoice?.match(/(\d+)\s*min/i)?.[1] ?? '';
+            const manualMinutes = window.prompt('Quantos minutos de cardio você fez?', suggestedMinutes || '20');
+            const minutes = Math.max(Number(manualMinutes || 0), 0);
+
+            if (minutes > 0) {
+              await saveManualCardioSession(userId, {
+                performed_at: startedAt ?? new Date().toISOString(),
+                activity_type: inferCardioActivityType(selectedCardioChoice || selectedDay.title),
+                activity_label: selectedCardioChoice || selectedDay.title || 'Cardio pós-treino',
+                duration_minutes: minutes,
+                notes: `${selectedDay.title} · cardio pós-treino registrado pela Academia · kcal não informada`,
+              });
+            }
+          }
+        }
       } else if (isCardioDay(selectedDay)) {
         const minutes = Number(duration || 0) || elapsedMinutes(startedAt) || 20;
         await saveManualCardioSession(userId, {
@@ -219,7 +245,7 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
           activity_type: inferCardioActivityType(selectedCardioChoice || selectedDay.title),
           activity_label: selectedCardioChoice || selectedDay.title || 'Cardio',
           duration_minutes: minutes,
-          notes: `${selectedDay.title} · registrado pela Academia`,
+          notes: `${selectedDay.title} · registrado pela Academia · kcal não informada`,
         });
       }
 
@@ -227,6 +253,7 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
       if (startStorageKey) localStorage.removeItem(startStorageKey);
       setSetRows(buildInitialSetRows(strengthEntries));
       setStartedAt(null);
+      setTimerRunning(false);
       setDuration('');
       await load();
       onError('Sessão salva.');
@@ -284,11 +311,15 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
           <button className="ghost-btn" type="button" onClick={() => setMode('editor')}>Editar plano</button>
           {startedAt ? (
             <>
-              <button className="primary-btn" type="button" disabled><Clock3 size={16} /> {elapsedMinutes(startedAt)} min</button>
-              <button className="ghost-btn timer-stop-v393" type="button" onClick={stopSessionTimer}><Square size={15} /> Parar</button>
+              <button className="primary-btn" type="button" disabled><Clock3 size={16} /> {timerRunning ? elapsedMinutes(startedAt) : Number(duration || 0)} min</button>
+              {timerRunning ? (
+                <button className="ghost-btn timer-stop-v393" type="button" onClick={stopSessionTimer}><Square size={15} /> Parar</button>
+              ) : (
+                <span className="session-frozen-v40">timer parado</span>
+              )}
             </>
           ) : (
-            <button className="primary-btn" type="button" onClick={startSession}><Clock3 size={16} /> {duration ? `Retomar (${duration} min)` : 'Iniciar'}</button>
+            <button className="primary-btn" type="button" onClick={startSession}><Clock3 size={16} /> Iniciar</button>
           )}
           {canFinishSession && (
             <button className="primary-btn finish-session-v394" type="button" onClick={finishWorkout} disabled={saving}>
@@ -396,7 +427,7 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
           </div>
 
           <div className="session-fields-v32">
-            <label>Duração<input type="number" min="1" value={duration || (startedAt ? elapsedMinutes(startedAt) : '')} onChange={(event) => setDuration(event.target.value)} /></label>
+            <label>Duração<input type="number" min="1" value={duration || (startedAt && timerRunning ? elapsedMinutes(startedAt) : '')} onChange={(event) => setDuration(event.target.value)} /></label>
             <label>Esforço<input type="number" min="1" max="10" value={effort} onChange={(event) => setEffort(event.target.value)} /></label>
           </div>
         </section>

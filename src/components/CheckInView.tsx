@@ -23,6 +23,7 @@ export default function CheckInView({ userId, onError }) {
   const [saved, setSaved] = useState(null);
   const [autoData, setAutoData] = useState(null);
   const [loadingAuto, setLoadingAuto] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async (date = form.log_date) => {
     try {
@@ -70,13 +71,36 @@ export default function CheckInView({ userId, onError }) {
   const readiness = useMemo(() => calculateReadiness(form), [form]);
 
   async function handleSubmit(event) {
-    event.preventDefault();
+    event?.preventDefault?.();
+
+    if (!userId) {
+      onError?.('Usuário não encontrado. Faça login novamente.');
+      return;
+    }
+
     try {
+      setSaving(true);
       const data = await upsertCheckin(userId, form);
       setSaved(data);
-      onError('Check-in salvo. Agora o app consegue tomar decisões melhores.');
+      setForm((old) => ({
+        ...old,
+        log_date: data?.log_date ?? old.log_date,
+        sleep_hours: valueAsInput(data?.sleep_hours ?? old.sleep_hours),
+        energy_score: data?.energy_score ?? old.energy_score,
+        hunger_score: data?.hunger_score ?? old.hunger_score,
+        stress_score: data?.stress_score ?? old.stress_score,
+        pain_level: data?.pain_level ?? old.pain_level,
+        soreness_level: data?.soreness_level ?? old.soreness_level,
+        steps: valueAsInput(data?.steps ?? old.steps),
+        lactose_symptoms: Boolean(data?.lactose_symptoms ?? old.lactose_symptoms),
+        cravings_notes: data?.cravings_notes ?? old.cravings_notes,
+        notes: data?.notes ?? old.notes,
+      }));
+      onError?.('Check-in salvo. Agora o app consegue tomar decisões melhores.');
     } catch (err: any) {
-      onError(err.message);
+      onError?.(friendlyCheckinError(err));
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -126,13 +150,13 @@ export default function CheckInView({ userId, onError }) {
             <p className="muted-text">Esses dados vêm dos registros do próprio app, JSONs importados e Health Connect quando disponível.</p>
           </div>
           <button className="ghost-btn" type="button" onClick={applyAutomaticData} disabled={!hasAutoBasics}>
-            <Sparkles size={16} /> Aplicar sono/passos
+            <Sparkles size={16} /> Usar valores do relógio
           </button>
         </div>
 
         <div className="smart-checkin-grid-v372">
-          <AutoMetric icon={Moon} label="Sono" value={autoData?.sleep_hours ? `${autoData.sleep_hours}h` : '--'} sub={autoData?.sleep_source ?? 'sem dado'} ok={Boolean(autoData?.sleep_hours)} />
-          <AutoMetric icon={Footprints} label="Passos" value={autoData?.steps ? formatNumber(autoData.steps) : '--'} sub={autoData?.steps_source ?? 'sem dado'} ok={Boolean(autoData?.steps)} />
+          <AutoMetric icon={Moon} label="Sono" value={autoData?.sleep_hours ? `${autoData.sleep_hours}h` : '--'} sub={autoData?.sleep_source ? `${autoData.sleep_source} · valor exato` : 'sem dado'} ok={Boolean(autoData?.sleep_hours)} />
+          <AutoMetric icon={Footprints} label="Passos" value={autoData?.steps ? formatNumber(autoData.steps) : '--'} sub={autoData?.steps_source ? `${autoData.steps_source} · valor exato` : 'sem dado'} ok={Boolean(autoData?.steps)} />
           <AutoMetric icon={Droplets} label="Água" value={autoData?.water_ml ? `${formatNumber(autoData.water_ml)} ml` : '--'} sub="registro do dia" ok={Boolean(autoData?.water_ml)} />
           <AutoMetric icon={Salad} label="Comida" value={autoData?.kcal ? `${formatNumber(autoData.kcal)} kcal` : '--'} sub={`${autoData?.meals_count ?? 0} item(ns)`} ok={Boolean(autoData?.meals_count)} />
           <AutoMetric icon={Dumbbell} label="Treino" value={autoData?.workout_count ? 'feito' : '--'} sub={`${autoData?.workout_count ?? 0} sessão(ões)`} ok={Boolean(autoData?.workout_count)} />
@@ -183,7 +207,7 @@ export default function CheckInView({ userId, onError }) {
         <label className="full">Notas
           <textarea value={form.notes} onChange={(e) => update('notes', e.target.value)} placeholder="Sono ruim, dor na canela, treino pesado, dia tranquilo..." />
         </label>
-        <button className="primary-btn"><Save size={16} /> Salvar check-in</button>
+        <button className="primary-btn" type="submit" disabled={saving}><Save size={16} /> {saving ? 'Salvando...' : 'Salvar check-in'}</button>
       </form>
 
       <section className="panel warning-panel">
@@ -207,6 +231,24 @@ function AutoMetric({ icon: Icon, label, value, sub, ok }) {
 
 function formatNumber(value) {
   return Number(value || 0).toLocaleString('pt-BR');
+}
+
+function friendlyCheckinError(error) {
+  const message = String(error?.message ?? error ?? 'Erro desconhecido ao salvar check-in.');
+
+  if (message.includes('daily_checkins') && (message.includes('does not exist') || message.includes('schema cache'))) {
+    return 'A tabela daily_checkins não está pronta no Supabase. Rode a migration v3.9.5 e tente novamente.';
+  }
+
+  if (message.includes('ON CONFLICT') || message.includes('unique') || message.includes('constraint')) {
+    return 'O Supabase não encontrou a chave única do check-in. Rode a migration v3.9.5 e tente novamente.';
+  }
+
+  if (message.includes('row-level security') || message.includes('violates row-level security')) {
+    return 'O Supabase bloqueou por RLS. Faça login novamente; se continuar, rode a migration v3.9.5.';
+  }
+
+  return message;
 }
 
 function valueAsInput(value) {
