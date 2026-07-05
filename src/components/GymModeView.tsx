@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Clock3, RotateCcw, Save } from 'lucide-react';
+import { CheckCircle2, Clock3, RotateCcw, Save, Square } from 'lucide-react';
 import { calculateVolumeKg, completeWorkoutWithSets, listStrengthSets, listWorkoutHistory } from '../services/workoutService';
 import { listCardioSessions } from '../services/cardioService';
 import { listWearableWorkoutSessions } from '../services/strengthWearableService';
@@ -104,6 +104,15 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
     setStartedAt(now);
     if (startStorageKey) localStorage.setItem(startStorageKey, now);
     onError('Sessão iniciada.');
+  }
+
+  function stopSessionTimer() {
+    if (!startedAt) return;
+    const elapsed = elapsedMinutes(startedAt);
+    setDuration((current) => current || String(elapsed));
+    setStartedAt(null);
+    if (startStorageKey) localStorage.removeItem(startStorageKey);
+    onError?.(`Timer parado em ${elapsed} min. As séries marcadas continuam salvas.`);
   }
 
   function updateSetRow(rowId, patch) {
@@ -262,7 +271,14 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
         </div>
         <div className="gym-hero-actions-v37">
           <button className="ghost-btn" type="button" onClick={() => setMode('editor')}>Editar plano</button>
-          <button className="primary-btn" type="button" onClick={startSession} disabled={Boolean(startedAt)}><Clock3 size={16} /> {startedAt ? `${elapsedMinutes(startedAt)} min` : 'Iniciar'}</button>
+          {startedAt ? (
+            <>
+              <button className="primary-btn" type="button" disabled><Clock3 size={16} /> {elapsedMinutes(startedAt)} min</button>
+              <button className="ghost-btn timer-stop-v393" type="button" onClick={stopSessionTimer}><Square size={15} /> Parar</button>
+            </>
+          ) : (
+            <button className="primary-btn" type="button" onClick={startSession}><Clock3 size={16} /> {duration ? `Retomar (${duration} min)` : 'Iniciar'}</button>
+          )}
         </div>
       </div>
 
