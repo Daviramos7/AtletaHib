@@ -140,31 +140,31 @@ export const RUN_PLAN = [
   {
     week: 1,
     title: 'Base sem pressa',
-    protocol: '20 a 25min — 5min caminhada + 8 a 10x: 30s trote + 90s caminhada',
+    protocol: '15 a 20min — 5min caminhada + 8 a 10x: 30s trote + 90s caminhada',
     goal: 'Criar tolerância ao impacto e achar um ritmo sustentável.',
   },
   {
     week: 2,
     title: 'Mais tempo correndo',
-    protocol: '22 a 27min — 5min caminhada + 8 a 10x: 45s trote + 75s caminhada',
+    protocol: '15 a 20min — 5min caminhada + 8 a 10x: 45s trote + 75s caminhada',
     goal: 'Aumentar exposição ao trote sem precisar correr rápido.',
   },
   {
     week: 3,
     title: '1 para 1',
-    protocol: '25 a 30min — 5min caminhada + 10x: 1min trote + 1min caminhada',
+    protocol: '15 a 20min — 5min caminhada + 10x: 1min trote + 1min caminhada',
     goal: 'Melhorar respiração e controle do ritmo.',
   },
   {
     week: 4,
     title: 'Blocos maiores',
-    protocol: '25 a 30min — 5min caminhada + 6x: 2min trote + 1min caminhada',
+    protocol: '15 a 20min — 5min caminhada + 6x: 2min trote + 1min caminhada',
     goal: 'Sustentar mais tempo correndo.',
   },
   {
     week: 5,
     title: 'Quase contínuo',
-    protocol: '28 a 35min — 5min caminhada + 5x: 3min trote + 1min caminhada',
+    protocol: '15 a 20min — 5min caminhada + 5x: 3min trote + 1min caminhada',
     goal: 'Preparar o corpo para correr 1 km direto.',
   },
   {
@@ -215,8 +215,8 @@ function objectiveText(profile) {
 function cardioNote(profile) {
   const goal = profile?.main_goal;
   if (goal === 'futebol') return 'Cardio com foco em corrida/caminhada, aceleração curta e mudança de direção quando o corpo já estiver adaptado.';
-  if (goal === 'condicionamento') return 'Cardio progressivo para melhorar fôlego e resistência.';
-  return 'Cardio leve ou moderado para saúde, aderência e gasto energético sem exagerar no impacto.';
+  if (goal === 'condicionamento') return 'Cardio curto e progressivo para melhorar fôlego sem passar de 20 minutos.';
+  return 'Cardio leve ou moderado, curto, para saúde e aderência sem exagerar no impacto.';
 }
 
 export function buildTrainingPlanFromProfile(profile = PROFILE_FALLBACKS) {
@@ -233,7 +233,7 @@ export function buildTrainingPlanFromProfile(profile = PROFILE_FALLBACKS) {
   const addStrengthDay = (weekday, letter, title, type = 'forca') => {
     const exercises = strengthLibrary[letter].map((exercise, idx) => ({ ...exercise, position: idx + 1 }));
     if (type.includes('corrida')) {
-      exercises.push({ position: exercises.length + 1, exercise_name: 'Cardio pós-treino', sets: '1', reps: '10-20min', rest_seconds: 0, notes: cardioNote(profile) });
+      exercises.push({ position: exercises.length + 1, exercise_name: 'Cardio pós-treino', sets: '1', reps: '10-15min', rest_seconds: 0, notes: cardioNote(profile) });
     }
     const hasCardio = type.includes('corrida') || type.includes('z2');
     plan.days.push({
@@ -269,11 +269,11 @@ export function buildTrainingPlanFromProfile(profile = PROFILE_FALLBACKS) {
       type: 'corrida',
       day_kind: 'cardio',
       cardio_required: true,
-      cardio_options: [{ label: 'Corrida/caminhada progressiva', description: '20-30min · Use a aba 1 km como referência.' }],
+      cardio_options: [{ label: 'Corrida/caminhada progressiva', description: '15-20min · Use a aba 1 km como referência.' }],
       notes: cardioNote(profile),
       exercises: [
-        { position: 1, exercise_name: 'Corrida/caminhada progressiva', sets: '1', reps: '20-30min', rest_seconds: 0, notes: 'Use a aba 1 km como referência de progressão.' },
-        { position: 2, exercise_name: 'Mobilidade leve', sets: '1', reps: '5-10min', rest_seconds: 0, notes: 'Tornozelo, quadril e panturrilha sem forçar dor.' },
+        { position: 1, exercise_name: 'Corrida/caminhada progressiva', sets: '1', reps: '15-20min', rest_seconds: 0, notes: 'Use a aba 1 km como referência de progressão.' },
+        { position: 2, exercise_name: 'Mobilidade leve', sets: '1', reps: '5min', rest_seconds: 0, notes: 'Tornozelo, quadril e panturrilha sem forçar dor.' },
       ],
     });
   }
@@ -286,13 +286,13 @@ export function buildTrainingPlanFromProfile(profile = PROFILE_FALLBACKS) {
       day_kind: 'cardio',
       cardio_required: true,
       cardio_options: [
-        { label: 'Futebol recreativo', description: '40-60min · Aqueça antes.' },
-        { label: 'Alternativa: caminhada/trote leve', description: '20-30min · Sem tiro forte se estiver cansado.' },
+        { label: 'Futebol recreativo', description: 'até 20min recomendados · Aqueça antes.' },
+        { label: 'Alternativa: caminhada/trote leve', description: '15-20min · Sem tiro forte se estiver cansado.' },
       ],
-      notes: 'Se jogar bola, conta como cardio. Aqueça antes e não faça tiro pesado no mesmo dia.',
+      notes: 'Se jogar bola, conta como cardio. Não faça cardio extra no mesmo dia e mantenha o plano do app limitado a 20 min.',
       exercises: [
-        { position: 1, exercise_name: 'Futebol recreativo', sets: '1', reps: '40-60min', rest_seconds: 0, notes: 'Aquecimento de 8-10min antes de entrar forte.' },
-        { position: 2, exercise_name: 'Alternativa: caminhada/trote leve', sets: '1', reps: '20-30min', rest_seconds: 0, notes: 'Sem tiro forte se estiver cansado.' },
+        { position: 1, exercise_name: 'Futebol recreativo', sets: '1', reps: 'até 20min recomendados', rest_seconds: 0, notes: 'Aquecimento de 8-10min antes de entrar forte.' },
+        { position: 2, exercise_name: 'Alternativa: caminhada/trote leve', sets: '1', reps: '15-20min', rest_seconds: 0, notes: 'Sem tiro forte se estiver cansado.' },
       ],
     });
   } else if (cardioDays >= 2 && !plan.days.some((day) => day.weekday === 6)) {
@@ -302,10 +302,10 @@ export function buildTrainingPlanFromProfile(profile = PROFILE_FALLBACKS) {
       type: 'cardio_leve',
       day_kind: 'cardio',
       cardio_required: true,
-      cardio_options: [{ label: 'Caminhada, bike ou elíptico', description: '25-40min · Ritmo em que ainda dá para conversar.' }],
+      cardio_options: [{ label: 'Caminhada, bike ou elíptico', description: '15-20min · Ritmo em que ainda dá para conversar.' }],
       notes: 'Sessão leve para aumentar gasto e consistência sem atrapalhar recuperação.',
       exercises: [
-        { position: 1, exercise_name: 'Caminhada, bike ou elíptico', sets: '1', reps: '25-40min', rest_seconds: 0, notes: 'Ritmo em que ainda dá para conversar.' },
+        { position: 1, exercise_name: 'Caminhada, bike ou elíptico', sets: '1', reps: '15-20min', rest_seconds: 0, notes: 'Ritmo em que ainda dá para conversar.' },
       ],
     });
   }

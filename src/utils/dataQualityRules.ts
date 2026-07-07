@@ -34,6 +34,7 @@ export function buildDataQualityWarnings(payload: any = {}) {
   const mealsSuspiciousPortion = todayMeals.filter((meal) => Number(meal.grams || 0) <= 0);
   const cardiosWithoutKcal = todayCardios.filter((session) => session.active_kcal === null || session.active_kcal === undefined);
   const cardioMayDuplicateWearable = todayCardios.filter((session) => Boolean(session.metrics_may_already_exist_in_health_connect));
+  const cardiosOverCap = todayCardios.filter((session) => Number(session.duration_seconds || 0) > 20 * 60);
   const sleepWithOverlap = todaySleeps.filter((sleep) => Boolean(sleep.overlap_detected || sleep.corrected_from_overlapping_records));
 
   if (!checkin) {
@@ -81,6 +82,14 @@ export function buildDataQualityWarnings(payload: any = {}) {
       level: 'info',
       title: 'Cardio sem kcal',
       message: `${cardiosWithoutKcal.length} sessão(ões) contam para frequência, mas não para gasto calórico detalhado.`,
+    });
+  }
+
+  if (cardiosOverCap.length) {
+    warnings.push({
+      level: 'medium',
+      title: 'Cardio passou de 20 min',
+      message: `${cardiosOverCap.length} sessão(ões) passaram do teto recomendado. Salve o valor real, mas ajuste o próximo cardio para 15-20 min.`,
     });
   }
 

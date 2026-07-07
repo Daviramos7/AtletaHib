@@ -6520,3 +6520,30 @@ video {
 .smart-checkin-panel-v372 input[type="number"] {
   font-variant-numeric: tabular-nums;
 }
+
+
+/* v4.0.2 — Cardio curto com teto de 20 min */
+.cardio-cap-note-v402 {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(200, 255, 0, .18);
+  background: rgba(200, 255, 0, .06);
+  color: var(--text);
+  font-size: .88rem;
+  line-height: 1.35;
+}
+
+.cardio-cap-note-v402 svg {
+  flex: 0 0 auto;
+  color: #d9ff3f;
+}
+
+@media (max-width: 760px) {
+  .cardio-cap-note-v402 {
+    font-size: .84rem;
+  }
+}
