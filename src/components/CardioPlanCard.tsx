@@ -1,4 +1,4 @@
-import { Timer, TrendingUp } from 'lucide-react';
+import { ShieldCheck, Timer, TrendingUp } from 'lucide-react';
 import { getCardioProgression, getSelectedCardioOption } from '../utils/cardioProgression';
 
 export default function CardioPlanCard(props: any) {
@@ -19,7 +19,7 @@ export default function CardioPlanCard(props: any) {
         <div>
           <p className="eyebrow">Progresso do cardio</p>
           <h3>{progression.phaseLabel}</h3>
-          <span>{progression.progressText} · faltam {progression.nextUnlock} para subir</span>
+          <span>{progression.progressText} · {progression.completed} cardio(s) registrado(s)</span>
         </div>
         <TrendingUp size={24} />
       </div>
@@ -34,6 +34,11 @@ export default function CardioPlanCard(props: any) {
       </div>
 
       <p className="cardio-prescription-text">{progression.prescription}</p>
+
+      <div className="cardio-cap-note-v402">
+        <ShieldCheck size={16} />
+        <span>Teto recomendado: {progression.maxMinutes ?? 20} min por sessão. Se fizer mais, registre o real, mas não use isso como meta.</span>
+      </div>
 
       <div className="cardio-progress-meta">
         <span>{progression.intensity}</span>
@@ -56,7 +61,7 @@ export default function CardioPlanCard(props: any) {
       )}
 
       <small className="cardio-help-text">
-        Ao importar/registrar um cardio, o app avança automaticamente. A cada 3 cardios concluídos, sobe uma fase.
+        Ao importar/registrar um cardio, o app avança automaticamente. A progressão aumenta qualidade e controle, não passa de 20 min.
       </small>
     </section>
   );

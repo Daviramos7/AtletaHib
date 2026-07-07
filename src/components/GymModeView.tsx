@@ -224,8 +224,10 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
           const shouldSaveCardio = window.confirm('Também registrar o cardio planejado deste dia?');
           if (shouldSaveCardio) {
             const suggestedMinutes = selectedCardioChoice?.match(/(\d+)\s*min/i)?.[1] ?? '';
-            const manualMinutes = window.prompt('Quantos minutos de cardio você fez?', suggestedMinutes || '20');
+            const manualMinutes = window.prompt('Quantos minutos de cardio você fez? Teto recomendado: 20 min.', suggestedMinutes ? String(Math.min(Number(suggestedMinutes), 20)) : '20');
             const minutes = Math.max(Number(manualMinutes || 0), 0);
+
+            if (minutes > 20 && !window.confirm(`Você registrou ${minutes} min. O plano recomenda no máximo 20 min. Salvar o valor real mesmo assim?`)) return;
 
             if (minutes > 0) {
               await saveManualCardioSession(userId, {
@@ -240,6 +242,7 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
         }
       } else if (isCardioDay(selectedDay)) {
         const minutes = Number(duration || 0) || elapsedMinutes(startedAt) || 20;
+        if (minutes > 20 && !window.confirm(`Você registrou ${minutes} min. O plano recomenda no máximo 20 min. Salvar o valor real mesmo assim?`)) return;
         await saveManualCardioSession(userId, {
           performed_at: startedAt ?? new Date().toISOString(),
           activity_type: inferCardioActivityType(selectedCardioChoice || selectedDay.title),
