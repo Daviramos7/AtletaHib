@@ -166,7 +166,7 @@ export default function CheckInView({ userId, onError }) {
         </div>
       </section>
 
-      <form className="panel form-grid smart-checkin-form-v372" onSubmit={handleSubmit}>
+      <form className="panel form-grid smart-checkin-form-v372" onSubmit={handleSubmit} noValidate>
         <p className="eyebrow full">Campos do check-in</p>
 
         <div className="full checkin-autofill-note-v372">
@@ -175,10 +175,12 @@ export default function CheckInView({ userId, onError }) {
         </div>
 
         <label>Sono em horas
-          <input type="number" min="0" max="14" step="0.25" value={form.sleep_hours} onChange={(e) => update('sleep_hours', e.target.value)} />
+          <input type="text" inputMode="decimal" value={form.sleep_hours} onChange={(e) => update('sleep_hours', e.target.value)} />
+          <span className="field-hint-v401">Use o valor do relógio. Ex.: 7h23 = 7.38h. O app não força arredondamento.</span>
         </label>
         <label>Passos
-          <input type="number" min="0" step="100" value={form.steps} onChange={(e) => update('steps', e.target.value)} />
+          <input type="text" inputMode="numeric" value={form.steps} onChange={(e) => update('steps', e.target.value)} />
+          <span className="field-hint-v401">Não arredonde. Se o relógio marcou 8437, salve 8437.</span>
         </label>
 
         <p className="eyebrow full">Você responde</p>

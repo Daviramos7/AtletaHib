@@ -6547,3 +6547,322 @@ video {
     font-size: .84rem;
   }
 }
+
+
+/* v4.0.3 — Histórico dos dados de força do relógio */
+.strength-watch-page-v403 {
+  display: grid;
+  gap: 16px;
+}
+
+.strength-watch-hero-v403 {
+  display: grid;
+  gap: 12px;
+}
+
+.strength-watch-warning-v403 {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(251, 191, 36, .22);
+  background: rgba(251, 191, 36, .07);
+  color: var(--text);
+  font-size: .9rem;
+  line-height: 1.35;
+}
+
+.strength-watch-warning-v403 svg {
+  flex: 0 0 auto;
+  color: #fcd34d;
+}
+
+.strength-watch-periods-v403 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.strength-watch-periods-v403 button {
+  border: 1px solid rgba(148, 163, 184, .18);
+  background: rgba(255, 255, 255, .04);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+
+.strength-watch-periods-v403 button.active {
+  border-color: rgba(200, 255, 0, .35);
+  background: rgba(200, 255, 0, .1);
+}
+
+.strength-watch-grid-v403 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.strength-watch-metric-v403 {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.strength-watch-metric-v403 h3 {
+  margin: 4px 0;
+}
+
+.strength-watch-metric-v403 span {
+  color: var(--muted);
+  font-size: .86rem;
+}
+
+.strength-watch-list-v403 {
+  display: grid;
+  gap: 12px;
+}
+
+.strength-watch-row-v403 {
+  display: grid;
+  gap: 10px;
+  padding: 13px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, .12);
+  background: rgba(255, 255, 255, .035);
+}
+
+.strength-watch-row-v403 > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.strength-watch-row-v403 span {
+  color: var(--muted);
+  font-size: .86rem;
+}
+
+.strength-watch-row-metrics-v403 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.strength-watch-badge-v403 {
+  display: grid;
+  gap: 2px;
+  min-width: 92px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, .12);
+  background: rgba(0, 0, 0, .12);
+}
+
+.strength-watch-badge-v403 small {
+  color: var(--muted);
+  font-size: .72rem;
+}
+
+.strength-watch-badge-v403 strong {
+  color: var(--text);
+  font-size: .92rem;
+}
+
+.strength-watch-note-v403 {
+  margin: 0;
+  color: var(--muted);
+  font-size: .82rem;
+}
+
+.empty-state-v403 {
+  display: grid;
+  gap: 4px;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .035);
+  border: 1px dashed rgba(148, 163, 184, .18);
+}
+
+.empty-state-v403 p {
+  margin: 0;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.empty-state-v403 span {
+  color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .strength-watch-grid-v403 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .strength-watch-grid-v403 {
+    grid-template-columns: 1fr;
+  }
+
+  .strength-watch-periods-v403 button,
+  .strength-watch-badge-v403 {
+    flex: 1 1 100%;
+  }
+}
+
+
+/* v4.0.4 — Dados de cardio + check-in sem validação nativa travando */
+.cardio-data-page-v404 {
+  display: grid;
+  gap: 16px;
+}
+
+.cardio-data-hero-v404 {
+  display: grid;
+  gap: 12px;
+}
+
+.cardio-data-warning-v404 {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(251, 191, 36, .22);
+  background: rgba(251, 191, 36, .07);
+  color: var(--text);
+  font-size: .9rem;
+  line-height: 1.35;
+}
+
+.cardio-data-warning-v404 svg {
+  flex: 0 0 auto;
+  color: #fcd34d;
+}
+
+.cardio-data-periods-v404 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cardio-data-periods-v404 button {
+  border: 1px solid rgba(148, 163, 184, .18);
+  background: rgba(255, 255, 255, .04);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+
+.cardio-data-periods-v404 button.active {
+  border-color: rgba(200, 255, 0, .35);
+  background: rgba(200, 255, 0, .1);
+}
+
+.cardio-data-grid-v404 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cardio-data-metric-v404 {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardio-data-metric-v404 h3 {
+  margin: 4px 0;
+}
+
+.cardio-data-metric-v404 span {
+  color: var(--muted);
+  font-size: .86rem;
+}
+
+.cardio-data-list-v404 {
+  display: grid;
+  gap: 12px;
+}
+
+.cardio-data-row-v404 {
+  display: grid;
+  gap: 10px;
+  padding: 13px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, .12);
+  background: rgba(255, 255, 255, .035);
+}
+
+.cardio-data-row-v404 > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.cardio-data-row-v404 span {
+  color: var(--muted);
+  font-size: .86rem;
+}
+
+.cardio-data-row-metrics-v404,
+.cardio-data-flags-v404 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cardio-data-badge-v404,
+.cardio-data-flags-v404 span {
+  border: 1px solid rgba(148, 163, 184, .12);
+  background: rgba(0, 0, 0, .12);
+}
+
+.cardio-data-badge-v404 {
+  display: grid;
+  gap: 2px;
+  min-width: 92px;
+  padding: 8px 10px;
+  border-radius: 14px;
+}
+
+.cardio-data-badge-v404 small {
+  color: var(--muted);
+  font-size: .72rem;
+}
+
+.cardio-data-badge-v404 strong {
+  color: var(--text);
+  font-size: .92rem;
+}
+
+.cardio-data-flags-v404 span {
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: .78rem;
+}
+
+.smart-checkin-form-v372[novalidate] input {
+  box-shadow: none;
+}
+
+@media (max-width: 900px) {
+  .cardio-data-grid-v404 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .cardio-data-grid-v404 {
+    grid-template-columns: 1fr;
+  }
+
+  .cardio-data-periods-v404 button,
+  .cardio-data-badge-v404 {
+    flex: 1 1 100%;
+  }
+}
