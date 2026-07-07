@@ -14,6 +14,20 @@ export async function listCardioSessions(userId, limit = 30) {
   return data ?? [];
 }
 
+export async function deleteCardioSession(userId, sessionId) {
+  if (!sessionId) throw new Error('Sessão de cardio sem ID para apagar.');
+
+  const client = requireSupabase();
+  const { error } = await client
+    .from('cardio_sessions')
+    .delete()
+    .eq('user_id', userId)
+    .eq('id', sessionId);
+
+  if (error) throw error;
+  return true;
+}
+
 export async function saveCardioSessionFromJson(userId, rawPayload) {
   const client = requireSupabase();
   const payload = normalizeCardioImportPayload(rawPayload);

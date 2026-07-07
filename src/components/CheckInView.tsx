@@ -24,6 +24,7 @@ export default function CheckInView({ userId, onError }) {
   const [autoData, setAutoData] = useState(null);
   const [loadingAuto, setLoadingAuto] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [mode, setMode] = useState('morning');
 
   const load = useCallback(async (date = form.log_date) => {
     try {
@@ -69,6 +70,8 @@ export default function CheckInView({ userId, onError }) {
   useEffect(() => { load(INITIAL.log_date); }, [load]);
 
   const readiness = useMemo(() => calculateReadiness(form), [form]);
+  const hasAutoBasics = Boolean(autoData?.sleep_hours || autoData?.steps);
+  const isMorning = mode === 'morning';
 
   async function handleSubmit(event) {
     event?.preventDefault?.();
@@ -96,7 +99,7 @@ export default function CheckInView({ userId, onError }) {
         cravings_notes: data?.cravings_notes ?? old.cravings_notes,
         notes: data?.notes ?? old.notes,
       }));
-      onError?.('Check-in salvo. Agora o app consegue tomar decisões melhores.');
+      onError?.(isMorning ? 'Check-in da manhã salvo.' : 'Fechamento do dia salvo.');
     } catch (err: any) {
       onError?.(friendlyCheckinError(err));
     } finally {
@@ -117,20 +120,33 @@ export default function CheckInView({ userId, onError }) {
       steps: valueAsInput(autoData.steps) || old.steps,
     }));
 
-    onError('Dados automáticos aplicados no check-in.');
+    onError('Valores do relógio aplicados sem arredondar.');
   }
-
-  const hasAutoBasics = Boolean(autoData?.sleep_hours || autoData?.steps);
 
   return (
     <div>
       <div className="page-title">
         <div>
           <p className="eyebrow">Check-in</p>
-          <h2>Prontidão do dia</h2>
-          <p className="muted-text">O app puxa o que já sabe. Você só responde sensação, dor, fome e estresse.</p>
+          <h2>{isMorning ? 'Check-in da manhã' : 'Fechamento do dia'}</h2>
+          <p className="muted-text">
+            {isMorning
+              ? 'Use pela manhã para decidir treino, cardio e recuperação.'
+              : 'Use à noite para fechar passos, fome/compulsão e observações do dia.'}
+          </p>
         </div>
         <input className="date-input" type="date" value={form.log_date} onChange={(e) => load(e.target.value)} />
+      </div>
+
+      <div className="checkin-mode-tabs-v406">
+        <button type="button" className={isMorning ? 'active' : ''} onClick={() => setMode('morning')}>
+          Manhã
+          <span>sono, energia, fome, dor</span>
+        </button>
+        <button type="button" className={!isMorning ? 'active' : ''} onClick={() => setMode('evening')}>
+          Fechamento
+          <span>passos, compulsão, notas</span>
+        </button>
       </div>
 
       <section className={`panel readiness-panel ${readiness.tone}`}>
@@ -147,7 +163,7 @@ export default function CheckInView({ userId, onError }) {
           <div>
             <p className="eyebrow">Dados puxados automaticamente</p>
             <h3>{loadingAuto ? 'Carregando...' : autoData?.has_data ? 'Base do dia encontrada' : 'Poucos dados automáticos'}</h3>
-            <p className="muted-text">Esses dados vêm dos registros do próprio app, JSONs importados e Health Connect quando disponível.</p>
+            <p className="muted-text">Esses dados vêm dos registros do app, JSONs importados e Health Connect quando disponível.</p>
           </div>
           <button className="ghost-btn" type="button" onClick={applyAutomaticData} disabled={!hasAutoBasics}>
             <Sparkles size={16} /> Usar valores do relógio
@@ -166,55 +182,83 @@ export default function CheckInView({ userId, onError }) {
         </div>
       </section>
 
-      <form className="panel form-grid smart-checkin-form-v372" onSubmit={handleSubmit} noValidate>
-        <p className="eyebrow full">Campos do check-in</p>
+      <form className="panel form-grid smart-checkin-form-v372 split-checkin-v406" onSubmit={handleSubmit} noValidate>
+        <p className="eyebrow full">{isMorning ? 'Campos da manhã' : 'Campos do fechamento'}</p>
 
         <div className="full checkin-autofill-note-v372">
           <CheckCircle2 size={16} />
-          <span>Sono e passos podem ser puxados automaticamente. Os campos de sensação continuam manuais porque o app não tem como adivinhar.</span>
+          <span>
+            {isMorning
+              ? 'De manhã, passos ainda podem estar incompletos. Foque em sono, energia, fome, estresse e dor.'
+              : 'No fechamento, passos e observações do dia fazem mais sentido. Não precisa mudar sono se ele já veio do relógio.'}
+          </span>
         </div>
 
-        <label>Sono em horas
-          <input type="text" inputMode="decimal" value={form.sleep_hours} onChange={(e) => update('sleep_hours', e.target.value)} />
-          <span className="field-hint-v401">Use o valor do relógio. Ex.: 7h23 = 7.38h. O app não força arredondamento.</span>
-        </label>
-        <label>Passos
-          <input type="text" inputMode="numeric" value={form.steps} onChange={(e) => update('steps', e.target.value)} />
-          <span className="field-hint-v401">Não arredonde. Se o relógio marcou 8437, salve 8437.</span>
-        </label>
+        {isMorning ? (
+          <>
+            <label>Sono em horas
+              <input type="text" inputMode="decimal" value={form.sleep_hours} onChange={(e) => update('sleep_hours', e.target.value)} />
+              <span className="field-hint-v401">Use o valor do relógio. Ex.: 7h23 = 7.38h.</span>
+            </label>
 
-        <p className="eyebrow full">Você responde</p>
+            <label>Energia 1-10
+              <input type="number" min="1" max="10" value={form.energy_score} onChange={(e) => update('energy_score', e.target.value)} />
+            </label>
+            <label>Fome 1-10
+              <input type="number" min="1" max="10" value={form.hunger_score} onChange={(e) => update('hunger_score', e.target.value)} />
+            </label>
+            <label>Estresse 1-10
+              <input type="number" min="1" max="10" value={form.stress_score} onChange={(e) => update('stress_score', e.target.value)} />
+            </label>
+            <label>Dor articular 0-10
+              <input type="number" min="0" max="10" value={form.pain_level} onChange={(e) => update('pain_level', e.target.value)} />
+            </label>
+            <label>Dor muscular 0-10
+              <input type="number" min="0" max="10" value={form.soreness_level} onChange={(e) => update('soreness_level', e.target.value)} />
+            </label>
+            <label className="check-row">
+              <input type="checkbox" checked={form.lactose_symptoms} onChange={(e) => update('lactose_symptoms', e.target.checked)} /> sintomas alimentares hoje
+            </label>
+            <label className="full">Notas da manhã
+              <textarea value={form.notes} onChange={(e) => update('notes', e.target.value)} placeholder="Sono ruim, dor, treino pesado ontem, recuperação..." />
+            </label>
+          </>
+        ) : (
+          <>
+            <label>Passos
+              <input type="text" inputMode="numeric" value={form.steps} onChange={(e) => update('steps', e.target.value)} />
+              <span className="field-hint-v401">Não arredonde. Se o relógio marcou 8437, salve 8437.</span>
+            </label>
+            <label>Fome 1-10
+              <input type="number" min="1" max="10" value={form.hunger_score} onChange={(e) => update('hunger_score', e.target.value)} />
+            </label>
+            <label>Estresse 1-10
+              <input type="number" min="1" max="10" value={form.stress_score} onChange={(e) => update('stress_score', e.target.value)} />
+            </label>
+            <label>Dor articular 0-10
+              <input type="number" min="0" max="10" value={form.pain_level} onChange={(e) => update('pain_level', e.target.value)} />
+            </label>
+            <label>Dor muscular 0-10
+              <input type="number" min="0" max="10" value={form.soreness_level} onChange={(e) => update('soreness_level', e.target.value)} />
+            </label>
+            <label className="check-row">
+              <input type="checkbox" checked={form.lactose_symptoms} onChange={(e) => update('lactose_symptoms', e.target.checked)} /> sintomas alimentares hoje
+            </label>
+            <label className="full">Fome/compulsão à noite
+              <textarea value={form.cravings_notes} onChange={(e) => update('cravings_notes', e.target.value)} placeholder="Ex.: vontade forte de doce, ataque à geladeira, fome depois do treino..." />
+            </label>
+            <label className="full">Fechamento do dia
+              <textarea value={form.notes} onChange={(e) => update('notes', e.target.value)} placeholder="Como foi o dia? treino, comida, sono, dor, algo fora do normal..." />
+            </label>
+          </>
+        )}
 
-        <label>Energia 1-10
-          <input type="number" min="1" max="10" value={form.energy_score} onChange={(e) => update('energy_score', e.target.value)} />
-        </label>
-        <label>Fome 1-10
-          <input type="number" min="1" max="10" value={form.hunger_score} onChange={(e) => update('hunger_score', e.target.value)} />
-        </label>
-        <label>Estresse 1-10
-          <input type="number" min="1" max="10" value={form.stress_score} onChange={(e) => update('stress_score', e.target.value)} />
-        </label>
-        <label>Dor articular 0-10
-          <input type="number" min="0" max="10" value={form.pain_level} onChange={(e) => update('pain_level', e.target.value)} />
-        </label>
-        <label>Dor muscular 0-10
-          <input type="number" min="0" max="10" value={form.soreness_level} onChange={(e) => update('soreness_level', e.target.value)} />
-        </label>
-        <label className="check-row">
-          <input type="checkbox" checked={form.lactose_symptoms} onChange={(e) => update('lactose_symptoms', e.target.checked)} /> sintomas alimentares hoje
-        </label>
-        <label className="full">Fome/compulsão
-          <textarea value={form.cravings_notes} onChange={(e) => update('cravings_notes', e.target.value)} placeholder="Ex.: vontade forte de doce à noite, fome depois do treino..." />
-        </label>
-        <label className="full">Notas
-          <textarea value={form.notes} onChange={(e) => update('notes', e.target.value)} placeholder="Sono ruim, dor na canela, treino pesado, dia tranquilo..." />
-        </label>
-        <button className="primary-btn" type="submit" disabled={saving}><Save size={16} /> {saving ? 'Salvando...' : 'Salvar check-in'}</button>
+        <button className="primary-btn" type="submit" disabled={saving}><Save size={16} /> {saving ? 'Salvando...' : isMorning ? 'Salvar check-in da manhã' : 'Salvar fechamento do dia'}</button>
       </form>
 
       <section className="panel warning-panel">
-        <p className="eyebrow">Regra de decisão</p>
-        <p>Se dor articular estiver alta, o app vai te empurrar para caminhada, bike ou treino controlado. Isso não é fraqueza; é evitar ficar parado por lesão.</p>
+        <p className="eyebrow">Regra de uso</p>
+        <p>Manhã serve para decidir o dia. Fechamento serve para registrar o que realmente aconteceu. Passos só fazem sentido completos no fim do dia.</p>
         {saved && <p className="muted">Último salvamento: {new Date(saved.updated_at ?? saved.created_at).toLocaleString('pt-BR')}</p>}
       </section>
     </div>
