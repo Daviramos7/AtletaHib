@@ -21,6 +21,20 @@ export async function listWearableWorkoutSessions(userId, limit = 30) {
   return data ?? [];
 }
 
+export async function deleteWearableWorkoutSession(userId, sessionId) {
+  if (!sessionId) throw new Error('Sessão do relógio sem ID para apagar.');
+
+  const client = requireSupabase();
+  const { error } = await client
+    .from('wearable_workout_sessions')
+    .delete()
+    .eq('user_id', userId)
+    .eq('id', sessionId);
+
+  if (error) throw error;
+  return true;
+}
+
 export async function saveWearableWorkoutSessionFromJson(userId, rawPayload) {
   const client = requireSupabase();
   const payload = normalizeWearableWorkoutPayload(rawPayload);

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Bike, Clock3, Flame, HeartPulse, Route } from 'lucide-react';
-import { listCardioSessions } from '../services/cardioService';
+import { AlertTriangle, Bike, Clock3, Flame, HeartPulse, Route, Trash2 } from 'lucide-react';
+import { deleteCardioSession, listCardioSessions } from '../services/cardioService';
 
 const PERIODS = [
   { label: '30 dias', value: 30 },
@@ -12,6 +12,7 @@ export default function CardioDataHistoryView({ userId, onError }: any) {
   const [period, setPeriod] = useState(30);
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -47,6 +48,29 @@ export default function CardioDataHistoryView({ userId, onError }: any) {
   }, [sessions, period]);
 
   const summary = useMemo(() => summarizeCardio(filtered), [filtered]);
+
+  async function handleDelete(session) {
+    if (!session?.id) {
+      onError?.('Não consegui apagar: sessão sem ID.');
+      return;
+    }
+
+    const label = session.activity_label ?? labelForType(session.activity_type);
+    const duration = formatDuration(Number(session.duration_seconds || 0));
+    const confirmed = window.confirm(`Apagar este cardio?\n\n${label} · ${duration}\n\nEssa ação remove a sessão do histórico.`);
+    if (!confirmed) return;
+
+    try {
+      setDeletingId(session.id);
+      await deleteCardioSession(userId, session.id);
+      setSessions((current) => current.filter((item) => item.id !== session.id));
+      onError?.('Cardio apagado.');
+    } catch (err: any) {
+      onError?.(err.message ?? 'Erro ao apagar cardio.');
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <div className="cardio-data-page-v404">
@@ -117,6 +141,17 @@ export default function CardioDataHistoryView({ userId, onError }: any) {
                   <Badge label="Distância" value={session.distance_km ? `${Number(session.distance_km).toFixed(2)} km` : '--'} />
                   <Badge label="FC" value={session.avg_heart_rate ? `${session.avg_heart_rate}/${session.max_heart_rate ?? '--'} bpm` : '--'} />
                   <Badge label="Ritmo" value={session.avg_pace_seconds_per_km ? formatPace(session.avg_pace_seconds_per_km) : '--'} />
+                </div>
+
+                <div className="cardio-data-actions-v405">
+                  <button
+                    type="button"
+                    className="ghost-btn danger-ghost-v405"
+                    onClick={() => handleDelete(session)}
+                    disabled={deletingId === session.id}
+                  >
+                    <Trash2 size={15} /> {deletingId === session.id ? 'Apagando...' : 'Apagar'}
+                  </button>
                 </div>
 
                 <div className="cardio-data-flags-v404">

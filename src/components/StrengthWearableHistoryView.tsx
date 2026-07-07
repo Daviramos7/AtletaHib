@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Activity, AlertTriangle, Clock3, Flame, HeartPulse, Watch } from 'lucide-react';
-import { listWearableWorkoutSessions } from '../services/strengthWearableService';
+import { Activity, AlertTriangle, Clock3, Flame, HeartPulse, Trash2, Watch } from 'lucide-react';
+import { deleteWearableWorkoutSession, listWearableWorkoutSessions } from '../services/strengthWearableService';
 
 const PERIODS = [
   { label: '30 dias', value: 30 },
@@ -12,6 +12,7 @@ export default function StrengthWearableHistoryView({ userId, onError }: any) {
   const [period, setPeriod] = useState(30);
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -47,6 +48,27 @@ export default function StrengthWearableHistoryView({ userId, onError }: any) {
   }, [sessions, period]);
 
   const summary = useMemo(() => summarizeWearableStrength(filtered), [filtered]);
+
+  async function handleDelete(session) {
+    if (!session?.id) {
+      onError?.('Não consegui apagar: sessão sem ID.');
+      return;
+    }
+
+    const confirmed = window.confirm(`Apagar este treino do relógio?\n\n${session.activity_label ?? 'Força'} · ${formatDuration(Number(session.duration_seconds || 0))}\n\nIsso remove apenas os dados fisiológicos importados do relógio.`);
+    if (!confirmed) return;
+
+    try {
+      setDeletingId(session.id);
+      await deleteWearableWorkoutSession(userId, session.id);
+      setSessions((current) => current.filter((item) => item.id !== session.id));
+      onError?.('Treino do relógio apagado.');
+    } catch (err: any) {
+      onError?.(err.message ?? 'Erro ao apagar treino do relógio.');
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <div className="strength-watch-page-v403">
@@ -115,6 +137,17 @@ export default function StrengthWearableHistoryView({ userId, onError }: any) {
                   <Badge label="Ativas" value={session.active_kcal === null || session.active_kcal === undefined ? '--' : `${session.active_kcal} kcal`} />
                   <Badge label="Total" value={session.total_kcal === null || session.total_kcal === undefined ? '--' : `${session.total_kcal} kcal`} />
                   <Badge label="FC" value={session.avg_heart_rate ? `${session.avg_heart_rate}/${session.max_heart_rate ?? '--'} bpm` : '--'} />
+                </div>
+
+                <div className="strength-watch-actions-v406">
+                  <button
+                    type="button"
+                    className="ghost-btn danger-ghost-v405"
+                    onClick={() => handleDelete(session)}
+                    disabled={deletingId === session.id}
+                  >
+                    <Trash2 size={15} /> {deletingId === session.id ? 'Apagando...' : 'Apagar'}
+                  </button>
                 </div>
 
                 {session.metrics_may_already_exist_in_health_connect && (

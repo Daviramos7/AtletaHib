@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Dumbbell, Search, Trophy } from 'lucide-react';
-import { calculateEstimatedOneRepMax, listStrengthSets } from '../services/workoutService';
+import { Dumbbell, Search, Trash2, Trophy } from 'lucide-react';
+import { calculateEstimatedOneRepMax, deleteWorkoutSession, listStrengthSets } from '../services/workoutService';
 
 const RANGE_OPTIONS = [
   { id: 30, label: '30 dias' },
@@ -15,6 +15,7 @@ export default function StrengthHistoryView({ userId, onError }: any) {
   const [query, setQuery] = useState('');
   const [selectedExercise, setSelectedExercise] = useState('');
   const [loading, setLoading] = useState(false);
+  const [deletingSessionId, setDeletingSessionId] = useState(null);
 
   useEffect(() => {
     async function load() {
@@ -56,6 +57,28 @@ export default function StrengthHistoryView({ userId, onError }: any) {
   const sessions = useMemo(() => groupSetsBySession(activeSets), [activeSets]);
   const weekly = useMemo(() => buildWeeklyBuckets(activeSets), [activeSets]);
   const trend = buildTrend(weekly);
+
+  async function handleDeleteSession(session) {
+    const sessionId = session?.workoutSessionId ?? session?.sets?.[0]?.workout_session_id;
+    if (!sessionId) {
+      onError?.('Não consegui apagar: treino sem ID.');
+      return;
+    }
+
+    const confirmed = window.confirm(`Apagar este treino de força?\n\n${formatDateTime(session.performedAt)} · ${session.sets.length} séries\n\nIsso remove a sessão e suas séries do histórico.`);
+    if (!confirmed) return;
+
+    try {
+      setDeletingSessionId(sessionId);
+      await deleteWorkoutSession(userId, sessionId);
+      setSets((current) => current.filter((set: any) => set.workout_session_id !== sessionId));
+      onError?.('Treino de força apagado.');
+    } catch (err: any) {
+      onError?.(err.message ?? 'Erro ao apagar treino de força.');
+    } finally {
+      setDeletingSessionId(null);
+    }
+  }
 
   return (
     <div className="strength-history-v38">
@@ -176,9 +199,19 @@ export default function StrengthHistoryView({ userId, onError }: any) {
                 <div className="strength-session-list-v38">
                   {sessions.slice(0, 12).map((session: any) => (
                     <article key={session.key} className="strength-session-card-v38">
-                      <div>
-                        <strong>{formatDateTime(session.performedAt)}</strong>
-                        <span>{session.sets.length} séries · volume {Math.round(session.volume)} kg · melhor {formatKg(session.bestLoad)} kg</span>
+                      <div className="strength-session-head-v406">
+                        <div>
+                          <strong>{formatDateTime(session.performedAt)}</strong>
+                          <span>{session.sets.length} séries · volume {Math.round(session.volume)} kg · melhor {formatKg(session.bestLoad)} kg</span>
+                        </div>
+                        <button
+                          type="button"
+                          className="ghost-btn danger-ghost-v405"
+                          onClick={() => handleDeleteSession(session)}
+                          disabled={deletingSessionId === (session.workoutSessionId ?? session.sets?.[0]?.workout_session_id)}
+                        >
+                          <Trash2 size={15} /> {deletingSessionId === (session.workoutSessionId ?? session.sets?.[0]?.workout_session_id) ? 'Apagando...' : 'Apagar'}
+                        </button>
                       </div>
                       <div className="session-set-pills-v38">
                         {session.sets.map((set: any) => (

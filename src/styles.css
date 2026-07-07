@@ -6866,3 +6866,103 @@ video {
     flex: 1 1 100%;
   }
 }
+
+
+/* v4.0.5 — Apagar cardio acidental */
+.cardio-data-actions-v405 {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.danger-ghost-v405 {
+  border-color: rgba(248, 113, 113, .25);
+  color: #fca5a5;
+}
+
+.danger-ghost-v405:hover {
+  border-color: rgba(248, 113, 113, .42);
+  background: rgba(248, 113, 113, .08);
+}
+
+.danger-ghost-v405:disabled {
+  opacity: .65;
+  cursor: wait;
+}
+
+@media (max-width: 560px) {
+  .cardio-data-actions-v405,
+  .danger-ghost-v405 {
+    width: 100%;
+  }
+
+  .danger-ghost-v405 {
+    justify-content: center;
+  }
+}
+
+
+/* v4.0.6 — exclusão segura + check-in dividido */
+.checkin-mode-tabs-v406 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.checkin-mode-tabs-v406 button {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  border: 1px solid rgba(148, 163, 184, .16);
+  background: rgba(255, 255, 255, .04);
+  color: var(--text);
+  border-radius: 18px;
+  padding: 13px 14px;
+  cursor: pointer;
+}
+
+.checkin-mode-tabs-v406 button.active {
+  border-color: rgba(200, 255, 0, .36);
+  background: rgba(200, 255, 0, .09);
+}
+
+.checkin-mode-tabs-v406 button span {
+  color: var(--muted);
+  font-size: .82rem;
+  line-height: 1.25;
+}
+
+.split-checkin-v406 .field-hint-v401 {
+  margin-top: 5px;
+}
+
+.strength-session-head-v406,
+.strength-watch-actions-v406 {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.strength-session-head-v406 > div {
+  display: grid;
+  gap: 3px;
+}
+
+@media (max-width: 760px) {
+  .checkin-mode-tabs-v406 {
+    grid-template-columns: 1fr;
+  }
+
+  .strength-session-head-v406,
+  .strength-watch-actions-v406 {
+    display: grid;
+  }
+
+  .strength-session-head-v406 .danger-ghost-v405,
+  .strength-watch-actions-v406 .danger-ghost-v405 {
+    width: 100%;
+    justify-content: center;
+  }
+}

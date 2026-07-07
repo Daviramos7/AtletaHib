@@ -57,6 +57,29 @@ export async function listWorkoutHistory(userId, limit = 10) {
   return data ?? [];
 }
 
+export async function deleteWorkoutSession(userId, workoutSessionId) {
+  if (!workoutSessionId) throw new Error('Treino sem ID para apagar.');
+
+  const client = requireSupabase();
+
+  const { error: setsError } = await client
+    .from('workout_exercise_sets')
+    .delete()
+    .eq('user_id', userId)
+    .eq('workout_session_id', workoutSessionId);
+
+  if (setsError) throw setsError;
+
+  const { error: sessionError } = await client
+    .from('workout_sessions')
+    .delete()
+    .eq('user_id', userId)
+    .eq('id', workoutSessionId);
+
+  if (sessionError) throw sessionError;
+  return true;
+}
+
 export async function listStrengthSets(userId, days = 120) {
   const client = requireSupabase();
   const from = new Date();
