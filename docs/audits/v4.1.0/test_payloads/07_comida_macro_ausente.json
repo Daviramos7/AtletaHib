@@ -1,0 +1,12 @@
+{
+  "type": "meal",
+  "date": "2026-07-08",
+  "meal_type": "dinner",
+  "items": [
+    {
+      "name": "peixe",
+      "grams": 150,
+      "kcal": 210
+    }
+  ]
+}

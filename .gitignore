@@ -15,3 +15,6 @@ android_bridge/**/build/
 android_bridge/**/*.apk
 android_bridge/**/*.aab
 .vercel
+
+# TypeScript build cache
+*.tsbuildinfo

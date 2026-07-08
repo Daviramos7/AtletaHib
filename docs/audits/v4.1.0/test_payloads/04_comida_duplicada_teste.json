@@ -1,0 +1,15 @@
+{
+  "type": "meal",
+  "date": "2026-07-08",
+  "meal_type": "lunch",
+  "items": [
+    {
+      "name": "arroz",
+      "grams": 150,
+      "kcal": 190,
+      "protein_g": 4,
+      "carbs_g": 42,
+      "fat_g": 1
+    }
+  ]
+}

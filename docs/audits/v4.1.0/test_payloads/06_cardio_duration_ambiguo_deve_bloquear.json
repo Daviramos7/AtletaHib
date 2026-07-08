@@ -1,0 +1,9 @@
+{
+  "type": "cardio",
+  "date": "2026-07-08",
+  "activity_type": "treadmill",
+  "duration": 20,
+  "distance_km": 1.6,
+  "active_kcal": 140,
+  "source": "json_test"
+}

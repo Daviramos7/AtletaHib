@@ -1,0 +1,12 @@
+{
+  "type": "meal",
+  "meal_type": "lunch",
+  "items": [
+    {
+      "name": "arroz",
+      "grams": 150,
+      "kcal": 190,
+      "protein_g": 4
+    }
+  ]
+}
