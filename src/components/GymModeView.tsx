@@ -9,11 +9,12 @@ import CardioPlanCard from './CardioPlanCard';
 import ExerciseReplacementPanel from './ExerciseReplacementPanel';
 import { ExerciseProgressMini, WorkoutProgressSummary } from './StrengthProgressCards';
 import PlanEditorView from './PlanEditorView';
+import { localDateKey } from '../utils/dates';
 
 
 
 export default function GymModeView({ userId, trainingPlan, onError, refreshBoot }) {
-  const todayKeyValue = dateKey(new Date());
+  const todayKeyValue = localDateKey(new Date());
   const [selectedDayId, setSelectedDayId] = useState(null);
   const [startedAt, setStartedAt] = useState(null);
   const [timerRunning, setTimerRunning] = useState(false);
@@ -91,8 +92,8 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
     if (storageKey && setRows.length) localStorage.setItem(storageKey, JSON.stringify(setRows));
   }, [setRows, storageKey]);
 
-  const todayCardios = useMemo(() => cardios.filter((item) => dateKey(new Date(item.performed_at)) === todayKeyValue), [cardios, todayKeyValue]);
-  const todayWearableStrength = useMemo(() => wearableSessions.filter((item) => dateKey(new Date(item.performed_at)) === todayKeyValue), [wearableSessions, todayKeyValue]);
+  const todayCardios = useMemo(() => cardios.filter((item) => localDateKey(new Date(item.performed_at)) === todayKeyValue), [cardios, todayKeyValue]);
+  const todayWearableStrength = useMemo(() => wearableSessions.filter((item) => localDateKey(new Date(item.performed_at)) === todayKeyValue), [wearableSessions, todayKeyValue]);
   const completedSets = setRows.filter((row) => row.done).length;
   const totalSets = setRows.length;
   const totalVolume = calculateVolumeKg(setRows.filter((row) => row.done && Number(row.reps) > 0));
@@ -192,8 +193,9 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
   }
 
   async function finishWorkout() {
-    if (!selectedDay) return;
+    if (!selectedDay || saving) return;
     const validSets = setRows.filter((row) => row.done && Number(row.reps) > 0);
+    const sessionStartedAt = startedAt ?? new Date().toISOString();
 
     if (isStrengthDay(selectedDay) && !validSets.length) {
       onError('Marque pelo menos uma série como concluída.');
@@ -207,10 +209,20 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
 
     try {
       setSaving(true);
+
+      const cardioPayload = await resolveCardioPayloadBeforePersisting({
+        selectedDay,
+        validSets,
+        sessionStartedAt,
+        selectedCardioChoice,
+        duration,
+      });
+
       if (validSets.length) {
         await completeWorkoutWithSets(userId, {
           training_day_id: selectedDay.id,
-          duration_minutes: Number(duration || 0) || elapsedMinutes(startedAt) || 30,
+          performed_at: sessionStartedAt,
+          duration_minutes: Number(duration || 0) || elapsedMinutes(sessionStartedAt) || 30,
           perceived_effort: Number(effort || 7),
           notes: `${selectedDay.title}${isCardioDay(selectedDay) ? ' · cardio planejado' : ''}`,
           sets: validSets.map((row) => ({
@@ -219,37 +231,10 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
             notes: [row.notes, row.original_exercise_name ? `Original: ${row.original_exercise_name}` : null].filter(Boolean).join(' · ') || null,
           })),
         });
+      }
 
-        if (isCardioDay(selectedDay)) {
-          const shouldSaveCardio = window.confirm('Também registrar o cardio planejado deste dia?');
-          if (shouldSaveCardio) {
-            const suggestedMinutes = selectedCardioChoice?.match(/(\d+)\s*min/i)?.[1] ?? '';
-            const manualMinutes = window.prompt('Quantos minutos de cardio você fez? Teto recomendado: 20 min.', suggestedMinutes ? String(Math.min(Number(suggestedMinutes), 20)) : '20');
-            const minutes = Math.max(Number(manualMinutes || 0), 0);
-
-            if (minutes > 20 && !window.confirm(`Você registrou ${minutes} min. O plano recomenda no máximo 20 min. Salvar o valor real mesmo assim?`)) return;
-
-            if (minutes > 0) {
-              await saveManualCardioSession(userId, {
-                performed_at: startedAt ?? new Date().toISOString(),
-                activity_type: inferCardioActivityType(selectedCardioChoice || selectedDay.title),
-                activity_label: selectedCardioChoice || selectedDay.title || 'Cardio pós-treino',
-                duration_minutes: minutes,
-                notes: `${selectedDay.title} · cardio pós-treino registrado pela Academia · kcal não informada`,
-              });
-            }
-          }
-        }
-      } else if (isCardioDay(selectedDay)) {
-        const minutes = Number(duration || 0) || elapsedMinutes(startedAt) || 20;
-        if (minutes > 20 && !window.confirm(`Você registrou ${minutes} min. O plano recomenda no máximo 20 min. Salvar o valor real mesmo assim?`)) return;
-        await saveManualCardioSession(userId, {
-          performed_at: startedAt ?? new Date().toISOString(),
-          activity_type: inferCardioActivityType(selectedCardioChoice || selectedDay.title),
-          activity_label: selectedCardioChoice || selectedDay.title || 'Cardio',
-          duration_minutes: minutes,
-          notes: `${selectedDay.title} · registrado pela Academia · kcal não informada`,
-        });
+      if (cardioPayload) {
+        await saveManualCardioSession(userId, cardioPayload);
       }
 
       if (storageKey) localStorage.removeItem(storageKey);
@@ -316,7 +301,7 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
             <>
               <button className="primary-btn" type="button" disabled><Clock3 size={16} /> {timerRunning ? elapsedMinutes(startedAt) : Number(duration || 0)} min</button>
               {timerRunning ? (
-                <button className="ghost-btn timer-stop-v393" type="button" onClick={stopSessionTimer}><Square size={15} /> Parar</button>
+                <button className="ghost-btn timer-stop-v393" type="button" onClick={stopSessionTimer}><Square size={15} /> Parar timer</button>
               ) : (
                 <span className="session-frozen-v40">timer parado</span>
               )}
@@ -457,6 +442,35 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
   );
 }
 
+async function resolveCardioPayloadBeforePersisting({ selectedDay, validSets, sessionStartedAt, selectedCardioChoice, duration }) {
+  if (!isCardioDay(selectedDay)) return null;
+
+  if (validSets.length) {
+    const shouldSaveCardio = window.confirm('Também registrar o cardio planejado deste dia?');
+    if (!shouldSaveCardio) return null;
+  }
+
+  const suggestedMinutes = selectedCardioChoice?.match(/(\d+)\s*min/i)?.[1] ?? '';
+  const defaultMinutes = suggestedMinutes ? String(Math.min(Number(suggestedMinutes), 20)) : '20';
+  const minutes = validSets.length
+    ? Math.max(Number(window.prompt('Quantos minutos de cardio você fez? Teto recomendado: 20 min.', defaultMinutes) || 0), 0)
+    : Number(duration || 0) || elapsedMinutes(sessionStartedAt) || 20;
+
+  if (minutes > 20 && !window.confirm(`Você registrou ${minutes} min. O plano recomenda no máximo 20 min. Salvar o valor real mesmo assim?`)) {
+    throw new Error('Sessão cancelada antes de salvar: cardio acima de 20 min não confirmado.');
+  }
+
+  if (minutes <= 0) return null;
+
+  return {
+    performed_at: sessionStartedAt,
+    activity_type: inferCardioActivityType(selectedCardioChoice || selectedDay.title),
+    activity_label: selectedCardioChoice || selectedDay.title || (validSets.length ? 'Cardio pós-treino' : 'Cardio'),
+    duration_minutes: minutes,
+    notes: `${selectedDay.title} · registrado pela Academia · kcal não informada`,
+  };
+}
+
 function StatusMini({ label, active = false, value = undefined }) {
   const display = value !== undefined ? value : active ? 'Sim' : 'Não';
   return <div className={`status-tile ${active || Number(value) > 0 ? 'active' : ''}`}><span>{label}</span><strong>{display}</strong></div>;
@@ -508,9 +522,4 @@ function inferCardioActivityType(label) {
 function readJson(key, fallback) { try { const value = localStorage.getItem(key); return value ? JSON.parse(value) : fallback; } catch { return fallback; } }
 function parseFirstNumber(value) { const match = String(value ?? '').match(/\d+/); return match ? Number(match[0]) : 0; }
 function elapsedMinutes(startedAt) { if (!startedAt) return 0; const start = new Date(startedAt).getTime(); if (Number.isNaN(start)) return 0; return Math.max(Math.round((Date.now() - start) / 60000), 1); }
-function dateKey(date) {
-  const value = date instanceof Date ? date : new Date(date);
-  if (Number.isNaN(value.getTime())) return '';
-  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
-}
 function formatRest(seconds) { const total = Number(seconds || 0); if (!total) return '90s'; if (total < 60) return `${total}s`; const minutes = Math.floor(total / 60); const remainder = total % 60; return remainder ? `${minutes}min ${remainder}s` : `${minutes}min`; }

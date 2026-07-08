@@ -1,4 +1,5 @@
 import { requireSupabase } from '../lib/supabaseClient';
+import { getWearableMetricForDate } from './wearableService';
 
 export async function loadCheckinAutofill(userId, logDate) {
   const client = requireSupabase();
@@ -8,7 +9,7 @@ export async function loadCheckinAutofill(userId, logDate) {
     safeMaybeSingle(() => client.from('daily_logs').select('*').eq('user_id', userId).eq('log_date', logDate).maybeSingle()),
     safeList(() => client.from('meal_entries').select('*').eq('user_id', userId).eq('log_date', logDate)),
     safeList(() => client.from('sleep_sessions').select('*').eq('user_id', userId).eq('sleep_date', logDate).order('sleep_date', { ascending: false }).limit(1)),
-    safeMaybeSingle(() => client.from('wearable_daily_metrics').select('*').eq('user_id', userId).eq('metric_date', logDate).maybeSingle()),
+    getWearableMetricForDate(userId, logDate).catch(() => null),
     safeList(() => client.from('workout_sessions').select('*').eq('user_id', userId).eq('completed', true).gte('performed_at', startIso).lt('performed_at', endIso)),
     safeList(() => client.from('cardio_sessions').select('*').eq('user_id', userId).gte('performed_at', startIso).lt('performed_at', endIso)),
   ]);

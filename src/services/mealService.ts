@@ -1,5 +1,7 @@
 import { requireSupabase } from '../lib/supabaseClient';
 import { DEFAULT_FOODS } from '../data/defaultPlan';
+import { normalizeDateKey } from '../utils/dates';
+import { slug } from '../utils/durations';
 
 export async function listMeals(userId, logDate) {
   const client = requireSupabase();
@@ -24,9 +26,13 @@ export async function addMeal(userId, item) {
   return data;
 }
 
-export async function deleteMeal(id) {
+export async function deleteMeal(userId, id) {
   const client = requireSupabase();
-  const { error } = await client.from('meal_entries').delete().eq('id', id);
+  const { error } = await client
+    .from('meal_entries')
+    .delete()
+    .eq('user_id', userId)
+    .eq('id', id);
   if (error) throw error;
 }
 
@@ -77,13 +83,28 @@ export async function saveMealEntriesFromJson(userId, rawPayload) {
     fat_g: item.fat_g,
   }));
 
+  const { data: existing, error: existingError } = await client
+    .from('meal_entries')
+    .select('id, log_date, meal_type, food_name, grams, kcal, protein_g, carbs_g, fat_g')
+    .eq('user_id', userId)
+    .eq('log_date', payload.log_date);
+
+  if (existingError) throw existingError;
+
+  const existingKeys = new Set((existing ?? []).map(buildMealRowKey));
+  const uniqueRows = rows.filter((row) => !existingKeys.has(buildMealRowKey(row)));
+
+  if (!uniqueRows.length) {
+    throw new Error('Importação bloqueada: estes alimentos já existem nessa data/refeição. Se comeu de novo, cadastre manualmente para evitar duplicidade silenciosa.');
+  }
+
   const { data, error } = await client
     .from('meal_entries')
-    .insert(rows)
+    .insert(uniqueRows)
     .select('*');
 
   if (error) throw error;
-  return data ?? rows;
+  return data ?? uniqueRows;
 }
 
 export function normalizeMealImportPayload(rawPayload: any) {
@@ -91,7 +112,10 @@ export function normalizeMealImportPayload(rawPayload: any) {
     throw new Error('JSON inválido: envie um objeto de comida/refeição.');
   }
 
-  const logDate = normalizeDate(rawPayload.date ?? rawPayload.log_date ?? rawPayload.meal_date) ?? todayLikeDate();
+  const logDate = normalizeDate(rawPayload.date ?? rawPayload.log_date ?? rawPayload.meal_date);
+  if (!logDate) {
+    throw new Error('JSON de comida sem data. Informe date no formato YYYY-MM-DD para não salvar no dia errado.');
+  }
   const defaultMealType = normalizeMealType(rawPayload.meal_type ?? rawPayload.meal ?? rawPayload.refeicao ?? rawPayload.refeição ?? 'extra');
   const rawItems = collectMealItems(rawPayload, defaultMealType);
 
@@ -193,19 +217,7 @@ function normalizeMealType(value) {
 }
 
 function normalizeDate(value) {
-  if (!value) return null;
-  const text = String(value).trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
-
-  const date = new Date(text);
-  if (Number.isNaN(date.getTime())) return null;
-
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
-
-function todayLikeDate() {
-  const date = new Date();
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  return normalizeDateKey(value);
 }
 
 function normalizeText(value) {
@@ -238,4 +250,24 @@ function roundMacroOrNull(value) {
   if (value === null || value === undefined || value === '') return null;
   const number = Number(value);
   return Number.isFinite(number) ? Number(number.toFixed(1)) : null;
+}
+
+
+function buildMealRowKey(row) {
+  return [
+    row.log_date,
+    row.meal_type,
+    slug(row.food_name),
+    Number(row.grams ?? 0).toFixed(1),
+    Math.round(Number(row.kcal ?? 0)),
+    macroKey(row.protein_g),
+    macroKey(row.carbs_g),
+    macroKey(row.fat_g),
+  ].join('|');
+}
+
+function macroKey(value) {
+  if (value === null || value === undefined || value === '') return 'na';
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed.toFixed(1) : 'na';
 }

@@ -1,5 +1,6 @@
 import { requireSupabase } from '../lib/supabaseClient';
 import { calculateReadiness } from './checkinService';
+import { localDateKey } from '../utils/dates';
 
 const DEFAULT_TARGETS = {
   minMealLoggedDays7: 5,
@@ -31,7 +32,7 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
     client.from('wearable_workout_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).order('performed_at', { ascending: false }),
     client.from('sleep_sessions').select('*').eq('user_id', userId).gte('sleep_date', fromDate).order('sleep_date', { ascending: false }),
     client.from('wearable_daily_metrics').select('*').eq('user_id', userId).gte('metric_date', fromDate).order('metric_date', { ascending: false }),
-    client.from('weight_logs').select('*').eq('user_id', userId).order('log_date', { ascending: false }).limit(8),
+    client.from('weight_logs').select('*').eq('user_id', userId).gte('log_date', fromDate).order('log_date', { ascending: false }),
     client.from('daily_checkins').select('*').eq('user_id', userId).gte('log_date', fromDate),
   ]);
 
@@ -40,10 +41,10 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
   });
 
   const mealsByDate = groupSum(mealRes.data ?? [], 'log_date', 'kcal');
-  const dailyByDate = new Map((dailyRes.data ?? []).map((row) => [row.log_date, row]));
-  const checkinByDate = new Map((checkinRes.data ?? []).map((row) => [row.log_date, row]));
-  const wearableByDate = new Map((wearableRes.data ?? []).map((row) => [row.metric_date, row]));
-  const correctedSleepByDate = new Map((sleepRes.data ?? []).map((row) => [row.sleep_date, row]));
+  const dailyByDate = new Map<string, any>((dailyRes.data ?? []).map((row: any) => [row.log_date, row]));
+  const checkinByDate = new Map<string, any>((checkinRes.data ?? []).map((row: any) => [row.log_date, row]));
+  const wearableByDate = buildWearableByDate(wearableRes.data ?? []);
+  const correctedSleepByDate = new Map<string, any>((sleepRes.data ?? []).map((row: any) => [row.sleep_date, row]));
 
   const daysData = dates.map((date) => {
     const kcal = mealsByDate.get(date) ?? 0;
@@ -69,7 +70,7 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
       restingHeartRate: Number(wearable?.resting_heart_rate ?? 0),
       avgSpo2: Number(correctedSleep?.avg_spo2 ?? 0),
       breathingScore: Number(correctedSleep?.breathing_score ?? 0),
-      kcalHit: kcal >= kcalGoal - 450 && kcal <= kcalGoal + 100,
+      kcalHit: kcal >= kcalGoal * 0.75 && kcal <= kcalGoal + 100,
       waterHit: water >= waterGoal,
       readiness,
       hasMeals: kcal > 0,
@@ -94,14 +95,12 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
   const avgSteps = stepDays ? sum(daysData.map((day) => day.steps)) / stepDays : 0;
   const avgActiveKcal = wearableDays ? sum(daysData.map((day) => day.activeKcal)) / wearableDays : 0;
 
-  const totalKm = sum([
-    ...(runRes.data ?? []).map((run) => Number(run.distance_km || 0)),
-    ...(cardioRes.data ?? []).map((session) => Number(session.distance_km || 0)),
-  ]);
+  const mergedCardio = mergeCardioSources(runRes.data ?? [], cardioRes.data ?? []);
+  const totalKm = sum(mergedCardio.map((session) => Number(session.distance_km || 0)));
   const strengthVolume = sum((setRes.data ?? []).map((set) => Number(set.load_kg || 0) * Number(set.reps || 0)));
   const strengthSets = (setRes.data ?? []).length;
   const workouts = (workoutRes.data ?? []).filter((item) => item.completed).length;
-  const cardioSessions = (runRes.data ?? []).length + (cardioRes.data ?? []).length;
+  const cardioSessions = mergedCardio.length;
   const latestWeight = weightRes.data?.[0] ?? null;
   const oldestWeight = [...(weightRes.data ?? [])].sort((a, b) => a.log_date.localeCompare(b.log_date))[0] ?? null;
   const weightChange = latestWeight && oldestWeight ? Number(oldestWeight.weight_kg) - Number(latestWeight.weight_kg) : null;
@@ -398,6 +397,63 @@ function buildWeeklyReportExport({
     decision,
     interpretation_prompt_hint: 'Envie este JSON para o chat Analista Semanal do projeto Atleta Híbrido.',
   };
+}
+
+function buildWearableByDate(rows) {
+  const map = new Map();
+  for (const row of rows ?? []) {
+    const date = row.metric_date;
+    const current = map.get(date);
+    if (!current) {
+      map.set(date, { ...row });
+      continue;
+    }
+    map.set(date, {
+      ...current,
+      steps: maxOrCurrent(current.steps, row.steps),
+      sleep_minutes: maxOrCurrent(current.sleep_minutes, row.sleep_minutes),
+      active_kcal: maxOrCurrent(current.active_kcal, row.active_kcal),
+      workout_minutes: maxOrCurrent(current.workout_minutes, row.workout_minutes),
+      distance_km: maxOrCurrent(current.distance_km, row.distance_km),
+      avg_heart_rate: current.avg_heart_rate ?? row.avg_heart_rate,
+      resting_heart_rate: current.resting_heart_rate ?? row.resting_heart_rate,
+      source: current.source === row.source ? current.source : 'merged_sources',
+    });
+  }
+  return map;
+}
+
+function maxOrCurrent(a, b) {
+  const left = numberOrNull(a);
+  const right = numberOrNull(b);
+  if (left === null) return right;
+  if (right === null) return left;
+  return Math.max(left, right);
+}
+
+function mergeCardioSources(runRows, cardioRows) {
+  const map = new Map();
+  for (const row of cardioRows ?? []) {
+    map.set(cardioSignature(row), { ...row, source_table: 'cardio_sessions' });
+  }
+  for (const row of runRows ?? []) {
+    const key = cardioSignature(row);
+    if (!map.has(key)) map.set(key, { ...row, source_table: 'run_sessions' });
+  }
+  return [...map.values()];
+}
+
+function cardioSignature(row) {
+  const date = localDateKey(row.performed_at ?? row.created_at ?? new Date());
+  const distance = Number(row.distance_km ?? 0).toFixed(2);
+  const duration = Math.round(Number(row.duration_seconds ?? 0) / 30) * 30;
+  return `${date}|${distance}|${duration}`;
+}
+
+function numberOrNull(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(String(value).replace(',', '.'));
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function formatSource(source, provider) {

@@ -138,7 +138,7 @@ export default function CardioDataHistoryView({ userId, onError }: any) {
                   <Badge label="Tempo" value={formatDuration(Number(session.duration_seconds || 0))} />
                   <Badge label="Ativas" value={session.active_kcal === null || session.active_kcal === undefined ? '--' : `${session.active_kcal} kcal`} />
                   <Badge label="Total" value={session.total_kcal === null || session.total_kcal === undefined ? '--' : `${session.total_kcal} kcal`} />
-                  <Badge label="Distância" value={session.distance_km ? `${Number(session.distance_km).toFixed(2)} km` : '--'} />
+                  <Badge label="Distância" value={session.distance_km === null || session.distance_km === undefined ? 'sem distância' : `${Number(session.distance_km).toFixed(2)} km`} />
                   <Badge label="FC" value={session.avg_heart_rate ? `${session.avg_heart_rate}/${session.max_heart_rate ?? '--'} bpm` : '--'} />
                   <Badge label="Ritmo" value={session.avg_pace_seconds_per_km ? formatPace(session.avg_pace_seconds_per_km) : '--'} />
                 </div>
@@ -220,12 +220,12 @@ function labelForType(type: string) {
 }
 
 function formatDuration(seconds: number) {
-  const safeSeconds = Math.max(Number(seconds || 0), 0);
-  const minutes = Math.round(safeSeconds / 60);
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return rest ? `${hours}h${String(rest).padStart(2, '0')}` : `${hours}h`;
+  const safeSeconds = Math.max(Math.round(Number(seconds || 0)), 0);
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const restSeconds = safeSeconds % 60;
+  if (hours) return `${hours}h${String(minutes).padStart(2, '0')}${restSeconds ? `:${String(restSeconds).padStart(2, '0')}` : ''}`;
+  return restSeconds ? `${minutes}:${String(restSeconds).padStart(2, '0')} min` : `${minutes} min`;
 }
 
 function formatPace(seconds: number) {

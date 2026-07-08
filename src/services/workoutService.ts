@@ -1,4 +1,5 @@
 import { requireSupabase } from '../lib/supabaseClient';
+import { localDateKey, startOfWeekLocal } from '../utils/dates';
 
 export async function completeWorkoutWithSets(userId, payload) {
   const client = requireSupabase();
@@ -38,7 +39,14 @@ export async function completeWorkoutWithSets(userId, payload) {
 
   if (validSets.length) {
     const { error: setsError } = await client.from('workout_exercise_sets').insert(validSets);
-    if (setsError) throw setsError;
+    if (setsError) {
+      await client
+        .from('workout_sessions')
+        .delete()
+        .eq('user_id', userId)
+        .eq('id', session.id);
+      throw setsError;
+    }
   }
 
   return { session, sets: validSets };
@@ -111,8 +119,8 @@ export function buildWeeklyStrengthProgress(sets, exerciseName) {
 
   filtered.forEach((set) => {
     const date = new Date(set.performed_at);
-    const weekStart = startOfWeek(date);
-    const weekKey = weekStart.toISOString().slice(0, 10);
+    const weekStart = startOfWeekLocal(date);
+    const weekKey = localDateKey(weekStart);
     const estimatedOneRm = calculateEstimatedOneRepMax(set.load_kg, set.reps);
     const volume = Number(set.load_kg || 0) * Number(set.reps || 0);
     const current = buckets.get(weekKey) ?? {
@@ -142,11 +150,3 @@ export function buildWeeklyStrengthProgress(sets, exerciseName) {
     }));
 }
 
-function startOfWeek(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}

@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, ShieldCheck } from 'lucide-react';
+import { Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { RUN_PLAN } from '../data/defaultPlan';
 import { listRuns, saveRun } from '../services/runService';
-import { listCardioSessions } from '../services/cardioService';
+import { deleteCardioSession, listCardioSessions } from '../services/cardioService';
 
 
 export default function RunView({ userId, onError }) {
   const [runs, setRuns] = useState([]);
   const [cardios, setCardios] = useState([]);
   const [form, setForm] = useState({ distance_km: '1', minutes: '', seconds: '', run_walk_protocol: RUN_PLAN[0].protocol, notes: '' });
+  const [deletingCardioId, setDeletingCardioId] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -50,6 +51,27 @@ export default function RunView({ userId, onError }) {
   }
 
 
+  async function handleDeleteCardio(session) {
+    if (!session?.id) {
+      onError?.('Não consegui apagar: sessão sem ID.');
+      return;
+    }
+
+    const confirmed = window.confirm(`Apagar este cardio?\n\n${session.activity_label ?? labelForActivity(session.activity_type)} · ${formatTime(session.duration_seconds)}\n\nIsso remove a sessão do histórico.`);
+    if (!confirmed) return;
+
+    try {
+      setDeletingCardioId(session.id);
+      await deleteCardioSession(userId, session.id);
+      setCardios((current) => current.filter((item) => item.id !== session.id));
+      onError?.('Cardio apagado.');
+    } catch (err) {
+      onError?.(err.message ?? 'Erro ao apagar cardio.');
+    } finally {
+      setDeletingCardioId(null);
+    }
+  }
+
   return (
     <div className="cardio-page">
       <div className="page-title">
@@ -79,16 +101,37 @@ export default function RunView({ userId, onError }) {
         <span className="pill">centralizado</span>
       </section>
 
-      <section className="panel">
-        <p className="eyebrow">Histórico de cardio importado</p>
-        {cardios.length === 0 ? <p className="muted">Nenhuma sessão importada ainda.</p> : cardios.map((session) => (
-          <div className="entry-row cardio-entry" key={session.id}>
+      <section className="panel cardio-history-panel-v408">
+        <div className="section-title-row">
+          <div>
+            <p className="eyebrow">Histórico de cardio registrado</p>
+            <h3>{cardios.length ? `${cardios.length} sessão(ões)` : 'sem sessões'}</h3>
+            <p className="muted-text">Mostra cardios manuais, da Academia e importados por JSON. “Sem distância” não significa erro no JSON; normalmente é cardio manual/planejado.</p>
+          </div>
+        </div>
+
+        {cardios.length === 0 ? <p className="muted">Nenhuma sessão de cardio ainda.</p> : cardios.map((session) => (
+          <div className="entry-row cardio-entry cardio-entry-v408" key={session.id}>
             <div>
-              <strong>{session.activity_label ?? labelForActivity(session.activity_type)} · {formatDistance(session.distance_km)} · {formatTime(session.duration_seconds)}</strong>
-              <span>{new Date(session.performed_at).toLocaleString('pt-BR')} · {pace(session)} · {session.active_kcal ?? '--'} kcal · FC {session.avg_heart_rate ?? '--'} bpm</span>
-              <small>{session.source_app || session.source} · {session.device_name || 'sem dispositivo'} · {session.confidence}</small>
+              <div className="cardio-entry-head-v408">
+                <strong>{session.activity_label ?? labelForActivity(session.activity_type)} · {formatDistance(session.distance_km, session)} · {formatTime(session.duration_seconds)}</strong>
+                <span className={`cardio-source-badge-v408 ${sourceKind(session).tone}`}>{sourceKind(session).label}</span>
+              </div>
+              <span>{new Date(session.performed_at).toLocaleString('pt-BR')} · {pace(session)} · {formatKcal(session.active_kcal)} · FC {session.avg_heart_rate ?? '--'} bpm</span>
+              <small>{session.source_app || session.source} · {session.device_name || 'sem dispositivo'} · {formatConfidence(session.confidence)}</small>
             </div>
-            <span className="pill">não soma</span>
+
+            <div className="cardio-entry-actions-v408">
+              <span className="pill">não soma</span>
+              <button
+                className="ghost-btn danger-ghost-v405"
+                type="button"
+                onClick={() => handleDeleteCardio(session)}
+                disabled={deletingCardioId === session.id}
+              >
+                <Trash2 size={15} /> {deletingCardioId === session.id ? 'Apagando...' : 'Apagar'}
+              </button>
+            </div>
           </div>
         ))}
       </section>
@@ -154,9 +197,41 @@ function pace(run) {
   return `${formatTime(secondsPerKm)}/km`;
 }
 
-function formatDistance(distanceKm) {
+function formatDistance(distanceKm, session = null) {
   const distance = Number(distanceKm || 0);
-  return distance ? `${distance.toFixed(2)} km` : 'sem distância';
+  if (distance) return `${distance.toFixed(2)} km`;
+  const kind = sourceKind(session);
+  return kind.isManual ? 'sem distância (manual)' : 'sem distância';
+}
+
+function formatKcal(value) {
+  return value === null || value === undefined ? 'kcal não informada' : `${value} kcal`;
+}
+
+function formatConfidence(value) {
+  return ({
+    low: 'baixa confiança',
+    medium: 'confiança média',
+    high: 'alta confiança',
+    manual_review: 'revisão manual',
+  })[value] ?? value ?? 'sem confiança';
+}
+
+function sourceKind(session) {
+  const source = String(session?.source ?? '').toLowerCase();
+  const importMethod = String(session?.import_method ?? '').toLowerCase();
+  const sourceApp = String(session?.source_app ?? '').toLowerCase();
+  const label = String(session?.activity_label ?? '').toLowerCase();
+
+  if (importMethod.includes('screenshot') || source.includes('mi_fitness') || sourceApp.includes('mi fitness')) {
+    return { label: 'JSON / relógio', tone: 'json', isManual: false };
+  }
+
+  if (source.includes('manual') || sourceApp.includes('atleta') || label.includes('planejado')) {
+    return { label: 'manual / academia', tone: 'manual', isManual: true };
+  }
+
+  return { label: 'cardio', tone: 'neutral', isManual: false };
 }
 
 function labelForActivity(type) {

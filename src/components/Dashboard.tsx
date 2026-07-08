@@ -90,7 +90,7 @@ export default function Dashboard({ userId, profile, trainingPlan, onError }) {
       <div className="today-focus-grid">
         <Metric icon={Flame} label="Calorias" value={`${totalKcal}`} sub={`de ${kcalGoal} kcal`} percent={(totalKcal / kcalGoal) * 100} />
         <Metric icon={Droplets} label="Água" value={`${water} ml`} sub={`de ${waterGoal} ml`} percent={(water / waterGoal) * 100} />
-        <Metric icon={Footprints} label="Último cardio" value={lastCardio ? `${Number(lastCardio.distance_km || 0).toFixed(2)} km` : '0 km'} sub={lastCardio ? `${cardioLabel(lastCardio)} · ${secondsToPace(lastCardio.duration_seconds, lastCardio.distance_km)}` : 'sem registro'} percent={lastCardio ? Math.min((Number(lastCardio.distance_km || 0) / 1) * 100, 100) : 0} />
+        <Metric icon={Footprints} label="Último cardio" value={lastCardio ? cardioDistanceLabel(lastCardio) : 'sem cardio'} sub={lastCardio ? `${cardioLabel(lastCardio)} · ${secondsToPace(lastCardio.duration_seconds, lastCardio.distance_km)}` : 'sem registro'} percent={lastCardio?.distance_km ? Math.min((Number(lastCardio.distance_km) / 1) * 100, 100) : 0} />
         <Metric icon={Goal} label="Peso" value={`${Number(profile?.current_weight_kg ?? 0).toFixed(1)} kg`} sub={`meta ${profile?.target_weight_kg ?? '--'} kg`} percent={weightProgress(profile)} />
       </div>
 
@@ -321,6 +321,11 @@ function getTodayTraining(plan) {
   if (!plan?.training_days) return null;
   const weekday = new Date().getDay();
   return plan.training_days.find((day) => day.weekday === weekday);
+}
+
+function cardioDistanceLabel(cardio) {
+  if (cardio?.distance_km === null || cardio?.distance_km === undefined) return 'sem distância';
+  return `${Number(cardio.distance_km).toFixed(2)} km`;
 }
 
 function secondsToPace(seconds, distanceKm) {

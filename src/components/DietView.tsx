@@ -34,13 +34,15 @@ export default function DietView({ userId, profile, onError }) {
   async function handleAdd(event) {
     event.preventDefault();
     try {
-      const grams = Number(form.grams);
-      const kcal100 = Number(form.kcal_per_100g);
-      const protein100 = Number(form.protein_per_100g || 0);
-      const carbs100 = Number(form.carbs_per_100g || 0);
-      const fat100 = Number(form.fat_per_100g || 0);
+      const grams = parsePositiveNumber(form.grams);
+      const kcal100 = parseRequiredNonNegativeNumber(form.kcal_per_100g);
+      const protein100 = parseOptionalNonNegativeNumber(form.protein_per_100g);
+      const carbs100 = parseOptionalNonNegativeNumber(form.carbs_per_100g);
+      const fat100 = parseOptionalNonNegativeNumber(form.fat_per_100g);
 
-      if (!form.food_name.trim() || grams <= 0 || kcal100 < 0) return;
+      if (!form.food_name.trim()) throw new Error('Informe o nome do alimento.');
+      if (grams === null) throw new Error('Informe gramas válidas acima de zero.');
+      if (kcal100 === null) throw new Error('Informe kcal/100g. Campo vazio não pode virar 0 kcal.');
 
       const factor = grams / 100;
       await addMeal(userId, {
@@ -73,7 +75,7 @@ export default function DietView({ userId, profile, onError }) {
 
   async function handleDelete(id) {
     try {
-      await deleteMeal(id);
+      await deleteMeal(userId, id);
       await load();
     } catch (err) {
       onError(err.message);
@@ -168,4 +170,22 @@ export default function DietView({ userId, profile, onError }) {
 
 function SmallMetric({ label, value, sub }) {
   return <div className="small-metric"><span>{label}</span><strong>{value}</strong><p>{sub}</p></div>;
+}
+
+
+function parsePositiveNumber(value: unknown) {
+  const parsed = Number(String(value ?? '').replace(',', '.'));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function parseRequiredNonNegativeNumber(value: unknown) {
+  if (value === '' || value === null || value === undefined) return null;
+  const parsed = Number(String(value).replace(',', '.'));
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function parseOptionalNonNegativeNumber(value: unknown) {
+  if (value === '' || value === null || value === undefined) return 0;
+  const parsed = Number(String(value).replace(',', '.'));
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 }

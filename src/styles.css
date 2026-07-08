@@ -6966,3 +6966,93 @@ video {
     justify-content: center;
   }
 }
+
+
+/* v4.0.8 — histórico de cardio claro e apagável na aba Cardio */
+.cardio-history-panel-v408 {
+  display: grid;
+  gap: 12px;
+}
+
+.cardio-entry-v408 {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.cardio-entry-head-v408 {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cardio-source-badge-v408 {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, .16);
+  background: rgba(255, 255, 255, .04);
+  color: var(--muted);
+  font-size: .76rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+
+.cardio-source-badge-v408.json {
+  border-color: rgba(125, 211, 252, .24);
+  color: #bae6fd;
+  background: rgba(14, 165, 233, .08);
+}
+
+.cardio-source-badge-v408.manual {
+  border-color: rgba(251, 191, 36, .22);
+  color: #fde68a;
+  background: rgba(251, 191, 36, .07);
+}
+
+.cardio-entry-actions-v408 {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+@media (max-width: 760px) {
+  .cardio-entry-v408 {
+    display: grid;
+  }
+
+  .cardio-entry-actions-v408 {
+    justify-items: stretch;
+  }
+
+  .cardio-entry-actions-v408 .pill,
+  .cardio-entry-actions-v408 button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+
+/* v4.0.9 — alerta de data do JSON antes de importar */
+.json-date-warning-v409 {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(251, 191, 36, .28);
+  background: rgba(251, 191, 36, .08);
+}
+
+.json-date-warning-v409 strong {
+  color: #fde68a;
+  font-size: .9rem;
+}
+
+.json-date-warning-v409 span {
+  color: var(--muted);
+  font-size: .84rem;
+  line-height: 1.35;
+}

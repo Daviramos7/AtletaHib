@@ -101,7 +101,7 @@ class SupabaseRestClient {
 
     suspend fun upsertDailyMetric(accessToken: String, metric: WearableDailyMetricUpsert): HttpResponse {
         require(isConfigured()) { "Configure SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY no gradle.properties." }
-        val response = client.post("$baseUrl/rest/v1/wearable_daily_metrics?on_conflict=user_id,metric_date") {
+        val response = client.post("$baseUrl/rest/v1/wearable_daily_metrics?on_conflict=user_id,metric_date,source") {
             contentType(ContentType.Application.Json)
             header("apikey", key)
             header(HttpHeaders.Authorization, "Bearer $accessToken")

@@ -1,4 +1,6 @@
 import { requireSupabase } from '../lib/supabaseClient';
+import { buildLocalDateTimeIso, localDateKeyFromInstant, normalizeDateKey, normalizeTimeKey, todayLocalKey } from '../utils/dates';
+import { integerOrNull, numberOrNull, parseDurationSeconds, slug } from '../utils/durations';
 
 const VALID_ACTIVITY_TYPES = new Set([
   'strength_training',
@@ -55,21 +57,23 @@ export function normalizeWearableWorkoutPayload(raw) {
   }
 
   const activityType = normalizeActivityType(raw.activity_type ?? raw.activityType ?? raw.type);
-  const date = raw.date ?? raw.performed_date ?? raw.performedDate;
-  const startTime = raw.start_time ?? raw.startTime ?? raw.started_at_time ?? raw.startedAtTime;
+  const date = normalizeDateKey(raw.date ?? raw.performed_date ?? raw.performedDate);
+  const startTime = normalizeTimeKey(raw.start_time ?? raw.startTime ?? raw.started_at_time ?? raw.startedAtTime);
   const performedAt = normalizePerformedAt(raw.performed_at ?? raw.performedAt, date, startTime);
-  const durationSeconds = toSeconds(raw.duration_seconds ?? raw.durationSeconds ?? raw.duration ?? raw.time ?? raw.tempo);
+  const durationSeconds = parseDurationSeconds(raw.duration_seconds ?? raw.durationSeconds, { numericUnit: 'seconds' })
+    ?? parseDurationSeconds(raw.duration_minutes ?? raw.durationMinutes, { numericUnit: 'minutes' })
+    ?? parseDurationSeconds(raw.duration_text ?? raw.durationText ?? raw.time ?? raw.tempo ?? raw.duration, { numericUnit: 'reject' });
   const source = raw.source ?? 'mi_fitness_screenshot';
   const importMethod = raw.import_method ?? raw.importMethod ?? 'screenshot_json';
   const sourceApp = raw.source_app ?? raw.sourceApp ?? 'Mi Fitness';
 
   if (!performedAt) throw new Error('JSON sem data válida. Use date: YYYY-MM-DD e start_time: HH:mm ou performed_at ISO.');
-  if (!durationSeconds || durationSeconds <= 0) throw new Error('JSON sem duração válida. Use duration_seconds ou duration_text.');
+  if (!durationSeconds || durationSeconds <= 0) throw new Error('JSON sem duração válida. Use duration_seconds, duration_minutes ou duration_text. Não use duration numérico sem unidade.');
 
   const dedupeKey = String(raw.dedupe_key ?? raw.dedupeKey ?? buildDedupeKey({
-    date: dateFromPerformedAt(performedAt),
+    date: localDateKeyFromInstant(performedAt) ?? date ?? todayLocalKey(),
     activityType,
-    startTime: startTime || String(performedAt).slice(11, 16),
+    startTime: startTime || localStartMinute(performedAt),
     durationSeconds,
     sourceApp,
   }));
@@ -86,12 +90,12 @@ export function normalizeWearableWorkoutPayload(raw) {
     device_name: raw.device_name ?? raw.deviceName ?? null,
 
     duration_seconds: durationSeconds,
-    active_kcal: toInteger(raw.active_kcal ?? raw.activeKcal ?? raw.kcal_active ?? raw.kcalAtiva),
-    total_kcal: toInteger(raw.total_kcal ?? raw.totalKcal),
-    avg_heart_rate: toInteger(raw.avg_heart_rate ?? raw.avgHeartRate ?? raw.bpm_medio ?? raw.bpmMedio),
-    max_heart_rate: toInteger(raw.max_heart_rate ?? raw.maxHeartRate ?? raw.bpm_maximo ?? raw.bpmMaximo),
-    training_effect: toNumber(raw.training_effect ?? raw.trainingEffect),
-    vitality_score: toInteger(raw.vitality_score ?? raw.vitalityScore),
+    active_kcal: integerOrNull(raw.active_kcal ?? raw.activeKcal ?? raw.kcal_active ?? raw.kcalAtiva),
+    total_kcal: integerOrNull(raw.total_kcal ?? raw.totalKcal),
+    avg_heart_rate: integerOrNull(raw.avg_heart_rate ?? raw.avgHeartRate ?? raw.bpm_medio ?? raw.bpmMedio),
+    max_heart_rate: integerOrNull(raw.max_heart_rate ?? raw.maxHeartRate ?? raw.bpm_maximo ?? raw.bpmMaximo),
+    training_effect: numberOrNull(raw.training_effect ?? raw.trainingEffect),
+    vitality_score: integerOrNull(raw.vitality_score ?? raw.vitalityScore),
 
     heart_rate_zones: raw.heart_rate_zones ?? raw.heartRateZones ?? null,
     raw_json: raw,
@@ -102,6 +106,16 @@ export function normalizeWearableWorkoutPayload(raw) {
     dedupe_key: dedupeKey,
     notes: raw.notes ?? 'Sessão de treino do relógio extraída de print. Complementa a execução do app sem duplicar totais diários.',
   };
+}
+
+export function isStrengthWearableImportShape(raw) {
+  if (!raw || typeof raw !== 'object') return false;
+  const type = String(raw.type ?? raw.activity_type ?? raw.activityType ?? '').toLowerCase();
+  return (
+    type.includes('strength') || type.includes('força') || type.includes('forca') || type.includes('muscul') ||
+    raw.vitality_score !== undefined || raw.vitalityScore !== undefined ||
+    raw.training_effect !== undefined || raw.trainingEffect !== undefined
+  );
 }
 
 function normalizeActivityType(input) {
@@ -133,53 +147,13 @@ function normalizePerformedAt(performedAt, date, startTime) {
   }
 
   if (!date) return null;
-  const safeTime = startTime ? String(startTime).slice(0, 5) : '12:00';
-  const parsed = new Date(`${date}T${safeTime}:00`);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.toISOString();
+  return buildLocalDateTimeIso(date, startTime ?? '12:00');
 }
 
-function dateFromPerformedAt(performedAt) {
-  return String(performedAt).slice(0, 10);
-}
-
-function toNumber(value) {
-  if (value === null || value === undefined || value === '') return null;
-  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
-
-  const cleaned = String(value).replace(',', '.').replace(/[^0-9.-]/g, '');
-  if (!cleaned) return null;
-  const parsed = Number(cleaned);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function toInteger(value) {
-  const parsed = toNumber(value);
-  return parsed === null ? null : Math.round(parsed);
-}
-
-function toSeconds(value) {
-  if (value === null || value === undefined || value === '') return null;
-  if (typeof value === 'number') return Math.round(value);
-
-  const raw = String(value).trim().toLowerCase();
-
-  if (/^\d+:\d{2}:\d{2}$/.test(raw)) {
-    const [h, m, s] = raw.split(':').map(Number);
-    return (h * 3600) + (m * 60) + s;
-  }
-
-  if (/^\d+:\d{2}$/.test(raw)) {
-    const [m, s] = raw.split(':').map(Number);
-    return (m * 60) + s;
-  }
-
-  const hourMinute = raw.match(/(\d+)\s*h\s*(\d+)?/);
-  if (hourMinute) {
-    return (Number(hourMinute[1] || 0) * 3600) + (Number(hourMinute[2] || 0) * 60);
-  }
-
-  return toInteger(raw);
+function localStartMinute(performedAt) {
+  const parsed = new Date(String(performedAt));
+  if (Number.isNaN(parsed.getTime())) return '1200';
+  return `${String(parsed.getHours()).padStart(2, '0')}${String(parsed.getMinutes()).padStart(2, '0')}`;
 }
 
 function normalizeConfidence(value) {
@@ -188,5 +162,5 @@ function normalizeConfidence(value) {
 }
 
 function buildDedupeKey({ date, activityType, startTime, durationSeconds, sourceApp }) {
-  return `${date}_${activityType}_${String(startTime || '').replace(':', '')}_${durationSeconds}s_${String(sourceApp || 'manual').toLowerCase().replace(/\s+/g, '_')}`;
+  return `${date}_${activityType}_${String(startTime || '').replace(':', '')}_${durationSeconds}s_${slug(sourceApp || 'manual')}`;
 }
