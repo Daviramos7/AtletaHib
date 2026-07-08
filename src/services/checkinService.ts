@@ -78,40 +78,51 @@ export async function listCheckins(userId, fromDate) {
 }
 
 export function calculateReadiness(checkin) {
-  if (!checkin) return { score: 60, label: 'sem check-in', tone: 'neutral', advice: 'Registre sono, dor e fome para liberar uma decisão melhor.' };
+  if (!checkin) return { score: 60, label: 'sem check-in', tone: 'neutral', advice: 'Registre sono, dor e fome para liberar uma decisão melhor.', confidence: 'low' };
 
   let score = 100;
-  const sleep = Number(checkin.sleep_hours || 0);
-  const pain = Number(checkin.pain_level || 0);
-  const soreness = Number(checkin.soreness_level || 0);
-  const stress = Number(checkin.stress_score || 0);
-  const hunger = Number(checkin.hunger_score || 0);
-  const energy = Number(checkin.energy_score || 0);
+  let known = 0;
+  const sleep = numberOrMissing(checkin.sleep_hours);
+  const pain = numberOrMissing(checkin.pain_level);
+  const soreness = numberOrMissing(checkin.soreness_level);
+  const stress = numberOrMissing(checkin.stress_score);
+  const hunger = numberOrMissing(checkin.hunger_score);
+  const energy = numberOrMissing(checkin.energy_score);
 
-  if (sleep && sleep < 5.5) score -= 25;
-  else if (sleep && sleep < 6.5) score -= 15;
-  else if (!sleep) score -= 8;
+  for (const value of [sleep, pain, soreness, stress, hunger, energy]) {
+    if (value !== null) known += 1;
+  }
 
-  if (pain >= 7) score -= 30;
-  else if (pain >= 4) score -= 15;
+  if (sleep !== null && sleep < 5.5) score -= 25;
+  else if (sleep !== null && sleep < 6.5) score -= 15;
+  else if (sleep === null) score -= 8;
 
-  if (soreness >= 8) score -= 18;
-  else if (soreness >= 5) score -= 9;
+  if (pain !== null && pain >= 7) score -= 35;
+  else if (pain !== null && pain >= 4) score -= 18;
+  else if (pain === null) score -= 4;
 
-  if (stress >= 8) score -= 12;
-  else if (stress >= 6) score -= 6;
+  if (soreness !== null && soreness >= 8) score -= 18;
+  else if (soreness !== null && soreness >= 5) score -= 9;
 
-  if (hunger >= 8) score -= 10;
-  if (energy && energy <= 3) score -= 14;
-  else if (energy >= 8) score += 6;
+  if (stress !== null && stress >= 8) score -= 12;
+  else if (stress !== null && stress >= 6) score -= 6;
+
+  if (hunger !== null && hunger >= 8) score -= 10;
+  if (energy !== null && energy <= 3) score -= 14;
+  else if (energy !== null && energy >= 8) score += 6;
 
   if (checkin.lactose_symptoms) score -= 10;
 
+  const confidence = known >= 5 ? 'high' : known >= 3 ? 'medium' : 'low';
+  if (confidence === 'low') score = Math.min(score, 72);
+
   const finalScore = Math.max(0, Math.min(Math.round(score), 100));
-  if (finalScore >= 80) return { score: finalScore, label: 'pronto para treinar', tone: 'good', advice: 'Pode seguir o treino planejado. Só não transforme treino bom em ego.' };
-  if (finalScore >= 60) return { score: finalScore, label: 'treino controlado', tone: 'warning', advice: 'Treine, mas reduza volume se dor ou cansaço subir.' };
-  return { score: finalScore, label: 'recuperação primeiro', tone: 'danger', advice: 'Hoje vale trocar corrida por caminhada/bike leve e preservar articulações.' };
+  const suffix = confidence === 'low' ? ' Como faltam dados, trate essa sugestão como conservadora.' : '';
+  if (finalScore >= 80) return { score: finalScore, label: 'pronto para treinar', tone: 'good', confidence, advice: `Pode seguir o treino planejado. Só não transforme treino bom em ego.${suffix}` };
+  if (finalScore >= 60) return { score: finalScore, label: 'treino controlado', tone: 'warning', confidence, advice: `Treine, mas reduza volume se dor ou cansaço subir.${suffix}` };
+  return { score: finalScore, label: 'recuperação primeiro', tone: 'danger', confidence, advice: `Hoje vale trocar corrida por caminhada/bike leve e preservar articulações.${suffix}` };
 }
+
 
 function normalizeCheckinRow(userId, payload: any = {}) {
   return {
@@ -133,6 +144,12 @@ function normalizeCheckinRow(userId, payload: any = {}) {
 function normalizeDate(value) {
   const raw = String(value || todayKey()).slice(0, 10);
   return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : todayKey();
+}
+
+function numberOrMissing(value) {
+  if (value === '' || value === null || value === undefined) return null;
+  const n = Number(String(value).replace(',', '.'));
+  return Number.isFinite(n) ? n : null;
 }
 
 function decimalOrNull(value, min, max) {

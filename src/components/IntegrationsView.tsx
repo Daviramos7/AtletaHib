@@ -125,7 +125,7 @@ export default function IntegrationsView({ userId, profile, onError }) {
   async function handleDeleteMetric(id) {
     if (!confirm('Remover este registro de métricas?')) return;
     try {
-      await deleteWearableMetric(id);
+      await deleteWearableMetric(userId, id);
       await load();
     } catch (err) {
       onError(err.message);

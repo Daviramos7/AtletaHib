@@ -1,4 +1,5 @@
 import { requireSupabase } from '../lib/supabaseClient';
+import { buildLocalDateTimeIso, normalizeDateKey, normalizeTimeKey, shiftDateKey, timeToMinutes } from '../utils/dates';
 
 export async function listSleepSessions(userId, limit = 30) {
   const client = requireSupabase();
@@ -109,51 +110,30 @@ export function normalizeSleepImportPayload(raw) {
 }
 
 function buildSleepDateTimes(sleepDate, startTime, endTime) {
-  const startOnSameDate = `${sleepDate}T${startTime}:00`;
-  const endOnSameDate = `${sleepDate}T${endTime}:00`;
   const startMinutes = timeToMinutes(startTime);
   const endMinutes = timeToMinutes(endTime);
 
   let startDate = sleepDate;
   let endDate = sleepDate;
 
-  // Se dormiu 22:57 e acordou 06:20, a data do sono é o dia que acordou.
-  // Então o início fica no dia anterior.
-  if (startMinutes > endMinutes) {
-    startDate = shiftDate(sleepDate, -1);
-  }
-
-  const startAt = new Date(`${startDate}T${startTime}:00`);
-  const endAt = new Date(`${endDate}T${endTime}:00`);
-
-  if (Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime())) {
-    return { startAt: startOnSameDate, endAt: endOnSameDate };
+  // Regra oficial do app: sleep_date representa o dia em que acordou.
+  // Se a fonte usar data de início, o leitor precisa enviar sleep_date_basis no futuro.
+  if (startMinutes !== null && endMinutes !== null && startMinutes > endMinutes) {
+    startDate = shiftDateKey(sleepDate, -1) ?? sleepDate;
   }
 
   return {
-    startAt: startAt.toISOString(),
-    endAt: endAt.toISOString(),
+    startAt: buildLocalDateTimeIso(startDate, startTime) ?? `${startDate}T${startTime}:00`,
+    endAt: buildLocalDateTimeIso(endDate, endTime) ?? `${endDate}T${endTime}:00`,
   };
 }
 
 function normalizeDate(value) {
-  if (!value) return null;
-  const raw = String(value).trim();
-  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
-  const br = raw.match(/^(\d{2})[/-](\d{2})[/-](\d{4})/);
-  if (br) return `${br[3]}-${br[2]}-${br[1]}`;
-  const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toISOString().slice(0, 10);
+  return normalizeDateKey(value);
 }
 
 function normalizeTime(value) {
-  if (!value) return null;
-  const raw = String(value).trim();
-  const match = raw.match(/(\d{1,2})[:hH](\d{2})/);
-  if (!match) return null;
-  return `${String(Number(match[1])).padStart(2, '0')}:${match[2]}`;
+  return normalizeTimeKey(value);
 }
 
 function toInteger(value) {
@@ -197,13 +177,3 @@ function buildDedupeKey({ date, startTime, endTime, sourceApp }) {
   return `${date}_sleep_${String(startTime).replace(':', '')}_${String(endTime).replace(':', '')}_${String(sourceApp || 'manual').toLowerCase().replace(/\s+/g, '_')}`;
 }
 
-function timeToMinutes(value) {
-  const [h, m] = String(value).split(':').map(Number);
-  return (h * 60) + m;
-}
-
-function shiftDate(dateKey, days) {
-  const date = new Date(`${dateKey}T12:00:00`);
-  date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
-}

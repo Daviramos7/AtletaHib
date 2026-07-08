@@ -14,3 +14,4 @@ android_bridge/.kotlin/
 android_bridge/**/build/
 android_bridge/**/*.apk
 android_bridge/**/*.aab
+.vercel

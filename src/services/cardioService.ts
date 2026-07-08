@@ -1,6 +1,9 @@
 import { requireSupabase } from '../lib/supabaseClient';
+import { buildLocalDateTimeIso, localDateKeyFromInstant, normalizeDateKey, normalizeTimeKey, todayLocalKey } from '../utils/dates';
+import { integerOrNull, numberOrNull, parseDurationSeconds, slug } from '../utils/durations';
 
 const VALID_ACTIVITY_TYPES = new Set(['treadmill', 'outdoor_run', 'walk', 'stairs', 'bike', 'elliptical', 'other']);
+const CARDIO_CAP_SECONDS = 20 * 60;
 
 export async function listCardioSessions(userId, limit = 30) {
   const client = requireSupabase();
@@ -44,16 +47,20 @@ export async function saveManualCardioSession(userId, payload) {
   const client = requireSupabase();
   const performedAt = payload.performed_at ?? new Date().toISOString();
   const activityType = normalizeActivityType(payload.activity_type ?? 'other');
-  const durationSeconds = toSeconds(payload.duration_seconds ?? (Number(payload.duration_minutes || 0) * 60));
+  const durationSeconds = parseDurationSeconds(payload.duration_seconds, { numericUnit: 'seconds' })
+    ?? parseDurationSeconds(payload.duration_minutes, { numericUnit: 'minutes' });
 
   if (!durationSeconds || durationSeconds <= 0) {
-    throw new Error('Informe uma duração para finalizar o cardio.');
+    throw new Error('Informe uma duração válida para finalizar o cardio.');
   }
 
   const activityLabel = payload.activity_label ?? labelForActivity(activityType);
   const source = payload.source ?? 'manual';
+  const localDate = localDateKeyFromInstant(performedAt) ?? todayLocalKey();
+  const startMinute = localStartMinute(performedAt);
   const dedupeKey = String(payload.dedupe_key ?? buildDedupeKey({
-    date: dateFromPerformedAt(performedAt),
+    date: localDate,
+    startMinute,
     activityType,
     distanceKm: payload.distance_km ?? null,
     durationSeconds,
@@ -69,17 +76,17 @@ export async function saveManualCardioSession(userId, payload) {
     import_method: 'manual',
     source_app: payload.source_app ?? 'Atleta Híbrido',
     device_name: payload.device_name ?? null,
-    distance_km: toNumber(payload.distance_km),
+    distance_km: numberOrNull(payload.distance_km),
     duration_seconds: durationSeconds,
-    active_kcal: toInteger(payload.active_kcal),
-    total_kcal: toInteger(payload.total_kcal),
-    avg_heart_rate: toInteger(payload.avg_heart_rate),
-    max_heart_rate: toInteger(payload.max_heart_rate),
+    active_kcal: integerOrNull(payload.active_kcal),
+    total_kcal: integerOrNull(payload.total_kcal),
+    avg_heart_rate: integerOrNull(payload.avg_heart_rate),
+    max_heart_rate: integerOrNull(payload.max_heart_rate),
     confidence: 'manual_review',
     counts_toward_daily_totals: false,
     metrics_may_already_exist_in_health_connect: true,
     dedupe_key: dedupeKey,
-    notes: payload.notes ?? null,
+    notes: buildCardioNotes(payload.notes, durationSeconds),
     raw_json: payload,
   };
 
@@ -99,21 +106,25 @@ export function normalizeCardioImportPayload(raw) {
   }
 
   const activityType = normalizeActivityType(raw.activity_type ?? raw.activityType ?? raw.type);
-  const date = raw.date ?? raw.performed_date ?? raw.performedDate;
-  const startTime = raw.start_time ?? raw.startTime ?? raw.started_at_time ?? raw.startedAtTime;
+  const date = normalizeDateKey(raw.date ?? raw.performed_date ?? raw.performedDate);
+  const startTime = normalizeTimeKey(raw.start_time ?? raw.startTime ?? raw.started_at_time ?? raw.startedAtTime);
   const performedAt = normalizePerformedAt(raw.performed_at ?? raw.performedAt, date, startTime);
-  const durationSeconds = toSeconds(raw.duration_seconds ?? raw.durationSeconds ?? raw.duration ?? raw.time ?? raw.tempo);
-  const distanceKm = toNumber(raw.distance_km ?? raw.distanceKm ?? raw.distance);
+  const durationSeconds = parseDurationSeconds(raw.duration_seconds ?? raw.durationSeconds, { numericUnit: 'seconds' })
+    ?? parseDurationSeconds(raw.duration_minutes ?? raw.durationMinutes, { numericUnit: 'minutes' })
+    ?? parseDurationSeconds(raw.duration_text ?? raw.durationText ?? raw.time ?? raw.tempo ?? raw.duration, { numericUnit: 'reject' });
+  const distanceKm = numberOrNull(raw.distance_km ?? raw.distanceKm ?? raw.distance);
   const source = raw.source ?? 'mi_fitness_screenshot';
   const importMethod = raw.import_method ?? raw.importMethod ?? 'screenshot_json';
   const sourceApp = raw.source_app ?? raw.sourceApp ?? 'Mi Fitness';
   const deviceName = raw.device_name ?? raw.deviceName ?? null;
 
   if (!performedAt) throw new Error('JSON sem data válida. Use date: YYYY-MM-DD e start_time: HH:mm ou performed_at ISO.');
-  if (!durationSeconds || durationSeconds <= 0) throw new Error('JSON sem duração válida. Use duration_seconds ou duration: HH:mm:ss.');
+  if (!durationSeconds || durationSeconds <= 0) throw new Error('JSON sem duração válida. Use duration_seconds, duration_minutes ou duration_text. Não use duration numérico sem unidade.');
 
+  const localDate = localDateKeyFromInstant(performedAt) ?? date ?? todayLocalKey();
   const dedupeKey = String(raw.dedupe_key ?? raw.dedupeKey ?? buildDedupeKey({
-    date: dateFromPerformedAt(performedAt),
+    date: localDate,
+    startMinute: startTime ?? localStartMinute(performedAt),
     activityType,
     distanceKm,
     durationSeconds,
@@ -130,20 +141,20 @@ export function normalizeCardioImportPayload(raw) {
     device_name: deviceName,
     distance_km: distanceKm,
     duration_seconds: durationSeconds,
-    active_kcal: toInteger(raw.active_kcal ?? raw.activeKcal ?? raw.kcal_active ?? raw.kcalAtiva),
-    total_kcal: toInteger(raw.total_kcal ?? raw.totalKcal),
-    avg_heart_rate: toInteger(raw.avg_heart_rate ?? raw.avgHeartRate ?? raw.bpm_medio ?? raw.bpmMedio),
-    max_heart_rate: toInteger(raw.max_heart_rate ?? raw.maxHeartRate ?? raw.bpm_maximo ?? raw.bpmMaximo),
+    active_kcal: integerOrNull(raw.active_kcal ?? raw.activeKcal ?? raw.kcal_active ?? raw.kcalAtiva),
+    total_kcal: integerOrNull(raw.total_kcal ?? raw.totalKcal),
+    avg_heart_rate: integerOrNull(raw.avg_heart_rate ?? raw.avgHeartRate ?? raw.bpm_medio ?? raw.bpmMedio),
+    max_heart_rate: integerOrNull(raw.max_heart_rate ?? raw.maxHeartRate ?? raw.bpm_maximo ?? raw.bpmMaximo),
     avg_pace_seconds_per_km: toPaceSeconds(raw.avg_pace_min_per_km ?? raw.avgPaceMinPerKm ?? raw.avg_pace ?? raw.avgPace),
     best_pace_seconds_per_km: toPaceSeconds(raw.best_pace_min_per_km ?? raw.bestPaceMinPerKm ?? raw.max_pace ?? raw.maxPace),
-    avg_speed_kmh: toNumber(raw.avg_speed_kmh ?? raw.avgSpeedKmh),
-    max_speed_kmh: toNumber(raw.max_speed_kmh ?? raw.maxSpeedKmh),
-    steps: toInteger(raw.steps ?? raw.passos),
-    avg_cadence_spm: toInteger(raw.avg_cadence_spm ?? raw.avgCadenceSpm ?? raw.cadence_avg ?? raw.cadencia_media),
-    max_cadence_spm: toInteger(raw.max_cadence_spm ?? raw.maxCadenceSpm ?? raw.cadence_max ?? raw.cadencia_maxima),
-    avg_stride_cm: toInteger(raw.avg_stride_cm ?? raw.avgStrideCm ?? raw.stride_avg_cm ?? raw.passada_media_cm),
-    max_stride_cm: toInteger(raw.max_stride_cm ?? raw.maxStrideCm ?? raw.stride_max_cm ?? raw.passada_maxima_cm),
-    training_effect: toNumber(raw.training_effect ?? raw.trainingEffect),
+    avg_speed_kmh: numberOrNull(raw.avg_speed_kmh ?? raw.avgSpeedKmh),
+    max_speed_kmh: numberOrNull(raw.max_speed_kmh ?? raw.maxSpeedKmh),
+    steps: integerOrNull(raw.steps ?? raw.passos),
+    avg_cadence_spm: integerOrNull(raw.avg_cadence_spm ?? raw.avgCadenceSpm ?? raw.cadence_avg ?? raw.cadencia_media),
+    max_cadence_spm: integerOrNull(raw.max_cadence_spm ?? raw.maxCadenceSpm ?? raw.cadence_max ?? raw.cadencia_maxima),
+    avg_stride_cm: integerOrNull(raw.avg_stride_cm ?? raw.avgStrideCm ?? raw.stride_avg_cm ?? raw.passada_media_cm),
+    max_stride_cm: integerOrNull(raw.max_stride_cm ?? raw.maxStrideCm ?? raw.stride_max_cm ?? raw.passada_maxima_cm),
+    training_effect: numberOrNull(raw.training_effect ?? raw.trainingEffect),
     heart_rate_zones: raw.heart_rate_zones ?? raw.heartRateZones ?? null,
     splits: raw.splits ?? null,
     raw_json: raw,
@@ -151,8 +162,20 @@ export function normalizeCardioImportPayload(raw) {
     counts_toward_daily_totals: Boolean(raw.counts_toward_daily_totals ?? false),
     metrics_may_already_exist_in_health_connect: Boolean(raw.metrics_may_already_exist_in_health_connect ?? true),
     dedupe_key: dedupeKey,
-    notes: raw.notes ?? 'Sessão importada por JSON de print. Métricas diárias continuam vindo do Health Connect para evitar duplicidade.',
+    notes: buildCardioNotes(raw.notes ?? 'Sessão importada por JSON de print. Métricas diárias continuam vindo do Health Connect para evitar duplicidade.', durationSeconds),
   };
+}
+
+export function isCardioImportShape(raw) {
+  if (!raw || typeof raw !== 'object') return false;
+  const type = String(raw.type ?? raw.activity_type ?? raw.activityType ?? '').toLowerCase();
+  const label = String(raw.activity_label ?? raw.activityLabel ?? '').toLowerCase();
+  return (
+    type.includes('cardio') || type.includes('run') || type.includes('corrida') ||
+    ['treadmill', 'esteira', 'outdoor_run', 'walk', 'caminhada', 'stairs', 'escada', 'bike', 'elliptical'].some((term) => type.includes(term) || label.includes(term)) ||
+    raw.distance_km !== undefined || raw.distanceKm !== undefined || raw.avg_pace_min_per_km !== undefined || raw.avgPaceMinPerKm !== undefined ||
+    raw.steps !== undefined || raw.avg_speed_kmh !== undefined || raw.avgSpeedKmh !== undefined
+  );
 }
 
 function normalizeActivityType(input) {
@@ -189,43 +212,13 @@ function normalizePerformedAt(performedAt, date, startTime) {
     if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
   }
   if (!date) return null;
-  const safeTime = startTime ? String(startTime).slice(0, 5) : '12:00';
-  const parsed = new Date(`${date}T${safeTime}:00`);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.toISOString();
+  return buildLocalDateTimeIso(date, startTime ?? '12:00');
 }
 
-function dateFromPerformedAt(performedAt) {
-  return String(performedAt).slice(0, 10);
-}
-
-function toNumber(value) {
-  if (value === null || value === undefined || value === '') return null;
-  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
-  const cleaned = String(value).replace(',', '.').replace(/[^0-9.-]/g, '');
-  if (!cleaned) return null;
-  const parsed = Number(cleaned);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function toInteger(value) {
-  const parsed = toNumber(value);
-  return parsed === null ? null : Math.round(parsed);
-}
-
-function toSeconds(value) {
-  if (value === null || value === undefined || value === '') return null;
-  if (typeof value === 'number') return Math.round(value);
-  const raw = String(value).trim();
-  if (/^\d+:\d{2}:\d{2}$/.test(raw)) {
-    const [h, m, s] = raw.split(':').map(Number);
-    return (h * 3600) + (m * 60) + s;
-  }
-  if (/^\d+:\d{2}$/.test(raw)) {
-    const [m, s] = raw.split(':').map(Number);
-    return (m * 60) + s;
-  }
-  return toInteger(raw);
+function localStartMinute(performedAt) {
+  const parsed = new Date(String(performedAt));
+  if (Number.isNaN(parsed.getTime())) return '1200';
+  return `${String(parsed.getHours()).padStart(2, '0')}${String(parsed.getMinutes()).padStart(2, '0')}`;
 }
 
 function toPaceSeconds(value) {
@@ -234,7 +227,7 @@ function toPaceSeconds(value) {
   const raw = String(value).trim();
   const match = raw.match(/(\d+)\s*[':]\s*(\d{1,2})/);
   if (match) return (Number(match[1]) * 60) + Number(match[2]);
-  return toSeconds(raw);
+  return parseDurationSeconds(raw, { numericUnit: 'reject' });
 }
 
 function normalizeConfidence(value) {
@@ -242,17 +235,23 @@ function normalizeConfidence(value) {
   return ['low', 'medium', 'high', 'manual_review'].includes(raw) ? raw : 'manual_review';
 }
 
-function buildDedupeKey({ date, activityType, distanceKm, durationSeconds, source }) {
-  const distance = distanceKm === null || distanceKm === undefined ? 'sem-distancia' : `${Number(distanceKm).toFixed(2)}km`;
-  return `${date}_${activityType}_${distance}_${durationSeconds}s_${String(source || 'manual').toLowerCase()}`;
+function buildDedupeKey({ date, startMinute, activityType, distanceKm, durationSeconds, source }) {
+  const distance = distanceKm === null || distanceKm === undefined ? 'sem_distancia' : `${Number(distanceKm).toFixed(3)}km`;
+  const start = String(startMinute || 'sem_hora').replace(':', '');
+  return `${date}_${start}_${activityType}_${distance}_${Math.round(durationSeconds)}s_${slug(source)}`;
 }
 
-function slug(value) {
-  return String(value ?? '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 40) || 'cardio';
+function buildCardioNotes(notes, durationSeconds) {
+  const parts = [notes].filter(Boolean);
+  if (durationSeconds > CARDIO_CAP_SECONDS) {
+    parts.push(`Aviso: sessão acima do teto recomendado de 20 min (${formatSeconds(durationSeconds)} registrados).`);
+  }
+  return parts.join(' · ') || null;
+}
+
+function formatSeconds(seconds) {
+  const total = Math.max(0, Math.round(Number(seconds || 0)));
+  const min = Math.floor(total / 60);
+  const sec = total % 60;
+  return sec ? `${min}min ${sec}s` : `${min}min`;
 }

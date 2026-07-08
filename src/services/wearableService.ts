@@ -96,18 +96,20 @@ export async function listWearableMetrics(userId: string, limit = 14) {
 }
 
 export async function getTodayWearableMetric(userId: string) {
+  return getWearableMetricForDate(userId, todayKey());
+}
+
+export async function getWearableMetricForDate(userId: string, metricDate: string) {
   const supabase = requireSupabase();
   const { data, error } = await supabase
     .from('wearable_daily_metrics')
     .select('*')
     .eq('user_id', userId)
-    .eq('metric_date', todayKey())
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .eq('metric_date', metricDate)
+    .order('updated_at', { ascending: false });
 
   if (error) throw error;
-  return data;
+  return mergeWearableDailyMetrics(data ?? [], metricDate);
 }
 
 export async function upsertWearableMetric(userId: string, payload: Partial<WearableDailyMetric>) {
@@ -140,9 +142,13 @@ export async function upsertWearableMetric(userId: string, payload: Partial<Wear
   return data;
 }
 
-export async function deleteWearableMetric(id: string) {
+export async function deleteWearableMetric(userId: string, id: string) {
   const supabase = requireSupabase();
-  const { error } = await supabase.from('wearable_daily_metrics').delete().eq('id', id);
+  const { error } = await supabase
+    .from('wearable_daily_metrics')
+    .delete()
+    .eq('user_id', userId)
+    .eq('id', id);
   if (error) throw error;
 }
 
@@ -162,4 +168,42 @@ function numberOrNull(value: unknown) {
   if (value === '' || value === undefined || value === null) return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+
+function mergeWearableDailyMetrics(rows: WearableDailyMetric[], metricDate: string) {
+  if (!rows.length) return null;
+  const ranked = [...rows].sort((a, b) => sourceRank(b.source) - sourceRank(a.source));
+  const base = ranked[0] as any;
+  const merged: any = { ...base, metric_date: metricDate };
+
+  for (const field of ['steps', 'sleep_minutes', 'active_kcal', 'workout_minutes', 'distance_km'] as Array<keyof WearableDailyMetric>) {
+    merged[field] = bestNumericValue(ranked, field, 'max');
+  }
+  for (const field of ['avg_heart_rate', 'resting_heart_rate'] as Array<keyof WearableDailyMetric>) {
+    merged[field] = bestNumericValue(ranked, field, 'first');
+  }
+
+  merged.source = rows.length > 1 ? 'merged_sources' : base.source;
+  merged.sources = rows.map((row) => row.source).filter(Boolean);
+  merged.notes = rows.length > 1
+    ? `Métricas consolidadas de ${rows.length} fontes: ${merged.sources.join(', ')}.`
+    : base.notes;
+  return merged;
+}
+
+function sourceRank(source: unknown) {
+  const value = String(source ?? '').toLowerCase();
+  if (value.includes('health_connect')) return 40;
+  if (value.includes('mi_fitness')) return 30;
+  if (value.includes('manual')) return 20;
+  return 10;
+}
+
+function bestNumericValue(rows: WearableDailyMetric[], field: keyof WearableDailyMetric, mode: 'max' | 'first') {
+  const values = rows
+    .map((row) => numberOrNull(row[field]))
+    .filter((value): value is number => value !== null);
+  if (!values.length) return null;
+  return mode === 'max' ? Math.max(...values) : values[0];
 }

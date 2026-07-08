@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { CheckCircle2, Copy, FileJson, Plus, ShieldCheck } from 'lucide-react';
-import { normalizeCardioImportPayload, saveCardioSessionFromJson } from '../services/cardioService';
+import { isCardioImportShape, normalizeCardioImportPayload, saveCardioSessionFromJson } from '../services/cardioService';
 import { normalizeMealImportPayload, saveMealEntriesFromJson } from '../services/mealService';
 import { normalizeSleepImportPayload, saveSleepSessionFromJson } from '../services/sleepService';
-import { normalizeWearableWorkoutPayload, saveWearableWorkoutSessionFromJson } from '../services/strengthWearableService';
+import { isStrengthWearableImportShape, normalizeWearableWorkoutPayload, saveWearableWorkoutSessionFromJson } from '../services/strengthWearableService';
+import { formatDatePtBr, localDateKeyFromInstant, normalizeDateKey, todayLocalKey } from '../utils/dates';
 
 const CARDIO_EXAMPLE = `{"synthetic":true}`;
 
@@ -74,6 +75,7 @@ export default function ImportJsonView({ userId, onError }) {
   const [preview, setPreview] = useState(null);
   const [resolvedKind, setResolvedKind] = useState(null);
   const [busy, setBusy] = useState(false);
+  const previewDateWarning = preview ? buildImportDateWarning(resolvedKind, preview) : null;
 
   const config = getImportType(kind);
   const examples = config.examples ?? [{ id: 'default', label: 'Exemplo', value: config.example }];
@@ -85,8 +87,9 @@ export default function ImportJsonView({ userId, onError }) {
 
     if (type.includes('meal') || type.includes('food') || type.includes('nutrition') || raw?.food_name || raw?.alimento || raw?.items || raw?.foods || raw?.meals) return 'meal';
     if (type.includes('sleep') || raw?.sleep_start || raw?.sleep_end || raw?.sleep_score) return 'sleep';
-    if (type.includes('strength') || type.includes('força') || raw?.training_effect || raw?.vitality_score) return 'strength';
-    if (type.includes('cardio') || raw?.distance_km || raw?.avg_pace_min_per_km || raw?.activity_label === 'Esteira') return 'cardio';
+    // Cardio precisa vencer strength: prints de esteira/corrida podem trazer training_effect.
+    if (isCardioImportShape(raw)) return 'cardio';
+    if (isStrengthWearableImportShape(raw)) return 'strength';
 
     throw new Error('Não consegui detectar o tipo do JSON. Escolha Comida, Sono, Cardio ou Força relógio manualmente.');
   }
@@ -134,6 +137,13 @@ export default function ImportJsonView({ userId, onError }) {
       setBusy(true);
       const raw = parseJson();
       const targetKind = resolveKind(raw);
+      const normalized = normalizeByKind(targetKind, raw);
+      const dateWarning = buildImportDateWarning(targetKind, normalized);
+
+      if (dateWarning && !window.confirm(`${dateWarning.title}\n\n${dateWarning.message}\n\nImportar mesmo assim?`)) {
+        onError?.('Importação cancelada para evitar salvar na data errada.');
+        return;
+      }
 
       await saveByKind(targetKind, raw);
 
@@ -246,6 +256,12 @@ export default function ImportJsonView({ userId, onError }) {
               <strong>{buildPreviewTitle(resolvedKind, preview)}</strong>
               <span>{buildPreviewSubtitle(resolvedKind, preview)}</span>
               <small>Tipo detectado: {getImportType(resolvedKind).label}</small>
+              {previewDateWarning && (
+                <div className="json-date-warning-v409">
+                  <strong>{previewDateWarning.title}</strong>
+                  <span>{previewDateWarning.message}</span>
+                </div>
+              )}
               {resolvedKind === 'meal' && <MealPreviewItems items={preview.items ?? []} />}
             </div>
           </div>
@@ -273,11 +289,34 @@ function MealPreviewItems({ items }) {
       {items.slice(0, 5).map((item, index) => (
         <div key={`${item.food_name}-${index}`}>
           <strong>{item.food_name}</strong>
-          <span>{item.grams}g · {item.kcal} kcal · P {item.protein_g ?? 0}g · C {item.carbs_g ?? 0}g · G {item.fat_g ?? 0}g</span>
+          <span>{item.grams}g · {item.kcal} kcal · P {formatMacro(item.protein_g)} · C {formatMacro(item.carbs_g)} · G {formatMacro(item.fat_g)}</span>
         </div>
       ))}
     </div>
   );
+}
+
+function buildImportDateWarning(kind, preview) {
+  const importDate = getImportDate(kind, preview);
+  const today = todayLocalKey();
+
+  if (!importDate || !today || importDate === today) return null;
+
+  const importLabel = formatDate(importDate);
+  const todayLabel = formatDate(today);
+
+  return {
+    title: `Atenção: JSON está em ${importLabel}`,
+    message: `Hoje é ${todayLabel}, mas o JSON será salvo em ${importLabel}. Se você fez agora, corrija o campo "date" do JSON antes de importar.`,
+  };
+}
+
+function getImportDate(kind, preview) {
+  if (!preview) return null;
+  if (kind === 'meal') return normalizeDateKey(preview.log_date);
+  if (kind === 'sleep') return normalizeDateKey(preview.sleep_date);
+  if (kind === 'strength' || kind === 'cardio') return localDateKeyFromInstant(preview.performed_at);
+  return null;
 }
 
 function getImportType(kind) {
@@ -288,7 +327,8 @@ function buildPreviewTitle(kind, preview) {
   if (kind === 'meal') return `${preview.items?.length ?? 0} item(ns) · ${preview.total_kcal ?? 0} kcal`;
   if (kind === 'sleep') return `${minutesToHours(preview.duration_minutes)} · ${formatDate(preview.sleep_date)}`;
   if (kind === 'strength') return `${preview.activity_label ?? 'Força'} · ${formatDuration(preview.duration_seconds)}`;
-  return `${preview.activity_label ?? 'Cardio'} · ${Number(preview.distance_km || 0).toFixed(2)} km`;
+  const distance = preview.distance_km === null || preview.distance_km === undefined ? 'sem distância' : `${Number(preview.distance_km).toFixed(2)} km`;
+  return `${preview.activity_label ?? 'Cardio'} · ${distance}`;
 }
 
 function buildPreviewSubtitle(kind, preview) {
@@ -315,8 +355,9 @@ function formatDuration(seconds) {
 }
 
 function formatDate(dateKey) {
-  if (!dateKey) return '--';
-  const [year, month, day] = String(dateKey).split('-').map(Number);
-  if (!year || !month || !day) return dateKey;
-  return new Date(year, month - 1, day).toLocaleDateString('pt-BR');
+  return formatDatePtBr(dateKey);
+}
+
+function formatMacro(value) {
+  return value === null || value === undefined ? 'não informado' : `${value}g`;
 }
