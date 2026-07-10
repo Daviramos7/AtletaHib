@@ -53,6 +53,10 @@ create table if not exists public.meal_entries (
   protein_g numeric(8,2) default 0,
   carbs_g numeric(8,2) default 0,
   fat_g numeric(8,2) default 0,
+  source text not null default 'manual',
+  import_method text not null default 'manual',
+  confidence text not null default 'manual_review' check (confidence in ('low','medium','high','manual_review')),
+  dedupe_key text,
   created_at timestamptz not null default now()
 );
 
@@ -176,6 +180,10 @@ create table if not exists public.daily_checkins (
   lactose_symptoms boolean not null default false,
   cravings_notes text,
   notes text,
+  morning_notes text,
+  evening_notes text,
+  morning_saved_at timestamptz,
+  evening_saved_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique(user_id, log_date)
@@ -189,9 +197,33 @@ for each row execute function public.set_updated_at();
 create index if not exists idx_daily_logs_user_date on public.daily_logs(user_id, log_date desc);
 create index if not exists idx_daily_checkins_user_date on public.daily_checkins(user_id, log_date desc);
 create index if not exists idx_meal_entries_user_date on public.meal_entries(user_id, log_date desc);
+create unique index if not exists meal_entries_user_dedupe_uidx on public.meal_entries(user_id, dedupe_key) where dedupe_key is not null;
 create index if not exists idx_weight_logs_user_date on public.weight_logs(user_id, log_date desc);
 create index if not exists idx_run_sessions_user_performed_at on public.run_sessions(user_id, performed_at desc);
 create index if not exists idx_workout_sessions_user_performed_at on public.workout_sessions(user_id, performed_at desc);
+
+create or replace function public.increment_daily_water(p_user_id uuid, p_log_date date, p_delta integer)
+returns public.daily_logs
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare result public.daily_logs;
+begin
+  if auth.uid() is null or auth.uid() <> p_user_id then
+    raise exception 'Acesso negado para hidratação.' using errcode = '42501';
+  end if;
+  insert into public.daily_logs (user_id, log_date, water_ml)
+  values (p_user_id, p_log_date, greatest(0, p_delta))
+  on conflict (user_id, log_date)
+  do update set water_ml = greatest(0, public.daily_logs.water_ml + p_delta)
+  returning * into result;
+  return result;
+end;
+$$;
+
+revoke all on function public.increment_daily_water(uuid, date, integer) from public;
+grant execute on function public.increment_daily_water(uuid, date, integer) to authenticated;
 -- v1.3 — TypeScript + registro real de séries, cargas e evolução de força
 -- Execute no Supabase SQL Editor se você já rodou versões anteriores.
 

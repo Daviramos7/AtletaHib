@@ -14,6 +14,8 @@ export default function DailyStatusCard(props: any) {
     todayPlan,
     onError,
     onNavigate,
+    dailyTruth,
+    dailyTruthLoading = false,
   } = props;
 
   const [daily, setDaily] = useState(null);
@@ -28,6 +30,18 @@ export default function DailyStatusCard(props: any) {
   useEffect(() => {
     async function load() {
       if (!userId) return;
+      if (dailyTruthLoading) { setLoading(true); return; }
+
+      if (dailyTruth) {
+        setDaily(dailyTruth.daily);
+        setMeals(dailyTruth.meals);
+        setCheckin(dailyTruth.checkin);
+        setSleepSessions(dailyTruth.sleep);
+        setWorkouts(dailyTruth.strengthApp);
+        setCardios(dailyTruth.cardio);
+        setLoading(false);
+        return;
+      }
 
       try {
         setLoading(true);
@@ -54,7 +68,7 @@ export default function DailyStatusCard(props: any) {
     }
 
     load();
-  }, [date, onError, userId]);
+  }, [dailyTruth, dailyTruthLoading, date, onError, userId]);
 
   const summary = useMemo(() => {
     const kcal = meals.reduce((sum, item: any) => sum + Number(item.kcal || 0), 0);
@@ -157,7 +171,7 @@ export default function DailyStatusCard(props: any) {
         <div>
           <p className="eyebrow">Resumo do dia</p>
           <h3>{loading ? 'Carregando...' : summary.headline}</h3>
-          <span>{summary.okCount}/{summary.items.length} áreas com dado registrado</span>
+          <span>{summary.okCount}/{summary.items.length} áreas com dado registrado{dailyTruth ? ` · confiança ${dailyTruth.confidence}` : ''}</span>
         </div>
 
         <div className="daily-status-score-v363">

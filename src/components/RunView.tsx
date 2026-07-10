@@ -80,7 +80,7 @@ export default function RunView({ userId, onError }) {
           <h2>Corrida, esteira e escada</h2>
           <p className="muted-text">Use Health Connect para os totais diários e importe JSON apenas para criar a sessão que o Mi Fitness não gravou como treino.</p>
         </div>
-        <span className="pill">Melhor 1 km: {best1k ? formatTime(Number(best1k.duration_seconds) / Number(best1k.distance_km)) : 'sem marca'}</span>
+        <span className="pill">Melhor ritmo médio: {best1k ? `${formatTime(Number(best1k.duration_seconds) / Number(best1k.distance_km))}/km` : 'sem marca'}</span>
       </div>
 
       <section className="panel warning-panel cardio-dedupe-panel">

@@ -30,3 +30,16 @@ export async function setWater(userId, logDate, waterMl) {
   if (error) throw error;
   return data;
 }
+
+export async function incrementWater(userId, logDate, deltaMl) {
+  const client = requireSupabase();
+  const delta = Math.round(Number(deltaMl));
+  if (!Number.isFinite(delta) || delta === 0) throw new Error('Incremento de água inválido.');
+  const { data, error } = await client.rpc('increment_daily_water', {
+    p_user_id: userId,
+    p_log_date: logDate,
+    p_delta: delta,
+  });
+  if (error) throw error;
+  return data;
+}

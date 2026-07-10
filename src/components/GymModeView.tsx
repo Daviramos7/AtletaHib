@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Clock3, RotateCcw, Save, Square } from 'lucide-react';
-import { calculateVolumeKg, completeWorkoutWithSets, listStrengthSets, listWorkoutHistory } from '../services/workoutService';
+import { calculateVolumeKg, completeWorkoutWithSets, deleteWorkoutSession, listStrengthSets, listWorkoutHistory } from '../services/workoutService';
 import { listCardioSessions, saveManualCardioSession } from '../services/cardioService';
 import { listWearableWorkoutSessions } from '../services/strengthWearableService';
 import { getCardioOptions, getDayKindLabel, getStrengthEntries, getWeekdayLabel, isCardioDay, isRestDay, isStrengthDay, normalizeTrainingDays, resolveDayKind } from '../utils/trainingPlanUtils';
@@ -207,6 +207,7 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
       if (!shouldContinue) return;
     }
 
+    let createdWorkoutSessionId = null;
     try {
       setSaving(true);
 
@@ -219,7 +220,7 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
       });
 
       if (validSets.length) {
-        await completeWorkoutWithSets(userId, {
+        const completedWorkout = await completeWorkoutWithSets(userId, {
           training_day_id: selectedDay.id,
           performed_at: sessionStartedAt,
           duration_minutes: Number(duration || 0) || elapsedMinutes(sessionStartedAt) || 30,
@@ -231,6 +232,7 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
             notes: [row.notes, row.original_exercise_name ? `Original: ${row.original_exercise_name}` : null].filter(Boolean).join(' · ') || null,
           })),
         });
+        createdWorkoutSessionId = completedWorkout.session.id;
       }
 
       if (cardioPayload) {
@@ -246,6 +248,14 @@ export default function GymModeView({ userId, trainingPlan, onError, refreshBoot
       await load();
       onError('Sessão salva.');
     } catch (err) {
+      if (createdWorkoutSessionId) {
+        try {
+          await deleteWorkoutSession(userId, createdWorkoutSessionId);
+        } catch (rollbackError) {
+          onError(`Falha ao salvar a sessão e o rollback também falhou. Revise o histórico antes de tentar novamente: ${rollbackError.message}`);
+          return;
+        }
+      }
       onError(err.message);
     } finally {
       setSaving(false);

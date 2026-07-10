@@ -14,6 +14,8 @@ export default function ReadinessCard(props: any) {
     onError,
     onNavigate,
     compact = false,
+    dailyTruth,
+    dailyTruthLoading = false,
   } = props;
 
   const [checkin, setCheckin] = useState(null);
@@ -25,6 +27,15 @@ export default function ReadinessCard(props: any) {
   useEffect(() => {
     async function loadReadiness() {
       if (!userId) return;
+      if (dailyTruthLoading) { setLoading(true); return; }
+      if (dailyTruth) {
+        setCheckin(dailyTruth.checkinMorning ?? dailyTruth.checkin);
+        setSleepSessions(dailyTruth.sleep);
+        setWorkoutHistory(dailyTruth.strengthApp);
+        setCardioSessions(dailyTruth.cardio);
+        setLoading(false);
+        return;
+      }
 
       try {
         setLoading(true);
@@ -47,7 +58,7 @@ export default function ReadinessCard(props: any) {
     }
 
     loadReadiness();
-  }, [onError, userId]);
+  }, [dailyTruth, dailyTruthLoading, onError, userId]);
 
   const readiness = useMemo(() => buildDailyReadiness({
     checkin,

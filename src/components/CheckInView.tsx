@@ -16,6 +16,8 @@ const INITIAL = {
   lactose_symptoms: false,
   cravings_notes: '',
   notes: '',
+  morning_notes: '',
+  evening_notes: '',
 };
 
 export default function CheckInView({ userId, onError }) {
@@ -49,6 +51,8 @@ export default function CheckInView({ userId, onError }) {
           lactose_symptoms: Boolean(checkinData.lactose_symptoms),
           cravings_notes: checkinData.cravings_notes ?? '',
           notes: checkinData.notes ?? '',
+          morning_notes: checkinData.morning_notes ?? checkinData.notes ?? '',
+          evening_notes: checkinData.evening_notes ?? '',
         });
         setSaved(checkinData);
       } else {
@@ -83,7 +87,7 @@ export default function CheckInView({ userId, onError }) {
 
     try {
       setSaving(true);
-      const data = await upsertCheckin(userId, form);
+      const data = await upsertCheckin(userId, { ...form, checkin_mode: mode });
       setSaved(data);
       setForm((old) => ({
         ...old,
@@ -98,6 +102,8 @@ export default function CheckInView({ userId, onError }) {
         lactose_symptoms: Boolean(data?.lactose_symptoms ?? old.lactose_symptoms),
         cravings_notes: data?.cravings_notes ?? old.cravings_notes,
         notes: data?.notes ?? old.notes,
+        morning_notes: data?.morning_notes ?? old.morning_notes,
+        evening_notes: data?.evening_notes ?? old.evening_notes,
       }));
       onError?.(isMorning ? 'Check-in da manhã salvo.' : 'Fechamento do dia salvo.');
     } catch (err: any) {
@@ -108,7 +114,14 @@ export default function CheckInView({ userId, onError }) {
   }
 
   function update(key, value) {
-    setForm((old) => ({ ...old, [key]: value }));
+    setForm((old) => key === 'notes'
+      ? { ...old, notes: value, [isMorning ? 'morning_notes' : 'evening_notes']: value }
+      : { ...old, [key]: value });
+  }
+
+  function changeMode(nextMode) {
+    setMode(nextMode);
+    setForm((old) => ({ ...old, notes: nextMode === 'morning' ? old.morning_notes : old.evening_notes }));
   }
 
   function applyAutomaticData() {
@@ -139,11 +152,11 @@ export default function CheckInView({ userId, onError }) {
       </div>
 
       <div className="checkin-mode-tabs-v406">
-        <button type="button" className={isMorning ? 'active' : ''} onClick={() => setMode('morning')}>
+        <button type="button" className={isMorning ? 'active' : ''} onClick={() => changeMode('morning')}>
           Manhã
           <span>sono, energia, fome, dor</span>
         </button>
-        <button type="button" className={!isMorning ? 'active' : ''} onClick={() => setMode('evening')}>
+        <button type="button" className={!isMorning ? 'active' : ''} onClick={() => changeMode('evening')}>
           Fechamento
           <span>passos, compulsão, notas</span>
         </button>
@@ -178,7 +191,7 @@ export default function CheckInView({ userId, onError }) {
           <AutoMetric icon={Dumbbell} label="Treino" value={autoData?.workout_count ? 'feito' : '--'} sub={`${autoData?.workout_count ?? 0} sessão(ões)`} ok={Boolean(autoData?.workout_count)} />
           <AutoMetric icon={Timer} label="Cardio" value={autoData?.cardio_count ? 'feito' : '--'} sub={`${autoData?.cardio_count ?? 0} sessão(ões)`} ok={Boolean(autoData?.cardio_count)} />
           <AutoMetric icon={Flame} label="Kcal ativas" value={autoData?.active_kcal ? `${formatNumber(autoData.active_kcal)} kcal` : '--'} sub={autoData?.wearable_source ?? 'sem dado'} ok={Boolean(autoData?.active_kcal)} />
-          <AutoMetric icon={Activity} label="Macros" value={autoData?.meals_count ? `P ${autoData.protein_g}g` : '--'} sub={autoData?.meals_count ? `C ${autoData.carbs_g}g · G ${autoData.fat_g}g` : 'sem refeições'} ok={Boolean(autoData?.meals_count)} />
+          <AutoMetric icon={Activity} label="Macros" value={autoData?.meals_count ? `P ${formatMacro(autoData.protein_g)}` : '--'} sub={autoData?.meals_count ? `C ${formatMacro(autoData.carbs_g)} · G ${formatMacro(autoData.fat_g)}${autoData.macros_complete ? '' : ' · parcial'}` : 'sem refeições'} ok={Boolean(autoData?.meals_count)} />
         </div>
       </section>
 
@@ -277,6 +290,10 @@ function AutoMetric({ icon: Icon, label, value, sub, ok }) {
 
 function formatNumber(value) {
   return Number(value || 0).toLocaleString('pt-BR');
+}
+
+function formatMacro(value) {
+  return value === null || value === undefined ? '--' : `${value}g`;
 }
 
 function friendlyCheckinError(error) {

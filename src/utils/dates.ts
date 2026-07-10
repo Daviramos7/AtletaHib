@@ -12,7 +12,7 @@ export function todayLocalKey(now = new Date()) {
 
 export function localDateKey(value: Date | string | number | null | undefined) {
   const date = value instanceof Date ? value : new Date(value ?? Date.now());
-  if (Number.isNaN(date.getTime())) return todayLocalKey();
+  if (Number.isNaN(date.getTime())) return '';
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 }
 
@@ -25,14 +25,24 @@ export function normalizeDateKey(value: unknown): string | null {
   const raw = String(value).trim();
 
   const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  if (iso) return isValidCalendarDate(Number(iso[1]), Number(iso[2]), Number(iso[3])) ? `${iso[1]}-${iso[2]}-${iso[3]}` : null;
 
   const br = raw.match(BR_DATE_RE);
-  if (br) return `${br[3]}-${pad2(br[2])}-${pad2(br[1])}`;
+  if (br) return isValidCalendarDate(Number(br[3]), Number(br[2]), Number(br[1])) ? `${br[3]}-${pad2(br[2])}-${pad2(br[1])}` : null;
 
   const parsed = new Date(raw);
   if (Number.isNaN(parsed.getTime())) return null;
   return localDateKey(parsed);
+}
+
+export function localDayRangeIso(dateKey: string) {
+  const safeDate = normalizeDateKey(dateKey);
+  if (!safeDate) return null;
+  const [year, month, day] = safeDate.split('-').map(Number);
+  return {
+    startIso: new Date(year, month - 1, day, 0, 0, 0, 0).toISOString(),
+    endIso: new Date(year, month - 1, day + 1, 0, 0, 0, 0).toISOString(),
+  };
 }
 
 export function normalizeTimeKey(value: unknown): string | null {
@@ -97,4 +107,11 @@ export function formatDatePtBr(dateKey: unknown) {
   if (!safeDate) return '--';
   const [year, month, day] = safeDate.split('-').map(Number);
   return new Date(year, month - 1, day, 12, 0, 0, 0).toLocaleDateString('pt-BR');
+}
+
+function isValidCalendarDate(year: number, month: number, day: number) {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return false;
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+  const date = new Date(year, month - 1, day, 12, 0, 0, 0);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
 }

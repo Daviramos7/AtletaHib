@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Droplets, Minus, Plus, RotateCcw, Save } from 'lucide-react';
-import { getOrCreateDailyLog, setWater, todayKey } from '../services/dailyService';
+import { getOrCreateDailyLog, incrementWater, setWater, todayKey } from '../services/dailyService';
 
 export default function WaterView(props: any) {
   const { userId, profile, onError } = props;
@@ -36,7 +36,9 @@ export default function WaterView(props: any) {
   }
 
   function add(amount) {
-    updateWater(water + amount, amount > 0 ? `+${amount} ml de água.` : `${amount} ml de água.`);
+    incrementWater(userId, date, amount)
+      .then((updated) => { setDaily(updated); onError?.(amount > 0 ? `+${amount} ml de água.` : `${amount} ml de água.`); })
+      .catch((err) => onError?.(err.message));
   }
 
   function saveCustom() {
@@ -121,7 +123,7 @@ export function WaterQuickCard(props: any) {
 
   async function add(amount) {
     try {
-      const updated = await setWater(userId, todayKey(), Math.max(0, water + amount));
+      const updated = await incrementWater(userId, todayKey(), amount);
       setDaily(updated);
       onError?.(`+${amount} ml de água.`);
     } catch (err) {
