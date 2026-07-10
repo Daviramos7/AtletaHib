@@ -6,7 +6,7 @@ import { listSleepSessions } from '../services/sleepService';
 import { getCheckin } from '../services/checkinService';
 import { buildDataQualityWarnings, getLocalDateKey, summarizeQualityWarnings } from '../utils/dataQualityRules';
 
-export default function DataQualityCard({ userId, todayPlan, onNavigate }: any) {
+export default function DataQualityCard({ userId, todayPlan, dailyTruth, dailyTruthLoading = false, onNavigate }: any) {
   const [state, setState] = useState<any>({ loading: true, meals: [], cardios: [], sleeps: [], checkin: null });
 
   useEffect(() => {
@@ -14,6 +14,11 @@ export default function DataQualityCard({ userId, todayPlan, onNavigate }: any) 
 
     async function load() {
       if (!userId) return;
+      if (dailyTruthLoading) return;
+      if (dailyTruth) {
+        setState({ loading: false, meals: dailyTruth.meals, cardios: dailyTruth.cardio, sleeps: dailyTruth.sleep, checkin: dailyTruth.checkin });
+        return;
+      }
 
       const todayKey = getLocalDateKey();
 
@@ -31,17 +36,17 @@ export default function DataQualityCard({ userId, todayPlan, onNavigate }: any) 
     load();
 
     return () => { alive = false; };
-  }, [userId]);
+  }, [dailyTruth, dailyTruthLoading, userId]);
 
   const todayKey = useMemo(() => getLocalDateKey(), []);
-  const warnings = useMemo(() => buildDataQualityWarnings({
+  const warnings = useMemo(() => dailyTruth?.warnings ?? buildDataQualityWarnings({
     todayKey,
     meals: state.meals,
     cardios: state.cardios,
     sleeps: state.sleeps,
     checkin: state.checkin,
     todayPlan,
-  }), [state, todayKey, todayPlan]);
+  }), [dailyTruth, state, todayKey, todayPlan]);
 
   const summary = summarizeQualityWarnings(warnings);
   const visibleWarnings = warnings.slice(0, 4);
@@ -53,7 +58,7 @@ export default function DataQualityCard({ userId, todayPlan, onNavigate }: any) 
           <p className="eyebrow">Qualidade dos dados</p>
           <h3>{state.loading ? 'Verificando...' : summary.label}</h3>
         </div>
-        <span className="quality-score-v40">{summary.score}%</span>
+        <span className="quality-score-v40">{dailyTruth?.data_quality_score ?? summary.score}%</span>
       </div>
 
       {!state.loading && warnings.length === 0 && (

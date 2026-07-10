@@ -1,6 +1,6 @@
 import { requireSupabase } from '../lib/supabaseClient';
 import { calculateReadiness } from './checkinService';
-import { localDateKey } from '../utils/dates';
+import { localDateKey, localDayRangeIso } from '../utils/dates';
 
 const DEFAULT_TARGETS = {
   minMealLoggedDays7: 5,
@@ -18,22 +18,25 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
   const client = requireSupabase();
   const dates = getLastDates(days);
   const fromDate = dates[0];
+  const toDate = dates[dates.length - 1];
   const fromIso = new Date(`${fromDate}T00:00:00`).toISOString();
+  const toRange = localDayRangeIso(toDate);
+  if (!toRange) throw new Error('Janela semanal inválida.');
   const kcalGoal = Number(profile?.kcal_goal ?? 2300);
   const waterGoal = Number(profile?.water_goal_ml ?? 3000);
 
   const [dailyRes, mealRes, workoutRes, setRes, runRes, cardioRes, wearableWorkoutRes, sleepRes, wearableRes, weightRes, checkinRes] = await Promise.all([
-    client.from('daily_logs').select('*').eq('user_id', userId).gte('log_date', fromDate),
-    client.from('meal_entries').select('*').eq('user_id', userId).gte('log_date', fromDate),
-    client.from('workout_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).order('performed_at', { ascending: false }),
-    client.from('workout_exercise_sets').select('*').eq('user_id', userId).gte('performed_at', fromIso),
-    client.from('run_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).order('performed_at', { ascending: false }),
-    client.from('cardio_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).order('performed_at', { ascending: false }),
-    client.from('wearable_workout_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).order('performed_at', { ascending: false }),
-    client.from('sleep_sessions').select('*').eq('user_id', userId).gte('sleep_date', fromDate).order('sleep_date', { ascending: false }),
-    client.from('wearable_daily_metrics').select('*').eq('user_id', userId).gte('metric_date', fromDate).order('metric_date', { ascending: false }),
-    client.from('weight_logs').select('*').eq('user_id', userId).gte('log_date', fromDate).order('log_date', { ascending: false }),
-    client.from('daily_checkins').select('*').eq('user_id', userId).gte('log_date', fromDate),
+    client.from('daily_logs').select('*').eq('user_id', userId).gte('log_date', fromDate).lte('log_date', toDate),
+    client.from('meal_entries').select('*').eq('user_id', userId).gte('log_date', fromDate).lte('log_date', toDate),
+    client.from('workout_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).lt('performed_at', toRange.endIso).order('performed_at', { ascending: false }),
+    client.from('workout_exercise_sets').select('*').eq('user_id', userId).gte('performed_at', fromIso).lt('performed_at', toRange.endIso),
+    client.from('run_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).lt('performed_at', toRange.endIso).order('performed_at', { ascending: false }),
+    client.from('cardio_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).lt('performed_at', toRange.endIso).order('performed_at', { ascending: false }),
+    client.from('wearable_workout_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).lt('performed_at', toRange.endIso).order('performed_at', { ascending: false }),
+    client.from('sleep_sessions').select('*').eq('user_id', userId).gte('sleep_date', fromDate).lte('sleep_date', toDate).order('sleep_date', { ascending: false }),
+    client.from('wearable_daily_metrics').select('*').eq('user_id', userId).gte('metric_date', fromDate).lte('metric_date', toDate).order('metric_date', { ascending: false }),
+    client.from('weight_logs').select('*').eq('user_id', userId).gte('log_date', fromDate).lte('log_date', toDate).order('log_date', { ascending: false }),
+    client.from('daily_checkins').select('*').eq('user_id', userId).gte('log_date', fromDate).lte('log_date', toDate),
   ]);
 
   [dailyRes, mealRes, workoutRes, setRes, runRes, cardioRes, wearableWorkoutRes, sleepRes, wearableRes, weightRes, checkinRes].forEach((res) => {
@@ -44,7 +47,8 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
   const dailyByDate = new Map<string, any>((dailyRes.data ?? []).map((row: any) => [row.log_date, row]));
   const checkinByDate = new Map<string, any>((checkinRes.data ?? []).map((row: any) => [row.log_date, row]));
   const wearableByDate = buildWearableByDate(wearableRes.data ?? []);
-  const correctedSleepByDate = new Map<string, any>((sleepRes.data ?? []).map((row: any) => [row.sleep_date, row]));
+  const correctedSleepByDate = new Map<string, any>();
+  for (const row of sleepRes.data ?? []) if (!correctedSleepByDate.has(row.sleep_date)) correctedSleepByDate.set(row.sleep_date, row);
 
   const daysData = dates.map((date) => {
     const kcal = mealsByDate.get(date) ?? 0;
@@ -70,7 +74,7 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
       restingHeartRate: Number(wearable?.resting_heart_rate ?? 0),
       avgSpo2: Number(correctedSleep?.avg_spo2 ?? 0),
       breathingScore: Number(correctedSleep?.breathing_score ?? 0),
-      kcalHit: kcal >= kcalGoal * 0.75 && kcal <= kcalGoal + 100,
+      kcalHit: kcal >= kcalGoal * 0.85 && kcal <= kcalGoal + 100,
       waterHit: water >= waterGoal,
       readiness,
       hasMeals: kcal > 0,
@@ -151,7 +155,7 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
     weightLogs: weightRes.data ?? [],
     checkins: checkinRes.data ?? [],
     fromDate,
-    toDate: dates[dates.length - 1],
+    toDate,
   });
 
   return {
@@ -400,35 +404,27 @@ function buildWeeklyReportExport({
 }
 
 function buildWearableByDate(rows) {
+  const groups = new Map();
+  for (const row of rows ?? []) groups.set(row.metric_date, [...(groups.get(row.metric_date) ?? []), row]);
   const map = new Map();
-  for (const row of rows ?? []) {
-    const date = row.metric_date;
-    const current = map.get(date);
-    if (!current) {
-      map.set(date, { ...row });
-      continue;
+  for (const [date, group] of groups) {
+    const ranked = [...group].sort((a, b) => wearableSourceRank(b.source) - wearableSourceRank(a.source));
+    const base = { ...ranked[0], sources: ranked.map((row) => row.source) };
+    for (const field of ['steps', 'sleep_minutes', 'active_kcal', 'workout_minutes', 'distance_km', 'avg_heart_rate', 'resting_heart_rate']) {
+      base[field] = ranked.find((row) => numberOrNull(row[field]) !== null)?.[field] ?? null;
     }
-    map.set(date, {
-      ...current,
-      steps: maxOrCurrent(current.steps, row.steps),
-      sleep_minutes: maxOrCurrent(current.sleep_minutes, row.sleep_minutes),
-      active_kcal: maxOrCurrent(current.active_kcal, row.active_kcal),
-      workout_minutes: maxOrCurrent(current.workout_minutes, row.workout_minutes),
-      distance_km: maxOrCurrent(current.distance_km, row.distance_km),
-      avg_heart_rate: current.avg_heart_rate ?? row.avg_heart_rate,
-      resting_heart_rate: current.resting_heart_rate ?? row.resting_heart_rate,
-      source: current.source === row.source ? current.source : 'merged_sources',
-    });
+    base.source = ranked.length > 1 ? 'merged_sources' : base.source;
+    map.set(date, base);
   }
   return map;
 }
 
-function maxOrCurrent(a, b) {
-  const left = numberOrNull(a);
-  const right = numberOrNull(b);
-  if (left === null) return right;
-  if (right === null) return left;
-  return Math.max(left, right);
+function wearableSourceRank(source) {
+  const value = String(source ?? '').toLowerCase();
+  if (value.includes('health_connect') || value.includes('bridge')) return 40;
+  if (value.includes('mi_fitness')) return 30;
+  if (value.includes('manual')) return 20;
+  return 10;
 }
 
 function mergeCardioSources(runRows, cardioRows) {
@@ -445,9 +441,11 @@ function mergeCardioSources(runRows, cardioRows) {
 
 function cardioSignature(row) {
   const date = localDateKey(row.performed_at ?? row.created_at ?? new Date());
+  const instant = new Date(row.performed_at ?? row.created_at ?? 0);
+  const minute = Number.isNaN(instant.getTime()) ? 'sem_hora' : `${String(instant.getHours()).padStart(2, '0')}${String(instant.getMinutes()).padStart(2, '0')}`;
   const distance = Number(row.distance_km ?? 0).toFixed(2);
   const duration = Math.round(Number(row.duration_seconds ?? 0) / 30) * 30;
-  return `${date}|${distance}|${duration}`;
+  return `${date}|${minute}|${row.activity_type ?? 'run'}|${distance}|${duration}`;
 }
 
 function numberOrNull(value) {

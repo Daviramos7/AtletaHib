@@ -28,6 +28,7 @@ export default function DietView({ userId, profile, onError }) {
     carbs: acc.carbs + Number(item.carbs_g || 0),
     fat: acc.fat + Number(item.fat_g || 0),
   }), { kcal: 0, protein: 0, carbs: 0, fat: 0 }), [items]);
+  const macrosComplete = items.length > 0 && items.every((item) => item.protein_g != null && item.carbs_g != null && item.fat_g != null);
 
   const suggestions = searchFoodLocally(form.food_name, customFoods);
 
@@ -51,9 +52,9 @@ export default function DietView({ userId, profile, onError }) {
         food_name: form.food_name.trim(),
         grams,
         kcal: Math.round(kcal100 * factor),
-        protein_g: Number((protein100 * factor).toFixed(1)),
-        carbs_g: Number((carbs100 * factor).toFixed(1)),
-        fat_g: Number((fat100 * factor).toFixed(1)),
+        protein_g: scaleOptionalMacro(protein100, factor),
+        carbs_g: scaleOptionalMacro(carbs100, factor),
+        fat_g: scaleOptionalMacro(fat100, factor),
       });
 
       if (form.save_food) {
@@ -105,9 +106,9 @@ export default function DietView({ userId, profile, onError }) {
 
       <div className="metric-grid four">
         <SmallMetric label="Kcal" value={totals.kcal} sub={`meta ${profile?.kcal_goal ?? 2300}`} />
-        <SmallMetric label="Proteína" value={`${totals.protein.toFixed(0)}g`} sub="manter músculo" />
-        <SmallMetric label="Carbo" value={`${totals.carbs.toFixed(0)}g`} sub="energia treino" />
-        <SmallMetric label="Gordura" value={`${totals.fat.toFixed(0)}g`} sub="controle" />
+        <SmallMetric label="Proteína" value={formatMacroTotal(totals.protein, items.length, macrosComplete)} sub={macrosComplete ? 'total registrado' : 'total parcial'} />
+        <SmallMetric label="Carbo" value={formatMacroTotal(totals.carbs, items.length, macrosComplete)} sub={macrosComplete ? 'total registrado' : 'total parcial'} />
+        <SmallMetric label="Gordura" value={formatMacroTotal(totals.fat, items.length, macrosComplete)} sub={macrosComplete ? 'total registrado' : 'total parcial'} />
       </div>
 
       <form className="panel form-grid" onSubmit={handleAdd}>
@@ -156,7 +157,7 @@ export default function DietView({ userId, profile, onError }) {
               <div className="meal-head"><strong>{meal.name}</strong><span>{subtotal} kcal</span></div>
               {mealItems.length === 0 ? <p className="muted">Nenhum registro.</p> : mealItems.map((item) => (
                 <div className="entry-row" key={item.id}>
-                  <div><strong>{item.food_name}</strong><span>{Number(item.grams)}g · {item.kcal} kcal</span></div>
+                  <div><strong>{item.food_name}</strong><span>{Number(item.grams)}g · {item.kcal} kcal · {mealSourceLabel(item)}</span></div>
                   <button className="icon-btn danger" onClick={() => handleDelete(item.id)}><Trash2 size={16} /></button>
                 </div>
               ))}
@@ -185,7 +186,21 @@ function parseRequiredNonNegativeNumber(value: unknown) {
 }
 
 function parseOptionalNonNegativeNumber(value: unknown) {
-  if (value === '' || value === null || value === undefined) return 0;
+  if (value === '' || value === null || value === undefined) return null;
   const parsed = Number(String(value).replace(',', '.'));
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function scaleOptionalMacro(value: number | null, factor: number) {
+  return value === null ? null : Number((value * factor).toFixed(1));
+}
+
+function formatMacroTotal(value: number, itemCount: number, complete: boolean) {
+  if (!itemCount) return '--';
+  return `${value.toFixed(0)}g${complete ? '' : ' conhecidos'}`;
+}
+
+function mealSourceLabel(item: any) {
+  const method = String(item?.import_method ?? item?.source ?? 'manual').toLowerCase();
+  return method.includes('json') ? 'JSON' : 'manual';
 }

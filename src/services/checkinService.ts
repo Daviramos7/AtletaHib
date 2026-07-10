@@ -124,7 +124,11 @@ export function calculateReadiness(checkin) {
 }
 
 
-function normalizeCheckinRow(userId, payload: any = {}) {
+function normalizeCheckinRow(userId, payload: any = {}): any {
+  const mode = payload.checkin_mode === 'evening' ? 'evening' : 'morning';
+  const modeFields: any = mode === 'evening'
+    ? { evening_notes: cleanText(payload.notes), evening_saved_at: new Date().toISOString() }
+    : { morning_notes: cleanText(payload.notes), morning_saved_at: new Date().toISOString(), notes: cleanText(payload.notes) };
   return {
     user_id: userId,
     log_date: normalizeDate(payload.log_date),
@@ -137,7 +141,7 @@ function normalizeCheckinRow(userId, payload: any = {}) {
     steps: integerOrNull(payload.steps, 0, 200000),
     lactose_symptoms: Boolean(payload.lactose_symptoms),
     cravings_notes: cleanText(payload.cravings_notes),
-    notes: cleanText(payload.notes),
+    ...modeFields,
   };
 }
 

@@ -7,11 +7,15 @@ import ReadinessCard from './ReadinessCard';
 import { WaterQuickCard } from './WaterView';
 import DailyStatusCard from './DailyStatusCard';
 import DataQualityCard from './DataQualityCard';
+import { buildDailyTruth } from '../domain/buildDailyTruth';
+import { todayKey } from '../services/dailyService';
+import { cardioCountsForProgression } from '../domain/cardioRules';
 
 export default function TodayView(props: any) {
   const { userId, trainingPlan, onNavigate, onError } = props;
   const [cardioSessions, setCardioSessions] = useState([]);
   const [selectedCardioChoice, setSelectedCardioChoice] = useState('');
+  const [dailyTruth, setDailyTruth] = useState<any>(undefined);
   const todayPlan = useMemo(() => buildTodayPlan(trainingPlan), [trainingPlan]);
   const weekday = new Date().getDay();
 
@@ -27,6 +31,15 @@ export default function TodayView(props: any) {
     }
 
     loadCardio();
+  }, [onError, userId]);
+
+  useEffect(() => {
+    let alive = true;
+    if (!userId) return undefined;
+    buildDailyTruth(userId, todayKey())
+      .then((truth) => { if (alive) setDailyTruth(truth); })
+      .catch((err) => { setDailyTruth(null); onError?.(err.message); });
+    return () => { alive = false; };
   }, [onError, userId]);
 
   useEffect(() => {
@@ -55,13 +68,13 @@ export default function TodayView(props: any) {
         </button>
       </section>
 
-      <ReadinessCard userId={userId} todayPlan={todayPlan} onError={onError} onNavigate={onNavigate} />
+      <ReadinessCard userId={userId} todayPlan={todayPlan} dailyTruth={dailyTruth} dailyTruthLoading={dailyTruth === undefined} onError={onError} onNavigate={onNavigate} />
 
       <WaterQuickCard userId={userId} profile={props.profile} onError={onError} onNavigate={onNavigate} />
 
-      <DailyStatusCard userId={userId} profile={props.profile} todayPlan={todayPlan} onError={onError} onNavigate={onNavigate} />
+      <DailyStatusCard userId={userId} profile={props.profile} todayPlan={todayPlan} dailyTruth={dailyTruth} dailyTruthLoading={dailyTruth === undefined} onError={onError} onNavigate={onNavigate} />
 
-      <DataQualityCard userId={userId} todayPlan={todayPlan} onNavigate={onNavigate} />
+      <DataQualityCard userId={userId} todayPlan={todayPlan} dailyTruth={dailyTruth} dailyTruthLoading={dailyTruth === undefined} onNavigate={onNavigate} />
 
       {todayPlan.strength && (
         <section className="simple-panel">
@@ -86,7 +99,7 @@ export default function TodayView(props: any) {
 
       {todayPlan.cardio && (
         <CardioPlanCard
-          cardioSessions={cardioSessions}
+          cardioSessions={cardioSessions.filter((session) => cardioCountsForProgression(session, todayKey()))}
           cardioOptions={todayPlan.cardioOptions}
           selectedCardioChoice={selectedCardioChoice}
           onSelectCardioChoice={setSelectedCardioChoice}

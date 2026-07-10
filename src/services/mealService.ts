@@ -19,7 +19,7 @@ export async function addMeal(userId, item) {
   const client = requireSupabase();
   const { data, error } = await client
     .from('meal_entries')
-    .insert({ user_id: userId, ...item })
+    .insert({ user_id: userId, source: 'manual', import_method: 'manual', confidence: 'manual_review', ...item })
     .select('*')
     .single();
   if (error) throw error;
@@ -81,6 +81,10 @@ export async function saveMealEntriesFromJson(userId, rawPayload) {
     protein_g: item.protein_g,
     carbs_g: item.carbs_g,
     fat_g: item.fat_g,
+    source: rawPayload.source ?? 'json_import',
+    import_method: 'json',
+    confidence: normalizeConfidence(rawPayload.confidence),
+    dedupe_key: buildMealRowKey({ log_date: payload.log_date, ...item }),
   }));
 
   const { data: existing, error: existingError } = await client
@@ -253,7 +257,7 @@ function roundMacroOrNull(value) {
 }
 
 
-function buildMealRowKey(row) {
+export function buildMealRowKey(row) {
   return [
     row.log_date,
     row.meal_type,
@@ -270,4 +274,9 @@ function macroKey(value) {
   if (value === null || value === undefined || value === '') return 'na';
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed.toFixed(1) : 'na';
+}
+
+function normalizeConfidence(value) {
+  const raw = String(value ?? 'manual_review').toLowerCase();
+  return ['low', 'medium', 'high', 'manual_review'].includes(raw) ? raw : 'manual_review';
 }
