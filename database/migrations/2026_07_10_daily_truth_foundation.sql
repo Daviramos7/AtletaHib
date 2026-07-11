@@ -52,6 +52,6 @@ begin
   return result;
 end;
 $$;
-
+c
 revoke all on function public.increment_daily_water(uuid, date, integer) from public;
 grant execute on function public.increment_daily_water(uuid, date, integer) to authenticated;
