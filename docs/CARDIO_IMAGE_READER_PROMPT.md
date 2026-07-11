@@ -13,7 +13,7 @@ O JSON deve seguir este formato:
   "type": "cardio_session",
   "activity_type": "treadmill | outdoor_run | walk | stairs | bike | elliptical | other",
   "activity_label": "nome exibido, ex: Esteira",
-  "date": "YYYY-MM-DD ou null",
+  "date": "YYYY-MM-DD",
   "start_time": "HH:mm ou null",
   "end_time": "HH:mm ou null",
   "duration_seconds": number ou null,
@@ -50,7 +50,6 @@ O JSON deve seguir este formato:
   "counts_toward_daily_totals": false,
   "metrics_may_already_exist_in_health_connect": true,
   "confidence": "high | medium | low | manual_review",
-  "dedupe_key": "YYYY-MM-DD_activity_distance_duration_source",
   "notes": "observações curtas sobre campos ausentes ou incertezas"
 }
 
@@ -66,6 +65,12 @@ Regras obrigatórias:
 9. O campo counts_toward_daily_totals deve ser sempre false, para evitar duplicidade com Health Connect.
 10. O campo metrics_may_already_exist_in_health_connect deve ser true quando a imagem vier do Mi Fitness, Health Connect, smartwatch ou app conectado.
 11. Retorne JSON parseável por JSON.parse.
+12. A data é obrigatória. Use a data local visível ou informada pelo usuário; nunca presuma que é hoje. Se não houver data, peça confirmação antes de gerar o JSON.
+13. A duração é obrigatória e deve usar `duration_seconds` ou texto com unidade explícita. Nunca envie `duration` numérico ambíguo.
+14. Preserve a duração real, inclusive quando passar de 20 minutos. Não corte para 20; registre em `notes` que passou do teto recomendado e nunca transforme isso em recomendação.
+15. Kcal do treino são detalhe da sessão e não devem ser somadas às kcal ativas diárias.
+16. Não envie `dedupe_key`; o app gera a chave usando data, horário, atividade, duração, distância e fonte.
+17. Dados de frequência cardíaca, kcal e efeito de treino do wearable são estimativas, não diagnóstico médico.
 ```
 
 ## Exemplo para a imagem de esteira do Mi Fitness
@@ -113,7 +118,6 @@ Regras obrigatórias:
   "counts_toward_daily_totals": false,
   "metrics_may_already_exist_in_health_connect": true,
   "confidence": "high",
-  "dedupe_key": "2026-07-02_treadmill_2.00km_1368s_mi_fitness",
   "notes": "Sessão criada a partir de print do Mi Fitness. Métricas diárias devem continuar vindo do Health Connect para evitar duplicidade."
 }
 ```

@@ -20,8 +20,12 @@ Regras obrigatórias:
    - "high" quando tipo de treino, data, horário, duração, kcal e FC estiverem visíveis;
    - "medium" quando faltar algum dado principal;
    - "low" quando a imagem estiver incompleta ou ruim.
-10. O campo "dedupe_key" deve usar data + activity_type + start_time + duration_seconds + source_app.
+10. Não envie `dedupe_key`; o app gera a chave usando data, atividade, horário, duração e fonte.
 11. O campo "notes" deve deixar claro que o print complementa a execução do app sem duplicar totais.
+12. `date` e `duration_seconds` são obrigatórios. Nunca presuma que a sessão aconteceu hoje; peça confirmação se a data não estiver visível ou informada.
+13. Preserve a duração real. Não aplique o teto de cardio de 20 minutos a uma sessão de força.
+14. Kcal e frequência cardíaca são detalhes fisiológicos do wearable; não representam séries, cargas ou repetições e não entram novamente nos totais diários.
+15. Dados do wearable são estimativas e não devem ser usados como diagnóstico médico.
 
 Schema obrigatório:
 
@@ -29,7 +33,7 @@ Schema obrigatório:
   "type": "strength_wearable_session",
   "activity_type": "strength_training",
   "activity_label": null,
-  "date": null,
+  "date": "YYYY-MM-DD",
   "start_time": null,
   "duration_seconds": null,
   "duration_text": null,
@@ -53,7 +57,6 @@ Schema obrigatório:
   "counts_toward_daily_totals": false,
   "metrics_may_already_exist_in_health_connect": true,
   "confidence": null,
-  "dedupe_key": null,
   "warnings": [],
   "notes": null
 }
@@ -109,7 +112,6 @@ Exemplo de saída esperada:
   "counts_toward_daily_totals": false,
   "metrics_may_already_exist_in_health_connect": true,
   "confidence": "high",
-  "dedupe_key": "2026-07-03_strength_training_1810_1569s_mi_fitness",
   "warnings": [],
   "notes": "Sessão de força extraída de print do Mi Fitness. Complementa o treino registrado no app, sem duplicar calorias ou frequência cardíaca diária."
 }

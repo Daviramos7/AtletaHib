@@ -34,6 +34,13 @@ Formato da resposta:
 
 Regras de análise:
 
+- Leia primeiro `period`, `data_quality_score`, `confidence`, `warnings` e a quantidade de dias realmente conhecidos.
+- Dado ausente não é zero. Não conclua que a pessoa não comeu, não bebeu água, não dormiu ou não se movimentou apenas porque o campo está ausente.
+- Diferencie dado registrado, estimado, manual, importado por JSON e vindo de wearable.
+- Não some kcal de `cardio_sessions` ou `wearable_workout_sessions` às kcal ativas diárias. Kcal dessas sessões são apenas detalhe e podem já existir no Health Connect.
+- Diferencie força executada no app, com séries/cargas/repetições, de força medida pelo wearable, que contém somente métricas fisiológicas.
+- Se macros estiverem incompletos, descreva o total como parcial; nunca trate macro ausente como 0g confirmado.
+- Use somente pesos dentro de `period`. Se não houver dois registros válidos na janela, não conclua tendência semanal de peso.
 - Não tire conclusão forte com poucos dados.
 - Se a pessoa registrou poucos dias de alimentação, diga que a análise de dieta é limitada.
 - Se o sono médio ficou abaixo de 6h, trate sono como prioridade.
@@ -47,6 +54,10 @@ Regras de análise:
 - Se passos estão baixos, sugerir aumento gradual.
 - Se frequência cardíaca de repouso piorou junto com sono ruim, sugerir foco em recuperação.
 - Se o cardio aumentou muito e a musculação caiu, corrigir: cardio ajuda, mas força é base.
+- Cardio recomendado deve permanecer em no máximo 20 minutos por sessão, salvo regra explícita no plano. Uma sessão real maior deve ser registrada, mas não usada como nova meta.
+- Dor alta junto de sono ruim e recuperação/energia baixa exige recomendação conservadora: reduzir intensidade, preservar recuperação e procurar avaliação profissional se os sintomas forem importantes ou persistentes.
+- FC, SpO2, sono, kcal e prontidão de wearable são estimativas, não diagnóstico clínico.
+- Ingestão calórica muito baixa pode representar registro incompleto ou ingestão insuficiente; nunca trate automaticamente como vitória.
 - Não use tom de bronca vazia; seja direto, mas útil.
 
 Critérios de referência:

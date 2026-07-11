@@ -13,20 +13,23 @@ Regras obrigatórias:
 5. Se houver divergência entre tempo total e horário de início/fim, preserve os dois e marque em "warnings".
 6. Se houver registros de sono sobrepostos, identifique em "overlap_detected": true.
 7. Se a imagem mostrar sono principal consolidado, use esse sono como sessão principal.
-8. Datas devem usar formato YYYY-MM-DD.
+8. Datas devem usar formato YYYY-MM-DD. `date` representa sempre o dia em que a pessoa acordou, mesmo quando o sono começou na noite anterior.
 9. Horários devem usar formato HH:mm.
 10. Duração deve ser convertida para minutos.
 11. O campo "replaces_health_connect_sleep" deve ser true.
 12. O campo "counts_toward_daily_totals" deve ser true.
-13. O campo "confidence" deve ser "high", "medium" ou "low".
-14. O campo "dedupe_key" deve usar data + sleep_start + sleep_end + source_app.
+13. O campo "confidence" deve ser "high", "medium", "low" ou "manual_review".
+14. Não envie `dedupe_key`; o app gera a chave usando data, início, fim e fonte.
 15. O campo "notes" deve explicar rapidamente se o dado veio de print e se deve substituir o Health Connect.
+16. `date`, `sleep_start`, `sleep_end` e `duration_minutes` são obrigatórios para importação. Nunca presuma a data atual; peça confirmação se ela não estiver disponível.
+17. Preserve divergências entre duração e horários em `warnings`; não ajuste silenciosamente.
+18. FC, SpO2, pontuação respiratória e estágios do wearable são estimativas e não devem ser apresentados como diagnóstico médico.
 
 Schema obrigatório:
 
 {
   "type": "sleep_session",
-  "date": null,
+  "date": "YYYY-MM-DD",
   "sleep_start": null,
   "sleep_end": null,
   "duration_minutes": null,
@@ -81,7 +84,6 @@ Schema obrigatório:
   "overlap_detected": false,
   "corrected_from_overlapping_records": false,
   "confidence": null,
-  "dedupe_key": null,
   "warnings": [],
   "notes": null
 }
@@ -155,7 +157,6 @@ Exemplo de saída esperada:
   "overlap_detected": false,
   "corrected_from_overlapping_records": false,
   "confidence": "high",
-  "dedupe_key": "2026-07-03_sleep_2257_0620_mi_fitness",
   "warnings": [],
   "notes": "Sono extraído de print do Mi Fitness. Este registro deve substituir o sono automático do Health Connect para este dia caso haja divergência."
 }
