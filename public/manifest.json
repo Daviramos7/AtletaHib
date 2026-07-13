@@ -1,13 +1,20 @@
 {
-  "name": "Atleta Híbrido Cloud",
-  "short_name": "Atleta Cloud",
-  "description": "Registro pessoal de dieta, treino, corrida, peso e check-in diário com sincronização em nuvem.",
+  "name": "Atleta Hib",
+  "short_name": "Atleta Hib",
+  "description": "Treino, alimentação, recuperação e progresso com dados sincronizados.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#080808",
-  "theme_color": "#c8ff00",
+  "background_color": "#070a09",
+  "theme_color": "#070a09",
   "orientation": "portrait-primary",
   "categories": ["health", "fitness", "productivity"],
-  "icons": []
+  "icons": [
+    {
+      "src": "/icons/atleta-hib-symbol-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }

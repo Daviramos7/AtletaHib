@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { MEALS } from '../data/defaultPlan';
 import { addMeal, deleteMeal, listCustomFoods, listMeals, saveCustomFood, searchFoodLocally } from '../services/mealService';
 import { todayKey } from '../services/dailyService';
+import { MetricCard, PageHeader } from './ui';
 
 export default function DietView({ userId, profile, onError }) {
   const [date, setDate] = useState(todayKey());
@@ -96,19 +97,18 @@ export default function DietView({ userId, profile, onError }) {
 
   return (
     <div>
-      <div className="page-title">
-        <div>
-          <p className="eyebrow">Dieta</p>
-          <h2>Registro alimentar</h2>
-        </div>
-        <input className="date-input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-      </div>
+      <PageHeader
+        eyebrow="Alimentação"
+        title="Registro alimentar"
+        description="Macros ausentes continuam ausentes; os totais indicam quando são parciais."
+        action={<input aria-label="Data dos registros alimentares" className="date-input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />}
+      />
 
       <div className="metric-grid four">
-        <SmallMetric label="Kcal" value={totals.kcal} sub={`meta ${profile?.kcal_goal ?? 2300}`} />
-        <SmallMetric label="Proteína" value={formatMacroTotal(totals.protein, items.length, macrosComplete)} sub={macrosComplete ? 'total registrado' : 'total parcial'} />
-        <SmallMetric label="Carbo" value={formatMacroTotal(totals.carbs, items.length, macrosComplete)} sub={macrosComplete ? 'total registrado' : 'total parcial'} />
-        <SmallMetric label="Gordura" value={formatMacroTotal(totals.fat, items.length, macrosComplete)} sub={macrosComplete ? 'total registrado' : 'total parcial'} />
+        <MetricCard label="Kcal" value={totals.kcal} detail={`meta ${profile?.kcal_goal ?? 2300}`} />
+        <MetricCard label="Proteína" value={formatMacroTotal(totals.protein, items.length, macrosComplete)} detail={macrosComplete ? 'total registrado' : 'total parcial'} />
+        <MetricCard label="Carbo" value={formatMacroTotal(totals.carbs, items.length, macrosComplete)} detail={macrosComplete ? 'total registrado' : 'total parcial'} />
+        <MetricCard label="Gordura" value={formatMacroTotal(totals.fat, items.length, macrosComplete)} detail={macrosComplete ? 'total registrado' : 'total parcial'} />
       </div>
 
       <form className="panel form-grid" onSubmit={handleAdd}>
@@ -168,11 +168,6 @@ export default function DietView({ userId, profile, onError }) {
     </div>
   );
 }
-
-function SmallMetric({ label, value, sub }) {
-  return <div className="small-metric"><span>{label}</span><strong>{value}</strong><p>{sub}</p></div>;
-}
-
 
 function parsePositiveNumber(value: unknown) {
   const parsed = Number(String(value ?? '').replace(',', '.'));

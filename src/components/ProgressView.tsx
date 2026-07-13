@@ -1,19 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Save, TrendingDown } from 'lucide-react';
 import { todayKey } from '../services/dailyService';
-import { listRuns } from '../services/runService';
+import { listCardioSessions } from '../services/cardioService';
 import { listWeightLogs, saveWeightLog } from '../services/weightService';
+import { localDateKey } from '../utils/dates';
+import { MetricCard, PageHeader } from './ui';
 
 export default function ProgressView({ userId, profile, refreshBoot, onError }) {
   const [weights, setWeights] = useState([]);
-  const [runs, setRuns] = useState([]);
+  const [cardios, setCardios] = useState([]);
   const [form, setForm] = useState({ log_date: todayKey(), weight_kg: profile?.current_weight_kg ?? '', waist_cm: '', notes: '' });
 
   const load = useCallback(async () => {
     try {
-      const [weightData, runData] = await Promise.all([listWeightLogs(userId), listRuns(userId)]);
+      const [weightData, cardioData] = await Promise.all([listWeightLogs(userId), listCardioSessions(userId, 100)]);
       setWeights(weightData);
-      setRuns(runData);
+      setCardios(cardioData);
     } catch (err) {
       onError(err.message);
     }
@@ -33,12 +35,12 @@ export default function ProgressView({ userId, profile, refreshBoot, onError }) 
     const oldest = chronological[0];
     const lost = latest && oldest ? Number(oldest.weight_kg) - Number(latest.weight_kg) : 0;
     const targetLeft = latest ? Number(latest.weight_kg) - Number(profile?.target_weight_kg ?? 0) : null;
-    const totalKm = runs.reduce((sum, run) => sum + Number(run.distance_km || 0), 0);
+    const totalKm = cardios.reduce((sum, session) => sum + Number(session.distance_km || 0), 0);
     const lastWeek = weeklyWeights[weeklyWeights.length - 1];
     const previousWeek = weeklyWeights[weeklyWeights.length - 2];
     const weeklyChange = lastWeek && previousWeek ? Number(previousWeek.avgWeight) - Number(lastWeek.avgWeight) : null;
     return { latest, oldest, lost, targetLeft, totalKm, weeklyChange };
-  }, [weights, runs, profile, weeklyWeights]);
+  }, [weights, cardios, profile, weeklyWeights]);
 
   async function handleSave(event) {
     event.preventDefault();
@@ -58,18 +60,13 @@ export default function ProgressView({ userId, profile, refreshBoot, onError }) 
 
   return (
     <div className="progress-page">
-      <div className="page-title">
-        <div>
-          <p className="eyebrow">Progresso</p>
-          <h2>Peso semanal, corrida e consistência</h2>
-        </div>
-      </div>
+      <PageHeader eyebrow="Tendências" title="Peso e consistência" description="A média semanal reduz o ruído das oscilações diárias. Distâncias vêm do histórico unificado de cardio." />
 
       <div className="metric-grid four">
-        <SmallMetric label="Peso atual" value={stats.latest ? `${Number(stats.latest.weight_kg).toFixed(1)} kg` : '--'} sub="último registro" />
-        <SmallMetric label="Perdido" value={`${stats.lost.toFixed(1)} kg`} sub="desde o primeiro log" />
-        <SmallMetric label="Falta" value={stats.targetLeft !== null ? `${stats.targetLeft.toFixed(1)} kg` : '--'} sub="até a meta" />
-        <SmallMetric label="Corrida" value={`${stats.totalKm.toFixed(2)} km`} sub="total registrado" />
+        <MetricCard label="Peso atual" value={stats.latest ? `${Number(stats.latest.weight_kg).toFixed(1)} kg` : '--'} detail="último registro" />
+        <MetricCard label="Perdido" value={`${stats.lost.toFixed(1)} kg`} detail="desde o primeiro log" />
+        <MetricCard label="Falta" value={stats.targetLeft !== null ? `${stats.targetLeft.toFixed(1)} kg` : '--'} detail="até a meta" />
+        <MetricCard label="Cardio" value={`${stats.totalKm.toFixed(2)} km`} detail="distância registrada" />
       </div>
 
       <section className="panel highlight-panel">
@@ -109,10 +106,6 @@ export default function ProgressView({ userId, profile, refreshBoot, onError }) 
       </section>
     </div>
   );
-}
-
-function SmallMetric({ label, value, sub }) {
-  return <div className="small-metric"><span>{label}</span><strong>{value}</strong><p>{sub}</p></div>;
 }
 
 function WeightChart({ data, target }) {
@@ -164,7 +157,7 @@ function buildWeeklyWeights(weights) {
   weights.forEach((item) => {
     const date = parseLocalDate(item.log_date);
     const weekStart = startOfWeek(date);
-    const weekKey = weekStart.toISOString().slice(0, 10);
+    const weekKey = localDateKey(weekStart);
     const existing = buckets.get(weekKey) ?? { weekKey, weekStart, values: [] };
     existing.values.push(Number(item.weight_kg));
     buckets.set(weekKey, existing);

@@ -13,8 +13,8 @@ android {
         applicationId = "com.daviramos.atletabridge"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.4.0"
+        versionCode = 2
+        versionName = "4.1.2"
 
         val supabaseUrl = providers.gradleProperty("SUPABASE_URL").orNull ?: ""
         val supabaseKey = providers.gradleProperty("SUPABASE_PUBLISHABLE_KEY").orNull

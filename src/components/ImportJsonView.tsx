@@ -5,6 +5,7 @@ import { normalizeMealImportPayload, saveMealEntriesFromJson } from '../services
 import { normalizeSleepImportPayload, saveSleepSessionFromJson } from '../services/sleepService';
 import { isStrengthWearableImportShape, normalizeWearableWorkoutPayload, saveWearableWorkoutSessionFromJson } from '../services/strengthWearableService';
 import { formatDatePtBr, localDateKeyFromInstant, normalizeDateKey, todayLocalKey } from '../utils/dates';
+import { formatDurationClock } from '../utils/durations';
 
 const CARDIO_EXAMPLE = `{
   "type": "cardio_session",
@@ -519,9 +520,7 @@ function minutesToHours(minutes) {
 function formatDuration(seconds) {
   const total = Number(seconds || 0);
   if (!total) return '--';
-  const min = Math.floor(total / 60);
-  const sec = String(Math.round(total % 60)).padStart(2, '0');
-  return `${min}:${sec}`;
+  return formatDurationClock(total);
 }
 
 function formatDate(dateKey) {

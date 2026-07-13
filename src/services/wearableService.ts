@@ -78,7 +78,7 @@ export async function configureRedmiMiFitness(userId: string) {
     sync_mode: 'health_connect',
     status: 'configured',
     permissions_text: 'passos, sono, frequência cardíaca, treino, distância, calorias ativas',
-    notes: 'Fluxo recomendado: Redmi Watch 5 Active → Mi Fitness → Health Connect → app Android ponte → Supabase. Enquanto a ponte nativa não existe, use registro manual ou importação de arquivo.',
+    notes: 'Fluxo recomendado: Redmi Watch 5 Active → Mi Fitness → Health Connect → aplicativo Android Atleta Hib → Supabase. Registro manual e importação continuam disponíveis como alternativas.',
   });
 }
 

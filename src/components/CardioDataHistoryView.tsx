@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Bike, Clock3, Flame, HeartPulse, Route, Trash2 } from 'lucide-react';
 import { deleteCardioSession, listCardioSessions } from '../services/cardioService';
+import { formatDurationClock } from '../utils/durations';
 
 const PERIODS = [
   { label: '30 dias', value: 30 },
@@ -229,10 +230,7 @@ function formatDuration(seconds: number) {
 }
 
 function formatPace(seconds: number) {
-  const safeSeconds = Math.max(Number(seconds || 0), 0);
-  const minutes = Math.floor(safeSeconds / 60);
-  const rest = Math.round(safeSeconds % 60);
-  return `${minutes}:${String(rest).padStart(2, '0')}/km`;
+  return `${formatDurationClock(Math.max(Number(seconds || 0), 0), '0:00')}/km`;
 }
 
 function formatDateTime(value: string) {

@@ -5,6 +5,7 @@ import { listCardioSessions } from '../services/cardioService';
 import { listSleepSessions } from '../services/sleepService';
 import { getCheckin } from '../services/checkinService';
 import { buildDataQualityWarnings, getLocalDateKey, summarizeQualityWarnings } from '../utils/dataQualityRules';
+import { DataQualityBadge } from './ui';
 
 export default function DataQualityCard({ userId, todayPlan, dailyTruth, dailyTruthLoading = false, onNavigate }: any) {
   const [state, setState] = useState<any>({ loading: true, meals: [], cardios: [], sleeps: [], checkin: null });
@@ -58,7 +59,7 @@ export default function DataQualityCard({ userId, todayPlan, dailyTruth, dailyTr
           <p className="eyebrow">Qualidade dos dados</p>
           <h3>{state.loading ? 'Verificando...' : summary.label}</h3>
         </div>
-        <span className="quality-score-v40">{dailyTruth?.data_quality_score ?? summary.score}%</span>
+        <DataQualityBadge score={dailyTruth?.data_quality_score ?? summary.score} />
       </div>
 
       {!state.loading && warnings.length === 0 && (

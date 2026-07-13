@@ -6,6 +6,7 @@ import WeeklyReviewView from './WeeklyReviewView';
 import StrengthHistoryView from './StrengthHistoryView';
 import StrengthWearableHistoryView from './StrengthWearableHistoryView';
 import CardioDataHistoryView from './CardioDataHistoryView';
+import { PageHeader } from './ui';
 
 const TABS = [
   { id: 'progress', label: 'Peso', icon: LineChart },
@@ -21,12 +22,7 @@ export default function ProgressHubView(props) {
 
   return (
     <div className="simple-page">
-      <div className="page-title compact-title">
-        <div>
-          <p className="eyebrow">Progresso</p>
-          <h2>Evolução e análise</h2>
-        </div>
-      </div>
+      <PageHeader eyebrow="Progresso" title="Evolução e análise" description="Compare tendências sem transformar ausência de dados em zero." />
 
       <div className="simple-tabs">
         {TABS.map((item) => {

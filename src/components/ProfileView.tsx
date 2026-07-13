@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Save } from 'lucide-react';
 import { upsertProfile } from '../services/profileService';
 import { DIET_STYLE_OPTIONS, GOAL_OPTIONS, HEALTH_PLATFORM_OPTIONS, LEVEL_OPTIONS, PROFILE_FALLBACKS, SYNC_MODE_OPTIONS, WEARABLE_OPTIONS } from '../data/defaultPlan';
+import { PageHeader } from './ui';
 
 export default function ProfileView({ userId, profile, refreshBoot, onError }) {
   const [form, setForm] = useState({ ...PROFILE_FALLBACKS, ...(profile ?? {}) });
@@ -46,12 +47,7 @@ export default function ProfileView({ userId, profile, refreshBoot, onError }) {
 
   return (
     <div>
-      <div className="page-title">
-        <div>
-          <p className="eyebrow">Perfil</p>
-          <h2>Metas e personalização</h2>
-        </div>
-      </div>
+      <PageHeader eyebrow="Perfil" title="Metas e personalização" description="Preferências individuais usadas pelo plano, pelos limites e pelas análises do Atleta Hib." />
 
       <section className="panel highlight-panel">
         <p className="eyebrow">Perfil individual</p>

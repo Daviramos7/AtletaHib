@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { signIn, signUp } from '../services/authService';
+import { BrandLogo, FormField } from './ui';
 
 export default function LoginView({ error, onError }) {
   const [mode, setMode] = useState('login');
@@ -30,9 +31,10 @@ export default function LoginView({ error, onError }) {
   return (
     <div className="login-page">
       <section className="login-hero">
-        <p className="eyebrow">Atleta Híbrido Cloud</p>
-        <h1>Seu app de dieta, treino e corrida sincronizado por perfil.</h1>
-        <p>Registre no celular. Abra no PC. Os dados seguem o login do usuário, não o navegador.</p>
+        <BrandLogo className="login-brand" />
+        <p className="eyebrow">Sua rotina, uma fonte de verdade</p>
+        <h1>Treino, alimentação e recuperação no mesmo ritmo.</h1>
+        <p>Registre no celular e acompanhe no computador. Seus dados seguem sua conta, com origem e qualidade visíveis.</p>
         <div className="hero-stats">
           <span>perfil próprio</span>
           <span>metas personalizadas</span>
@@ -45,14 +47,12 @@ export default function LoginView({ error, onError }) {
         <p className="eyebrow">{isLogin ? 'Entrar' : 'Criar conta'}</p>
         <h2>{isLogin ? 'Acessar perfil' : 'Novo usuário'}</h2>
         {error && <div className="alert error">{error}</div>}
-        <label>
-          E-mail
+        <FormField label="E-mail">
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@email.com" required />
-        </label>
-        <label>
-          Senha
+        </FormField>
+        <FormField label="Senha" hint="Use no mínimo 6 caracteres.">
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} placeholder="mínimo 6 caracteres" required />
-        </label>
+        </FormField>
         <button className="primary-btn" disabled={busy}>{busy ? 'Processando...' : isLogin ? 'Entrar' : 'Criar conta'}</button>
         <button type="button" className="link-btn" onClick={() => setMode(isLogin ? 'signup' : 'login')}>
           {isLogin ? 'Não tenho conta ainda' : 'Já tenho conta'}

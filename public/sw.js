@@ -1,5 +1,11 @@
-const CACHE_NAME = 'atleta-hibrido-cloud-v1-2';
-const APP_SHELL = ['/', '/manifest.json'];
+const CACHE_NAME = 'atleta-hib-v4-1-2';
+const APP_SHELL = [
+  '/',
+  '/manifest.json',
+  '/branding/atleta-hib-logo-horizontal.png',
+  '/branding/atleta-hib-simbolo.png',
+  '/icons/atleta-hib-symbol-1024.png',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));

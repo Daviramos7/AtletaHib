@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BedDouble, Brain, CheckCircle2, Clock3, HeartPulse, Moon, ShieldCheck, Sparkles, TriangleAlert, Watch } from 'lucide-react';
 import { listSleepSessions } from '../services/sleepService';
+import { DataSourceBadge, EmptyState, MetricCard, PageHeader } from './ui';
 
 
 export default function SleepView({ userId, onError }) {
@@ -22,14 +23,12 @@ export default function SleepView({ userId, onError }) {
 
   return (
     <div className="sleep-page">
-      <div className="page-title">
-        <div>
-          <p className="eyebrow">Sono</p>
-          <h2>Sono corrigido e recuperação</h2>
-          <p className="muted-text">Use esta aba para registrar o sono consolidado do Mi Fitness quando o Health Connect vier duplicado, incompleto ou com horário divergente.</p>
-        </div>
-        <span className="pill"><Moon size={16} /> Prioridade sobre Health Connect</span>
-      </div>
+      <PageHeader
+        eyebrow="Sono"
+        title="Sono corrigido e recuperação"
+        description="O sono consolidado corrige registros duplicados, incompletos ou com horários divergentes."
+        action={<span className="pill"><Moon size={16} /> Prioridade sobre Health Connect</span>}
+      />
 
       <section className="panel sleep-hero-panel">
         <div className="sleep-hero-main">
@@ -53,10 +52,10 @@ export default function SleepView({ userId, onError }) {
       </section>
 
       <div className="metric-grid four">
-        <Metric icon={Clock3} label="Média corrigida" value={stats.avgHours ? `${stats.avgHours.toFixed(1)}h` : '--'} sub={`${sessions.length} registro(s)`} />
-        <Metric icon={HeartPulse} label="FC média sono" value={stats.avgHeartRate ? `${stats.avgHeartRate} bpm` : '--'} sub="nos registros importados" />
-        <Metric icon={Sparkles} label="Score médio" value={stats.avgScore || '--'} sub="pontuação Mi Fitness" />
-        <Metric icon={ShieldCheck} label="SpO₂ médio" value={stats.avgSpo2 ? `${stats.avgSpo2}%` : '--'} sub="quando visível no print" />
+        <MetricCard icon={Clock3} label="Média corrigida" value={stats.avgHours ? `${stats.avgHours.toFixed(1)}h` : '--'} detail={`${sessions.length} registro(s)`} />
+        <MetricCard icon={HeartPulse} label="FC média sono" value={stats.avgHeartRate ? `${stats.avgHeartRate} bpm` : '--'} detail="nos registros importados" />
+        <MetricCard icon={Sparkles} label="Score médio" value={stats.avgScore || '--'} detail="pontuação Mi Fitness" />
+        <MetricCard icon={ShieldCheck} label="SpO₂ médio" value={stats.avgSpo2 ? `${stats.avgSpo2}%` : '--'} detail="quando visível no print" />
       </div>
 
       <section className="panel centralized-json-note-v364">
@@ -78,11 +77,7 @@ export default function SleepView({ userId, onError }) {
         </div>
 
         {sessions.length === 0 ? (
-          <div className="empty-state">
-            <BedDouble size={34} />
-            <strong>Nenhum sono importado ainda</strong>
-            <p>Use Registrar &gt; JSON para importar o primeiro sono corrigido.</p>
-          </div>
+          <EmptyState icon={BedDouble} title="Nenhum sono importado ainda" description="Use Registrar > JSON para importar o primeiro sono corrigido." />
         ) : (
           <div className="sleep-history-list">
             {sessions.map((item) => (
@@ -94,6 +89,7 @@ export default function SleepView({ userId, onError }) {
                   </div>
                   <span className="score-mini">{item.sleep_score ?? '--'}</span>
                 </div>
+                <DataSourceBadge source={item.import_method ?? item.source} label={item.source_app ?? item.source ?? 'Origem não informada'} />
 
                 <div className="sleep-history-metrics">
                   <span>Prof. {minutesToHours(item.deep_sleep_minutes)}</span>
@@ -126,10 +122,6 @@ export default function SleepView({ userId, onError }) {
       </section>
     </div>
   );
-}
-
-function Metric({ icon: Icon, label, value, sub }) {
-  return <div className="small-metric"><span><Icon size={15} /> {label}</span><strong>{value}</strong><p>{sub}</p></div>;
 }
 
 function SleepStage({ label, value, percent, tone }) {

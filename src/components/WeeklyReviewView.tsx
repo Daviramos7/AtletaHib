@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { BarChart3, CheckCircle2, Copy, Download, Droplets, Dumbbell, Flame, Footprints, Moon, NotebookTabs, Scale, Target, TrendingUp, TriangleAlert } from 'lucide-react';
 import { loadWeeklyReview } from '../services/analyticsService';
+import { LoadingState, PageHeader } from './ui';
 
 export default function WeeklyReviewView({ userId, profile, onError }) {
   const [review, setReview] = useState(null);
@@ -17,7 +18,7 @@ export default function WeeklyReviewView({ userId, profile, onError }) {
 
   useEffect(() => { load(days); }, [days, load]);
 
-  if (!review) return <p>Carregando revisão...</p>;
+  if (!review) return <LoadingState title="Carregando revisão" description="Cruzando somente os dias disponíveis dentro da janela escolhida." />;
 
   const report = review.ruleReport;
   const exportText = JSON.stringify(review.exportPayload, null, 2);
@@ -43,13 +44,11 @@ export default function WeeklyReviewView({ userId, profile, onError }) {
 
   return (
     <div className="weekly-review-page">
-      <div className="page-title">
-        <div>
-          <p className="eyebrow">Semana</p>
-          <h2>Resumo inteligente da semana</h2>
-          <p className="muted-text">Análise automática por regras claras: treino, cardio, sono, água, dieta e check-in.</p>
-        </div>
-        <div className="weekly-actions">
+      <PageHeader
+        eyebrow="Semana"
+        title="Resumo inteligente da semana"
+        description="Análise por regras claras, com origem e ausência preservadas em treino, cardio, sono, água, alimentação e check-in."
+        action={<div className="weekly-actions">
           <select className="date-input" value={days} onChange={(e) => setDays(Number(e.target.value))}>
             <option value={7}>Últimos 7 dias</option>
             <option value={14}>Últimos 14 dias</option>
@@ -58,8 +57,8 @@ export default function WeeklyReviewView({ userId, profile, onError }) {
           <button className="ghost-btn" type="button" onClick={() => setShowExport((value) => !value)}>
             <Copy size={16} /> Exportar JSON
           </button>
-        </div>
-      </div>
+        </div>}
+      />
 
       <section className={`panel weekly-score-panel ${report.tone}`}>
         <div className="weekly-score-main">
