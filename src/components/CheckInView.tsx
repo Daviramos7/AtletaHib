@@ -3,6 +3,7 @@ import { Activity, CheckCircle2, Droplets, Dumbbell, Flame, Footprints, Moon, Sa
 import { calculateReadiness, getCheckin, upsertCheckin } from '../services/checkinService';
 import { todayKey } from '../services/dailyService';
 import { loadCheckinAutofill } from '../services/checkinAutofillService';
+import { PageHeader } from './ui';
 
 const INITIAL = {
   log_date: todayKey(),
@@ -138,18 +139,12 @@ export default function CheckInView({ userId, onError }) {
 
   return (
     <div>
-      <div className="page-title">
-        <div>
-          <p className="eyebrow">Check-in</p>
-          <h2>{isMorning ? 'Check-in da manhã' : 'Fechamento do dia'}</h2>
-          <p className="muted-text">
-            {isMorning
-              ? 'Use pela manhã para decidir treino, cardio e recuperação.'
-              : 'Use à noite para fechar passos, fome/compulsão e observações do dia.'}
-          </p>
-        </div>
-        <input className="date-input" type="date" value={form.log_date} onChange={(e) => load(e.target.value)} />
-      </div>
+      <PageHeader
+        eyebrow="Check-in"
+        title={isMorning ? 'Check-in da manhã' : 'Fechamento do dia'}
+        description={isMorning ? 'Use pela manhã para decidir treino, cardio e recuperação.' : 'Use à noite para fechar passos, fome/compulsão e observações do dia.'}
+        action={<input aria-label="Data do check-in" className="date-input" type="date" value={form.log_date} onChange={(e) => load(e.target.value)} />}
+      />
 
       <div className="checkin-mode-tabs-v406">
         <button type="button" className={isMorning ? 'active' : ''} onClick={() => changeMode('morning')}>

@@ -10,6 +10,7 @@ import DataQualityCard from './DataQualityCard';
 import { buildDailyTruth } from '../domain/buildDailyTruth';
 import { todayKey } from '../services/dailyService';
 import { cardioCountsForProgression } from '../domain/cardioRules';
+import { PageHeader } from './ui';
 
 export default function TodayView(props: any) {
   const { userId, trainingPlan, onNavigate, onError } = props;
@@ -48,14 +49,13 @@ export default function TodayView(props: any) {
 
   return (
     <div className="simple-page today-simple-page">
-      <div className="simple-hero">
-        <div>
-          <p className="eyebrow">{getWeekdayLabel(weekday)} · Hoje</p>
-          <h2>{todayPlan.title}</h2>
-          <p>{todayPlan.description}</p>
-        </div>
-        <span className={`day-kind-badge ${todayPlan.dayKind}`}>{getDayKindLabel(todayPlan.dayKind)}</span>
-      </div>
+      <PageHeader
+        className="simple-hero"
+        eyebrow={`${getWeekdayLabel(weekday)} · Hoje`}
+        title={todayPlan.title}
+        description={todayPlan.description}
+        action={<span className={`day-kind-badge ${todayPlan.dayKind}`}>{getDayKindLabel(todayPlan.dayKind)}</span>}
+      />
 
       <section className="simple-panel today-plan-card">
         <p className="eyebrow">Plano de hoje</p>

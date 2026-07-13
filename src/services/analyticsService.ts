@@ -1,6 +1,6 @@
 import { requireSupabase } from '../lib/supabaseClient';
 import { calculateReadiness } from './checkinService';
-import { localDateKey, localDayRangeIso } from '../utils/dates';
+import { localDayRangeIso } from '../utils/dates';
 
 const DEFAULT_TARGETS = {
   minMealLoggedDays7: 5,
@@ -25,12 +25,11 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
   const kcalGoal = Number(profile?.kcal_goal ?? 2300);
   const waterGoal = Number(profile?.water_goal_ml ?? 3000);
 
-  const [dailyRes, mealRes, workoutRes, setRes, runRes, cardioRes, wearableWorkoutRes, sleepRes, wearableRes, weightRes, checkinRes] = await Promise.all([
+  const [dailyRes, mealRes, workoutRes, setRes, cardioRes, wearableWorkoutRes, sleepRes, wearableRes, weightRes, checkinRes] = await Promise.all([
     client.from('daily_logs').select('*').eq('user_id', userId).gte('log_date', fromDate).lte('log_date', toDate),
     client.from('meal_entries').select('*').eq('user_id', userId).gte('log_date', fromDate).lte('log_date', toDate),
     client.from('workout_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).lt('performed_at', toRange.endIso).order('performed_at', { ascending: false }),
     client.from('workout_exercise_sets').select('*').eq('user_id', userId).gte('performed_at', fromIso).lt('performed_at', toRange.endIso),
-    client.from('run_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).lt('performed_at', toRange.endIso).order('performed_at', { ascending: false }),
     client.from('cardio_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).lt('performed_at', toRange.endIso).order('performed_at', { ascending: false }),
     client.from('wearable_workout_sessions').select('*').eq('user_id', userId).gte('performed_at', fromIso).lt('performed_at', toRange.endIso).order('performed_at', { ascending: false }),
     client.from('sleep_sessions').select('*').eq('user_id', userId).gte('sleep_date', fromDate).lte('sleep_date', toDate).order('sleep_date', { ascending: false }),
@@ -39,7 +38,7 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
     client.from('daily_checkins').select('*').eq('user_id', userId).gte('log_date', fromDate).lte('log_date', toDate),
   ]);
 
-  [dailyRes, mealRes, workoutRes, setRes, runRes, cardioRes, wearableWorkoutRes, sleepRes, wearableRes, weightRes, checkinRes].forEach((res) => {
+  [dailyRes, mealRes, workoutRes, setRes, cardioRes, wearableWorkoutRes, sleepRes, wearableRes, weightRes, checkinRes].forEach((res) => {
     if (res.error) throw res.error;
   });
 
@@ -99,12 +98,12 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
   const avgSteps = stepDays ? sum(daysData.map((day) => day.steps)) / stepDays : 0;
   const avgActiveKcal = wearableDays ? sum(daysData.map((day) => day.activeKcal)) / wearableDays : 0;
 
-  const mergedCardio = mergeCardioSources(runRes.data ?? [], cardioRes.data ?? []);
-  const totalKm = sum(mergedCardio.map((session) => Number(session.distance_km || 0)));
+  const cardioSessionsRows = cardioRes.data ?? [];
+  const totalKm = sum(cardioSessionsRows.map((session) => Number(session.distance_km || 0)));
   const strengthVolume = sum((setRes.data ?? []).map((set) => Number(set.load_kg || 0) * Number(set.reps || 0)));
   const strengthSets = (setRes.data ?? []).length;
   const workouts = (workoutRes.data ?? []).filter((item) => item.completed).length;
-  const cardioSessions = mergedCardio.length;
+  const cardioSessions = cardioSessionsRows.length;
   const latestWeight = weightRes.data?.[0] ?? null;
   const oldestWeight = [...(weightRes.data ?? [])].sort((a, b) => a.log_date.localeCompare(b.log_date))[0] ?? null;
   const weightChange = latestWeight && oldestWeight ? Number(oldestWeight.weight_kg) - Number(latestWeight.weight_kg) : null;
@@ -147,7 +146,6 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
     meals: mealRes.data ?? [],
     strengthSessions: workoutRes.data ?? [],
     strengthSets: setRes.data ?? [],
-    runSessions: runRes.data ?? [],
     cardioSessions: cardioRes.data ?? [],
     wearableWorkoutSessions: wearableWorkoutRes.data ?? [],
     sleepSessions: sleepRes.data ?? [],
@@ -335,7 +333,6 @@ function buildWeeklyReportExport({
   meals,
   strengthSessions,
   strengthSets,
-  runSessions,
   cardioSessions,
   sleepSessions,
   wearableWorkoutSessions,
@@ -389,7 +386,6 @@ function buildWeeklyReportExport({
       meal_entries: meals,
       strength_sessions: strengthSessions,
       strength_sets: strengthSets,
-      run_sessions: runSessions,
       cardio_sessions: cardioSessions,
       wearable_workout_sessions: wearableWorkoutSessions,
       sleep_sessions: sleepSessions,
@@ -425,27 +421,6 @@ function wearableSourceRank(source) {
   if (value.includes('mi_fitness')) return 30;
   if (value.includes('manual')) return 20;
   return 10;
-}
-
-function mergeCardioSources(runRows, cardioRows) {
-  const map = new Map();
-  for (const row of cardioRows ?? []) {
-    map.set(cardioSignature(row), { ...row, source_table: 'cardio_sessions' });
-  }
-  for (const row of runRows ?? []) {
-    const key = cardioSignature(row);
-    if (!map.has(key)) map.set(key, { ...row, source_table: 'run_sessions' });
-  }
-  return [...map.values()];
-}
-
-function cardioSignature(row) {
-  const date = localDateKey(row.performed_at ?? row.created_at ?? new Date());
-  const instant = new Date(row.performed_at ?? row.created_at ?? 0);
-  const minute = Number.isNaN(instant.getTime()) ? 'sem_hora' : `${String(instant.getHours()).padStart(2, '0')}${String(instant.getMinutes()).padStart(2, '0')}`;
-  const distance = Number(row.distance_km ?? 0).toFixed(2);
-  const duration = Math.round(Number(row.duration_seconds ?? 0) / 30) * 30;
-  return `${date}|${minute}|${row.activity_type ?? 'run'}|${distance}|${duration}`;
 }
 
 function numberOrNull(value) {

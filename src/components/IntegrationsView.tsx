@@ -10,6 +10,8 @@ import {
   upsertWearableMetric,
 } from '../services/wearableService';
 import { HEALTH_PLATFORM_OPTIONS, SYNC_MODE_OPTIONS, WEARABLE_OPTIONS } from '../data/defaultPlan';
+import { PageHeader } from './ui';
+import { localDateKey } from '../utils/dates';
 
 const EMPTY_INTEGRATION = {
   provider: 'redmi_mi_fitness',
@@ -157,18 +159,17 @@ export default function IntegrationsView({ userId, profile, onError }) {
 
   return (
     <div>
-      <div className="page-title">
-        <div>
-          <p className="eyebrow">Integrações</p>
-          <h2>Relógio, Mi Fitness e dados de saúde</h2>
-        </div>
-        <span className="pill"><Watch size={16} /> {WEARABLE_OPTIONS[profile?.wearable_provider] ?? 'Manual'}</span>
-      </div>
+      <PageHeader
+        eyebrow="Integrações"
+        title="Relógio e dados de saúde"
+        description="Acompanhe a origem e a última sincronização sem interpretar métricas do wearable como diagnóstico."
+        action={<span className="pill"><Watch size={16} /> {WEARABLE_OPTIONS[profile?.wearable_provider] ?? 'Manual'}</span>}
+      />
 
       <section className="panel highlight-panel">
         <p className="eyebrow">Caminho recomendado para você</p>
         <h3>Redmi Watch 5 Active → Mi Fitness → Health Connect → Atleta Híbrido</h3>
-        <p>O site/PWA não consegue ler o relógio diretamente. A estratégia certa é preparar o painel web e, depois, criar uma ponte Android pequena para ler Health Connect e enviar para o Supabase.</p>
+        <p>O site/PWA não lê o relógio diretamente. O aplicativo Android Atleta Hib conecta o Health Connect ao Supabase e mantém o painel web atualizado.</p>
         <div className="integration-flow">
           <span><Watch size={18} /> Relógio</span>
           <span><Smartphone size={18} /> Mi Fitness</span>
@@ -257,7 +258,7 @@ export default function IntegrationsView({ userId, profile, onError }) {
       </section>
       <section className="panel">
         <p className="eyebrow">Registro manual / Mi Fitness</p>
-        <h3>Enquanto a ponte Android não existe, registre ou importe os dados principais.</h3>
+        <h3>Registro manual e importação de contingência</h3>
         <form className="form-grid" onSubmit={handleSaveMetric}>
           <label>Data
             <input type="date" value={metricForm.metric_date} onChange={(e) => setMetricForm({ ...metricForm, metric_date: e.target.value })} />
@@ -476,5 +477,5 @@ function normalizeDate(value) {
   if (br) return `${br[3]}-${br[2]}-${br[1]}`;
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return null;
-  return date.toISOString().slice(0, 10);
+  return localDateKey(date);
 }

@@ -66,6 +66,15 @@ export function parseDurationMinutes(value: unknown, options: { numericUnit?: 'm
   return seconds === null ? null : Math.round(seconds / 60);
 }
 
+export function formatDurationClock(value: unknown, fallback = '--') {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+  const totalSeconds = Math.round(parsed);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
 export function slug(value: unknown) {
   return String(value ?? '')
     .toLowerCase()

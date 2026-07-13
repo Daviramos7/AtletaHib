@@ -131,17 +131,6 @@ create table if not exists public.workout_sessions (
   created_at timestamptz not null default now()
 );
 
-create table if not exists public.run_sessions (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  performed_at timestamptz not null default now(),
-  distance_km numeric(6,3) not null check (distance_km >= 0),
-  duration_seconds integer not null check (duration_seconds >= 0),
-  run_walk_protocol text,
-  notes text,
-  created_at timestamptz not null default now()
-);
-
 create or replace function public.set_updated_at()
 returns trigger as $$
 begin
@@ -199,7 +188,6 @@ create index if not exists idx_daily_checkins_user_date on public.daily_checkins
 create index if not exists idx_meal_entries_user_date on public.meal_entries(user_id, log_date desc);
 create unique index if not exists meal_entries_user_dedupe_uidx on public.meal_entries(user_id, dedupe_key) where dedupe_key is not null;
 create index if not exists idx_weight_logs_user_date on public.weight_logs(user_id, log_date desc);
-create index if not exists idx_run_sessions_user_performed_at on public.run_sessions(user_id, performed_at desc);
 create index if not exists idx_workout_sessions_user_performed_at on public.workout_sessions(user_id, performed_at desc);
 
 create or replace function public.increment_daily_water(p_user_id uuid, p_log_date date, p_delta integer)

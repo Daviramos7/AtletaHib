@@ -5,6 +5,7 @@ import CheckInView from './CheckInView';
 import RunView from './RunView';
 import WaterView from './WaterView';
 import ImportJsonView from './ImportJsonView';
+import { PageHeader } from './ui';
 
 const TABS = [
   { id: 'water', label: 'Água', icon: Droplets },
@@ -19,12 +20,7 @@ export default function RegisterHubView(props) {
 
   return (
     <div className="simple-page">
-      <div className="page-title compact-title">
-        <div>
-          <p className="eyebrow">Registrar</p>
-          <h2>Entradas do dia</h2>
-        </div>
-      </div>
+      <PageHeader eyebrow="Registrar" title="Entradas do dia" description="Adicione apenas o que aconteceu. Origem, confiança e totais permanecem visíveis em cada fluxo." />
 
       <div className="simple-tabs">
         {TABS.map((item) => {

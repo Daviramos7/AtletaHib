@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Activity, ArrowLeft, BarChart3, Dumbbell, Home, LogOut, Menu, Salad, Settings, User, Waves, Watch, X } from 'lucide-react';
+import { Activity, ArrowLeft, BarChart3, Dumbbell, Home, LogOut, Menu, Salad, Settings, User, Watch, X } from 'lucide-react';
 import { isSupabaseConfigured } from './lib/supabaseClient';
 import { getSession, onAuthStateChange, signOut } from './services/authService';
 import { ensureUserBootstrap } from './services/bootstrapService';
@@ -13,6 +13,7 @@ import ProfileView from './components/ProfileView';
 import IntegrationsView from './components/IntegrationsView';
 import OnboardingView from './components/OnboardingView';
 import OfflineBanner from './components/OfflineBanner';
+import { BrandLogo, ConfirmDialog, ErrorState, LoadingState } from './components/ui';
 
 const NAV = [
   { id: 'dashboard', label: 'Hoje', icon: Activity },
@@ -29,6 +30,7 @@ export default function App() {
   const [boot, setBoot] = useState(null);
   const [active, setActive] = useState('dashboard');
   const [quickOpen, setQuickOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
   const tabHistoryRef = useRef([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -97,12 +99,8 @@ export default function App() {
     return (
       <div className="center-screen">
         <div className="loading-card-v35">
-          <div className="loader" />
-          <div>
-            <p className="eyebrow">Atleta Híbrido</p>
-            <h1>Carregando</h1>
-            <span>Preparando seus dados do dia.</span>
-          </div>
+          <BrandLogo className="loading-brand" />
+          <LoadingState title="Preparando seu dia" description="Organizando treino, alimentação e recuperação." />
         </div>
       </div>
     );
@@ -169,13 +167,16 @@ export default function App() {
     <div className="app-shell app-shell-v2">
       <OfflineBanner />
       <header className="topbar topbar-v2">
-        <div>
-          <p className="eyebrow">Atleta Híbrido</p>
-          <h1>{activeNavItem.label}</h1>
+        <div className="topbar-identity">
+          <BrandLogo className="topbar-brand" />
+          <div className="topbar-current">
+            <p className="eyebrow">Área atual</p>
+            <h1>{activeNavItem.label}</h1>
+          </div>
         </div>
         <div className="top-actions">
-          <button className="ghost-btn" type="button" onClick={() => navigateTo('profile')}><Settings size={16} /> Perfil</button>
-          <button className="ghost-btn danger" type="button" onClick={() => window.confirm('Sair da conta?') && signOut()}><LogOut size={16} /> Sair</button>
+          <button aria-label="Abrir perfil" className="ghost-btn" type="button" onClick={() => navigateTo('profile')}><Settings size={16} /><span>Perfil</span></button>
+          <button aria-label="Sair da conta" className="ghost-btn danger" type="button" onClick={() => setLogoutOpen(true)}><LogOut size={16} /><span>Sair</span></button>
         </div>
       </header>
 
@@ -184,7 +185,7 @@ export default function App() {
       <main className="main-grid main-grid-v2">
         <aside className="sidebar sidebar-v2">
           <div className="profile-mini">
-            <div className="avatar"><Waves size={22} /></div>
+            <div className="avatar"><BrandLogo compact /></div>
             <div>
               <strong>{boot?.profile?.name ?? 'Atleta'}</strong>
               <span>{boot?.profile?.objective ?? 'Perfil personalizado'}</span>
@@ -215,6 +216,15 @@ export default function App() {
         onNavigate={navigateTo}
         onBack={goBack}
         onHome={goHome}
+      />
+      <ConfirmDialog
+        open={logoutOpen}
+        title="Sair da sua conta?"
+        description="Os dados já sincronizados permanecem salvos. Será necessário entrar novamente neste dispositivo."
+        confirmLabel="Sair agora"
+        danger
+        onCancel={() => setLogoutOpen(false)}
+        onConfirm={() => { setLogoutOpen(false); signOut(); }}
       />
     </div>
   );
@@ -307,10 +317,11 @@ function classifyNotice(message) {
 function SetupWarning() {
   return (
     <div className="center-screen setup-warning">
-      <h1>Supabase ainda não configurado</h1>
-      <p>Copie <code>.env.example</code> para <code>.env</code> e preencha:</p>
-      <pre>{`VITE_SUPABASE_URL=https://seu-projeto.supabase.co\nVITE_SUPABASE_ANON_KEY=sua-chave-anon-publica`}</pre>
-      <p>Depois execute o SQL em <code>database/schema.sql</code> e <code>database/policies.sql</code>.</p>
+      <BrandLogo className="loading-brand" />
+      <ErrorState
+        title="Supabase ainda não configurado"
+        description="Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no arquivo .env. Depois execute database/schema.sql e database/policies.sql."
+      />
     </div>
   );
 }

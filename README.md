@@ -1,143 +1,148 @@
-# Atleta Híbrido Cloud OS — v1.5 Multiusuário
+<p align="center">
+  <img src="logos/atleta-hib-logo-horizontal.png" alt="Atleta Hib" width="460" />
+</p>
 
-Aplicação full stack/PWA para acompanhar dieta, água, peso, corrida, check-in diário, revisão semanal e evolução de força, com autenticação e dados isolados por usuário.
+<p align="center">
+  <strong>Atleta Hib v4.1.2</strong><br />
+  Treino, alimentação, recuperação e progresso com uma única fonte de verdade.
+</p>
+
+## Visão geral
+
+O Atleta Hib é uma aplicação web responsiva/PWA acompanhada por um aplicativo Android nativo que conecta o Health Connect ao Supabase. Cada usuário possui autenticação e dados isolados por RLS.
+
+A versão 4.1.2 consolida a identidade visual, padroniza os componentes de interface e encerra a divisão entre `run_sessions` e `cardio_sessions` no produto.
+
+## O que está disponível
+
+- Painel diário orientado por treino, prontidão e qualidade dos dados.
+- Registro de refeições com kcal e macros opcionais sem converter ausência em zero.
+- Hidratação com atualização atômica no banco.
+- Cardio manual, planejado ou importado em um único histórico.
+- Treino de força por série, com carga, repetições, RPE, volume e estimativa de 1RM.
+- Sono corrigido e dados de wearable com origem explícita.
+- Check-in separado entre manhã e fechamento do dia.
+- Peso, tendências semanais e revisão com janela temporal limitada.
+- Central de importação JSON com validação de data, confiança e deduplicação.
+- Android Health Connect Bridge para Mi Fitness e outras fontes compatíveis.
+
+## Princípios de integridade
+
+- Data de negócio usa o calendário local do usuário.
+- Dado ausente permanece ausente; não vira `0` automaticamente.
+- Sessões importadas de cardio não somam novamente nos totais diários.
+- Calorias de uma sessão são detalhe e podem já existir no Health Connect.
+- Recomendações de cardio respeitam o limite de 20 minutos, sem alterar o valor real registrado.
+- Wearables apoiam o acompanhamento, mas não produzem diagnóstico.
+- Painel, check-in e relatório semanal consomem a mesma camada de verdade diária.
 
 ## Stack
 
-- React + Vite
-- TypeScript
-- Supabase Auth
-- PostgreSQL/Supabase
-- Row Level Security por usuário
-- PWA com manifest + service worker
+### Web
 
-## O que há nesta versão
+- React 19, TypeScript e Vite.
+- Supabase Auth, PostgreSQL e Row Level Security.
+- Vitest e ESLint.
+- PWA com manifest e service worker.
 
-### Produto
+### Android
 
-- Login/cadastro via Supabase Auth.
-- Dados sincronizados entre celular e PC pelo mesmo usuário.
-- Onboarding obrigatório para usuário novo criar o próprio perfil.
-- Nenhum perfil pessoal é copiado para novas contas.
-- Cada pessoa define nome, peso, meta, horários, objetivo, restrições alimentares, frequência de musculação/cardio e preferência de integração com relógio.
-- Criador de rotina para regenerar plano de treino a partir das preferências do usuário.
-- Dieta flexível com refeições, macros, alimentos personalizados e restrições alimentares.
-- Água diária.
-- Peso com gráfico semanal.
-- Corrida/esteira para o primeiro 1 km.
-- Check-in diário de sono, fome, energia, estresse, dor, passos e sintomas alimentares.
-- Revisão semanal com decisão prioritária.
-- Campo de preferência para integração futura com relógios/plataformas de saúde.
+- Kotlin e Jetpack Compose.
+- Health Connect.
+- Ktor e Kotlin Serialization.
+- Supabase REST com sessão persistida localmente.
 
-### Força de verdade
+## Como executar o site
 
-- TypeScript.
-- Registro real de execução do treino.
-- Registro por série: reps, carga, RPE e exercício.
-- Volume de treino: carga x reps.
-- Aba Força com evolução semanal por exercício.
-- Estimativa de 1RM pela fórmula de Epley: `carga x (1 + reps / 30)`.
-- Histórico dos últimos treinos salvos.
-
-## Fluxo multiusuário
-
-Usuário novo não recebe dados de outra pessoa. Depois do login, se não houver perfil ou se o onboarding não estiver completo, o app abre a tela de configuração inicial. Só depois disso o dashboard é liberado.
-
-Contas antigas continuam com seus próprios dados; para regenerar um plano, use a aba Criador.
-
-## Como rodar
+Requisitos: Node.js 20+ e um projeto Supabase.
 
 ```bash
 npm install
-cp .env.example .env
+cp .env.example .env.local
 npm run dev
 ```
 
-Preencha o `.env`:
+Configure:
 
 ```env
 VITE_SUPABASE_URL=https://seu-projeto.supabase.co
 VITE_SUPABASE_ANON_KEY=sua-chave-anon-publica
 ```
 
-## Banco de dados
-
-Para uma instalação nova, execute no Supabase SQL Editor:
-
-```txt
-database/schema.sql
-database/policies.sql
-```
-
-Se você já estava usando uma versão anterior, execute a migration nova:
-
-```txt
-database/migrations/2026_07_01_multiuser_onboarding.sql
-```
-
-Se você pulou versões, execute também as migrations anteriores na ordem:
-
-```txt
-database/migrations/2026_07_01_profile_schedule_weight_progress.sql
-database/migrations/2026_07_01_production_readiness.sql
-database/migrations/2026_07_01_typescript_strength_tracking.sql
-database/migrations/2026_07_01_multiuser_onboarding.sql
-```
-
-## Checks de produção
+Comandos de validação:
 
 ```bash
+npm test
 npm run lint
 npm run typecheck
 npm run build
 ```
 
-Atalho:
+Para executar tudo exceto os testes unitários:
 
 ```bash
 npm run prod:check
 ```
 
-## Deploy
+## Banco de dados
 
-Recomendado: Vercel.
+Em uma instalação nova, execute primeiro:
 
-1. Suba o repositório no GitHub.
-2. Importe na Vercel.
-3. Configure as variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
-4. Rode o deploy.
-
-## Observações de segurança
-
-A anon key do Supabase pode ficar no front-end. A proteção real dos dados vem das políticas RLS. Não desative RLS em produção.
-
-
-## v1.5 — Integrações de relógio e saúde
-
-Esta versão adiciona uma aba **Integrações** para preparar o app para relógios e plataformas de saúde.
-
-Funcionalidades novas:
-
-- Configuração de dispositivo/fonte de saúde por usuário.
-- Preset para **Redmi Watch 5 Active + Mi Fitness**.
-- Fluxo técnico recomendado: relógio → Mi Fitness → Health Connect → app Android ponte → Supabase.
-- Registro manual de dados do relógio enquanto a ponte Android não existe.
-- Importação experimental de CSV/JSON exportado, usando campos como `date`, `steps`, `sleep_minutes`, `avg_heart_rate`, `resting_heart_rate`, `active_kcal`, `workout_minutes` e `distance_km`.
-- Nova tabela `health_integrations`.
-- Nova tabela `wearable_daily_metrics`.
-- RLS aplicado para cada usuário acessar apenas suas integrações e métricas.
-- Dashboard passa a exibir métricas do relógio quando houver registro do dia.
-
-Se você já rodou versões anteriores, execute também:
-
-```sql
-database/migrations/2026_07_01_wearable_integrations.sql
+```text
+database/schema.sql
+database/policies.sql
 ```
 
+Depois aplique as migrations de `database/migrations` em ordem cronológica. Em uma instalação existente que já está na v4.1.1, a migration nova obrigatória é:
 
-## v1.6 — correção de onboarding e fonte
+```text
+database/migrations/2026_07_13_unify_cardio_sessions.sql
+```
 
-- Troca a fonte principal para Inter, com títulos menos condensados e campos mais legíveis.
-- Corrige criação simultânea do `daily_logs` usando `upsert`, evitando erro de chave duplicada no onboarding/dashboard em modo dev.
+Ela copia de forma idempotente os registros antigos de `run_sessions` para `cardio_sessions`. A tabela antiga é preservada como reserva histórica, mas o aplicativo deixa de ler e gravar nela.
 
-Se você já configurou `.env`, mantenha seu `.env` local. Ao atualizar a versão, copie seu `.env` para a nova pasta ou substitua apenas `src/styles.css` e `src/services/dailyService.ts`.
+## Aplicativo Android
+
+O projeto nativo fica em `android_bridge`.
+
+1. Copie `android_bridge/gradle.properties.example` para `android_bridge/gradle.properties`.
+2. Preencha `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY`.
+3. Abra `android_bridge` no Android Studio ou compile pelo terminal:
+
+```powershell
+cd android_bridge
+.\gradlew.bat :app:assembleDebug
+```
+
+O aplicativo usa a mesma conta do site. A senha não é armazenada; a sessão é renovada por refresh token. As permissões do Health Connect podem ser concedidas de forma completa ou básica.
+
+## Identidade visual e design system
+
+Os arquivos oficiais estão em `logos/`. As cópias usadas pelo site ficam em `public/branding` e pelo Android em `android_bridge/app/src/main/res/drawable-nodpi`.
+
+A base compartilhada da interface web está em:
+
+- `src/components/ui/index.tsx`
+- `src/styles/design-system.css`
+
+Ela contém padrões para cards, métricas, origem e qualidade do dado, alertas, estados vazios/carregamento/erro, confirmações, cabeçalhos, formulários, linhas estatísticas e timelines.
+
+## Prompts de importação e análise
+
+Os contratos usados para extrair ou interpretar dados ficam em `docs/`:
+
+- `FOOD_IMAGE_READER_PROMPT.md`
+- `CARDIO_IMAGE_READER_PROMPT.md`
+- `SLEEP_IMAGE_READER_PROMPT.md`
+- `STRENGTH_WEARABLE_IMAGE_READER_PROMPT.md`
+- `WEEKLY_REPORT_ANALYST_PROMPT.md`
+
+## Segurança
+
+A chave pública/anon do Supabase pode estar no cliente. A proteção real depende das políticas RLS e do uso de `auth.uid()` em todas as tabelas do usuário. Não inclua a service role no site ou no aplicativo Android e não desative RLS em produção.
+
+## Versão
+
+Versão atual: **4.1.2**.
+
+Consulte `docs/audits/` para os relatórios de implementação, testes e smoke tests de cada evolução.
