@@ -22,17 +22,18 @@ export function buildExerciseProgress(exerciseName, strengthSets = []) {
 
   const sessions = groupSetsBySession(sets);
   const lastSession = sessions[0];
-  const previousSession = sessions[1] ?? null;
+  const previousSession = sessions.slice(1).find((session) => !isProgressionRestricted(session)) ?? null;
   const bestLoad = Math.max(...sets.map((set) => Number(set.load_kg || 0)));
   const bestOneRm = Math.max(...sets.map((set) => calculateEstimatedOneRepMax(set.load_kg, set.reps)));
   const bestVolume = Math.max(...sessions.map((session) => session.volume));
-  const trend = previousSession ? compareVolume(lastSession.volume, previousSession.volume) : 0;
+  const restricted = isProgressionRestricted(lastSession);
+  const trend = !restricted && previousSession ? compareVolume(lastSession.volume, previousSession.volume) : 0;
 
   return {
     hasHistory: true,
     exerciseName,
-    suggestion: buildProgressionSuggestion(lastSession),
-    trendLabel: buildTrendLabel(trend),
+    suggestion: buildProgressionSuggestion(lastSession, restricted),
+    trendLabel: restricted ? 'Sessão adaptada — volume reduzido pela prontidão' : buildTrendLabel(trend),
     lastSession,
     previousSession,
     bestLoad: round(bestLoad, 1),
@@ -42,15 +43,17 @@ export function buildExerciseProgress(exerciseName, strengthSets = []) {
   };
 }
 
-export function buildWorkoutProgressSummary(currentRows = [], strengthSets = []) {
+export function buildWorkoutProgressSummary(currentRows = [], strengthSets = [], currentSession = null) {
   const doneRows = (currentRows ?? []).filter((row) => row.done && Number(row.reps) > 0);
   const currentVolume = calculateVolumeKg(doneRows);
   const completedExercises = new Set(doneRows.map((row) => row.exercise_name)).size;
   const totalExercises = new Set((currentRows ?? []).map((row) => row.exercise_name)).size;
 
   const latestSessions = groupSetsBySession(strengthSets ?? []);
-  const lastWorkoutVolume = latestSessions[0]?.volume ?? 0;
+  const lastComparableSession = latestSessions.find((session) => !isProgressionRestricted(session)) ?? null;
+  const lastWorkoutVolume = lastComparableSession?.volume ?? 0;
   const diff = lastWorkoutVolume ? ((currentVolume - lastWorkoutVolume) / lastWorkoutVolume) * 100 : 0;
+  const restricted = isProgressionRestricted(currentSession);
 
   return {
     currentVolume: Math.round(currentVolume),
@@ -58,7 +61,7 @@ export function buildWorkoutProgressSummary(currentRows = [], strengthSets = [])
     totalExercises,
     lastWorkoutVolume: Math.round(lastWorkoutVolume),
     diffPercent: round(diff, 1),
-    diffLabel: lastWorkoutVolume ? formatDiff(diff) : 'Sem comparação',
+    diffLabel: restricted ? 'Sessão adaptada — volume não comparável' : lastWorkoutVolume ? formatDiff(diff) : 'Sem comparação',
   };
 }
 
@@ -75,6 +78,9 @@ function groupSetsBySession(sets) {
       bestSet: null,
       avgRpe: 0,
       totalReps: 0,
+      workoutVariant: set.workout_variant ?? 'base',
+      readinessScore: set.readiness_score ?? null,
+      adaptationSummary: normalizeAdaptationSummary(set.adaptation_summary),
     };
 
     const volume = Number(set.load_kg || 0) * Number(set.reps || 0);
@@ -82,6 +88,9 @@ function groupSetsBySession(sets) {
     current.volume += volume;
     current.totalReps += Number(set.reps || 0);
     current.performedAt = isNewer(set.performed_at, current.performedAt) ? set.performed_at : current.performedAt;
+    current.workoutVariant = set.workout_variant ?? current.workoutVariant;
+    current.readinessScore = set.readiness_score ?? current.readinessScore;
+    current.adaptationSummary = normalizeAdaptationSummary(set.adaptation_summary) ?? current.adaptationSummary;
 
     const bestSetScore = Number(current.bestSet?.load_kg || 0) * 100 + Number(current.bestSet?.reps || 0);
     const setScore = Number(set.load_kg || 0) * 100 + Number(set.reps || 0);
@@ -100,13 +109,17 @@ function groupSetsBySession(sets) {
     .sort((a, b) => new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime());
 }
 
-function buildProgressionSuggestion(lastSession) {
+function buildProgressionSuggestion(lastSession, restricted = isProgressionRestricted(lastSession)) {
   const best = lastSession.bestSet;
   const load = Number(best?.load_kg || 0);
   const reps = Number(best?.reps || 0);
   const rpe = Number(lastSession.avgRpe || best?.perceived_effort || 0);
 
   if (!load || !reps) return 'Repita o movimento com execução limpa e registre carga/reps.';
+
+  if (restricted) {
+    return `Sessão adaptada: mantenha ${formatKg(load)} como referência e não aumente a carga até a progressão ser liberada.`;
+  }
 
   if (rpe && rpe >= 9) {
     return `Mantenha ${formatKg(load)} e tente controlar melhor. Se ficar pesado, reduza 5%.`;
@@ -121,6 +134,22 @@ function buildProgressionSuggestion(lastSession) {
   }
 
   return `Repita ${formatKg(load)} e tente bater ${reps + 1} reps com controle.`;
+}
+
+export function isProgressionRestricted(session) {
+  if (!session) return false;
+  const summary = normalizeAdaptationSummary(session.adaptationSummary ?? session.adaptation_summary);
+  if (typeof summary?.progression_allowed === 'boolean') return !summary.progression_allowed;
+  if (typeof summary?.progressionAllowed === 'boolean') return !summary.progressionAllowed;
+  if (summary?.workoutMode === 'retorno') return true;
+  if (['baixa', 'recuperacao'].includes(String(summary?.readinessLevel ?? ''))) return true;
+  return session.workoutVariant === 'adapted' || session.workout_variant === 'adapted';
+}
+
+function normalizeAdaptationSummary(value) {
+  if (!value) return null;
+  if (typeof value === 'object') return value;
+  try { return JSON.parse(value); } catch { return null; }
 }
 
 function compareVolume(current, previous) {

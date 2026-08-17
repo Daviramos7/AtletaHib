@@ -35,8 +35,8 @@ export function ExerciseProgressMini(props: any) {
 }
 
 export function WorkoutProgressSummary(props: any) {
-  const { currentRows = [], strengthSets = [] } = props;
-  const summary = buildWorkoutProgressSummary(currentRows, strengthSets);
+  const { currentRows = [], strengthSets = [], currentSession = null } = props;
+  const summary = buildWorkoutProgressSummary(currentRows, strengthSets, currentSession);
 
   return (
     <section className="simple-panel workout-progress-summary-v34">

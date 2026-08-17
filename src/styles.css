@@ -7056,3 +7056,48 @@ video {
   font-size: .84rem;
   line-height: 1.35;
 }
+
+/* v4.1.3 — recomendação adaptativa da Academia */
+.adaptive-workout-card-v413 { display: grid; gap: 15px; overflow: hidden; }
+.adaptive-workout-card-v413.good { border-color: rgba(134,239,172,.26); background: radial-gradient(circle at 0 0, rgba(34,197,94,.10), transparent 24rem), var(--surface); }
+.adaptive-workout-card-v413.warning { border-color: rgba(253,230,138,.25); background: radial-gradient(circle at 0 0, rgba(251,191,36,.09), transparent 24rem), var(--surface); }
+.adaptive-workout-card-v413.danger { border-color: rgba(252,165,165,.25); background: radial-gradient(circle at 0 0, rgba(248,113,113,.09), transparent 24rem), var(--surface); }
+.adaptive-workout-card-v413.awaiting { border-color: rgba(101,216,255,.24); background: radial-gradient(circle at 0 0, rgba(101,216,255,.09), transparent 24rem), var(--surface); }
+.adaptive-workout-title-v413 { display: flex; align-items: flex-start; gap: 11px; }
+.adaptive-workout-title-v413 svg { margin-top: 2px; color: var(--brand-lime, #b8ff00); flex: 0 0 auto; }
+.adaptive-workout-title-v413 h3, .adaptive-workout-score-v413 h3 { margin: 0; }
+.adaptive-workout-card-v413 > p { margin: 0; color: var(--muted); line-height: 1.5; }
+.adaptive-workout-score-v413 { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; }
+.adaptive-workout-score-v413 > div > span { color: var(--muted); font-size: .85rem; font-weight: 750; }
+.adaptive-workout-score-v413 > strong { font-size: clamp(2rem, 7vw, 3.4rem); line-height: 1; letter-spacing: -.06em; }
+.adaptive-workout-score-v413 > strong small { color: var(--muted); font-size: .75rem; letter-spacing: 0; }
+.adaptive-workout-metrics-v413 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.adaptive-workout-metrics-v413 > div { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 4px 7px; padding: 11px; border: 1px solid var(--border); border-radius: 14px; background: rgba(255,255,255,.025); }
+.adaptive-workout-metrics-v413 span { color: var(--muted); font-size: .72rem; font-weight: 850; text-transform: uppercase; }
+.adaptive-workout-metrics-v413 strong { grid-column: 1 / -1; overflow-wrap: anywhere; }
+.adaptive-workout-summary-v413 { display: grid; gap: 7px; }
+.adaptive-workout-summary-v413 p { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; margin: 0; color: var(--text); line-height: 1.4; }
+.adaptive-workout-summary-v413 svg { margin-top: 2px; color: #86efac; }
+.adaptive-workout-actions-v413 { display: flex; flex-wrap: wrap; gap: 9px; }
+.adaptive-details-toggle-v413 { width: fit-content; display: inline-flex; align-items: center; gap: 7px; padding: 0; border: 0; background: transparent; color: var(--muted); font-weight: 800; cursor: pointer; }
+.adaptive-details-toggle-v413 svg { transition: transform .2s ease; }
+.adaptive-details-toggle-v413 svg.open { transform: rotate(180deg); }
+.adaptive-details-v413 { display: grid; gap: 12px; padding-top: 13px; border-top: 1px solid var(--border); }
+.adaptive-details-v413 > div { display: grid; gap: 5px; }
+.adaptive-details-v413 p { margin: 0; color: var(--muted); line-height: 1.45; overflow-wrap: anywhere; }
+.adaptive-details-v413 strong { color: var(--text); }
+.adaptive-warning-v413 { display: grid !important; grid-template-columns: auto minmax(0, 1fr); gap: 8px; padding: 10px; border: 1px solid rgba(248,113,113,.2); border-radius: 12px; background: rgba(248,113,113,.06); color: #fecaca !important; }
+.adaptive-session-active-v413 { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: rgba(184,255,0,.08); color: #d9ff80; font-weight: 800; }
+.checkin-location-picker-v413 { min-width: 0; margin: 0; padding: 0; border: 0; }
+.checkin-location-picker-v413 legend { margin-bottom: 8px; color: var(--muted); font-size: .8rem; font-weight: 760; }
+.checkin-location-picker-v413 > div { display: flex; flex-wrap: wrap; gap: 7px; }
+.checkin-location-picker-v413 button { min-height: 36px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 999px; background: rgba(255,255,255,.035); color: var(--muted); font-weight: 750; cursor: pointer; }
+.checkin-location-picker-v413 button.active { border-color: rgba(184,255,0,.3); background: rgba(184,255,0,.1); color: #d9ff80; }
+
+@media (max-width: 620px) {
+  .adaptive-workout-metrics-v413 { grid-template-columns: 1fr; }
+  .adaptive-workout-actions-v413 { display: grid; grid-template-columns: 1fr; }
+  .adaptive-workout-actions-v413 button { width: 100%; justify-content: center; }
+  .adaptive-details-toggle-v413 { width: 100%; justify-content: space-between; min-height: 42px; }
+  .adaptive-workout-score-v413 { align-items: start; }
+}

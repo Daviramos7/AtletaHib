@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Dumbbell, Search, Trash2, Trophy } from 'lucide-react';
 import { calculateEstimatedOneRepMax, deleteWorkoutSession, listStrengthSets } from '../services/workoutService';
+import { isProgressionRestricted } from '../utils/strengthProgression';
 
 const RANGE_OPTIONS = [
   { id: 30, label: '30 dias' },
@@ -276,7 +277,7 @@ function buildExerciseSummaries(sets: any[]) {
   });
 }
 
-function groupSetsBySession(sets: any[]) {
+export function groupSetsBySession(sets: any[]) {
   const map = new Map();
 
   sets.forEach((set: any) => {
@@ -308,7 +309,7 @@ function groupSetsBySession(sets: any[]) {
     .sort((a: any, b: any) => new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime());
 }
 
-function buildWeeklyBuckets(sets: any[]) {
+export function buildWeeklyBuckets(sets: any[]) {
   const map = new Map();
 
   sets.forEach((set: any) => {
@@ -319,14 +320,39 @@ function buildWeeklyBuckets(sets: any[]) {
       label: `${String(start.getDate()).padStart(2, '0')}/${String(start.getMonth() + 1).padStart(2, '0')}`,
       volume: 0,
       sets: 0,
+      sessions: new Map(),
     };
 
-    current.volume += Number(set.load_kg || 0) * Number(set.reps || 0);
+    const volume = Number(set.load_kg || 0) * Number(set.reps || 0);
+    const sessionKey = set.workout_session_id ?? dateKey(set.performed_at);
+    const session = current.sessions.get(sessionKey) ?? { volume: 0, sets: 0, restricted: false };
+    session.volume += volume;
+    session.sets += 1;
+    session.restricted = session.restricted || isProgressionRestricted(set);
+    current.sessions.set(sessionKey, session);
+    current.volume += volume;
     current.sets += 1;
     map.set(key, current);
   });
 
-  const rows = [...map.values()].sort((a: any, b: any) => a.weekKey.localeCompare(b.weekKey)).slice(-10);
+  const rows = [...map.values()]
+    .map((row: any) => {
+      const sessions = [...row.sessions.values()];
+      const comparableSessions = sessions.filter((session: any) => !session.restricted);
+      const restrictedSessions = sessions.filter((session: any) => session.restricted);
+      const comparableVolume = comparableSessions.reduce((total: number, session: any) => total + session.volume, 0);
+      return {
+        weekKey: row.weekKey,
+        label: row.label,
+        volume: row.volume,
+        sets: row.sets,
+        comparableAverageVolume: comparableSessions.length ? comparableVolume / comparableSessions.length : null,
+        comparableSessionCount: comparableSessions.length,
+        restrictedSessionCount: restrictedSessions.length,
+      };
+    })
+    .sort((a: any, b: any) => a.weekKey.localeCompare(b.weekKey))
+    .slice(-10);
   const maxVolume = Math.max(...rows.map((row: any) => Number(row.volume || 0)), 1);
 
   return rows.map((row: any) => ({
@@ -335,20 +361,31 @@ function buildWeeklyBuckets(sets: any[]) {
   }));
 }
 
-function buildTrend(weekly: any[]) {
-  if (weekly.length < 2) return { label: 'Tendência aparece com pelo menos 2 semanas.' };
+export function buildTrend(weekly: any[]) {
+  const current = weekly[weekly.length - 1];
+  if (!current) return { label: 'Tendência aparece com pelo menos 2 semanas.' };
 
-  const previous = Number(weekly[weekly.length - 2]?.volume ?? 0);
-  const current = Number(weekly[weekly.length - 1]?.volume ?? 0);
+  if (current.restrictedSessionCount > 0 && current.comparableSessionCount === 0) {
+    return { label: 'Semana adaptada — volume realizado reduzido conforme prontidão.' };
+  }
 
-  if (!previous && current) return { label: 'Primeira semana com volume registrado.' };
+  const previous = weekly
+    .slice(0, -1)
+    .reverse()
+    .find((week: any) => week.comparableSessionCount > 0);
+  if (!previous) return { label: 'Primeira semana com volume comparável registrado.' };
 
-  const diff = current - previous;
-  const percent = previous ? Math.round((diff / previous) * 100) : 0;
+  const previousComparable = Number(previous.comparableAverageVolume || 0);
+  const currentComparable = Number(current.comparableAverageVolume || 0);
+  if (!previousComparable || !currentComparable) return { label: 'Sem base normal comparável para tendência.' };
 
-  if (percent > 10) return { label: `Volume subindo: +${percent}% vs semana anterior.` };
-  if (percent < -10) return { label: `Volume caiu ${Math.abs(percent)}% vs semana anterior.` };
-  return { label: 'Volume estável vs semana anterior.' };
+  const percent = Math.round(((currentComparable - previousComparable) / previousComparable) * 100);
+  if (percent < -10) return { label: `Performance comparável caiu ${Math.abs(percent)}% vs última semana normal.`, comparisonWeekKey: previous.weekKey };
+  if (percent > 10) return { label: `Performance comparável subindo: +${percent}% vs última semana normal.`, comparisonWeekKey: previous.weekKey };
+  if (current.restrictedSessionCount > 0 && Number(current.volume || 0) < Number(previous.volume || 0)) {
+    return { label: 'Semana adaptada — volume realizado reduzido conforme prontidão.', comparisonWeekKey: previous.weekKey };
+  }
+  return { label: 'Performance comparável estável.', comparisonWeekKey: previous.weekKey };
 }
 
 function startOfWeek(date: Date) {

@@ -77,54 +77,7 @@ export async function listCheckins(userId, fromDate) {
   return data ?? [];
 }
 
-export function calculateReadiness(checkin) {
-  if (!checkin) return { score: 60, label: 'sem check-in', tone: 'neutral', advice: 'Registre sono, dor e fome para liberar uma decisão melhor.', confidence: 'low' };
-
-  let score = 100;
-  let known = 0;
-  const sleep = numberOrMissing(checkin.sleep_hours);
-  const pain = numberOrMissing(checkin.pain_level);
-  const soreness = numberOrMissing(checkin.soreness_level);
-  const stress = numberOrMissing(checkin.stress_score);
-  const hunger = numberOrMissing(checkin.hunger_score);
-  const energy = numberOrMissing(checkin.energy_score);
-
-  for (const value of [sleep, pain, soreness, stress, hunger, energy]) {
-    if (value !== null) known += 1;
-  }
-
-  if (sleep !== null && sleep < 5.5) score -= 25;
-  else if (sleep !== null && sleep < 6.5) score -= 15;
-  else if (sleep === null) score -= 8;
-
-  if (pain !== null && pain >= 7) score -= 35;
-  else if (pain !== null && pain >= 4) score -= 18;
-  else if (pain === null) score -= 4;
-
-  if (soreness !== null && soreness >= 8) score -= 18;
-  else if (soreness !== null && soreness >= 5) score -= 9;
-
-  if (stress !== null && stress >= 8) score -= 12;
-  else if (stress !== null && stress >= 6) score -= 6;
-
-  if (hunger !== null && hunger >= 8) score -= 10;
-  if (energy !== null && energy <= 3) score -= 14;
-  else if (energy !== null && energy >= 8) score += 6;
-
-  if (checkin.lactose_symptoms) score -= 10;
-
-  const confidence = known >= 5 ? 'high' : known >= 3 ? 'medium' : 'low';
-  if (confidence === 'low') score = Math.min(score, 72);
-
-  const finalScore = Math.max(0, Math.min(Math.round(score), 100));
-  const suffix = confidence === 'low' ? ' Como faltam dados, trate essa sugestão como conservadora.' : '';
-  if (finalScore >= 80) return { score: finalScore, label: 'pronto para treinar', tone: 'good', confidence, advice: `Pode seguir o treino planejado. Só não transforme treino bom em ego.${suffix}` };
-  if (finalScore >= 60) return { score: finalScore, label: 'treino controlado', tone: 'warning', confidence, advice: `Treine, mas reduza volume se dor ou cansaço subir.${suffix}` };
-  return { score: finalScore, label: 'recuperação primeiro', tone: 'danger', confidence, advice: `Hoje vale trocar corrida por caminhada/bike leve e preservar articulações.${suffix}` };
-}
-
-
-function normalizeCheckinRow(userId, payload: any = {}): any {
+export function normalizeCheckinRow(userId, payload: any = {}): any {
   const mode = payload.checkin_mode === 'evening' ? 'evening' : 'morning';
   const modeFields: any = mode === 'evening'
     ? { evening_notes: cleanText(payload.notes), evening_saved_at: new Date().toISOString() }
@@ -136,8 +89,12 @@ function normalizeCheckinRow(userId, payload: any = {}): any {
     energy_score: integerOrNull(payload.energy_score, 1, 10),
     hunger_score: integerOrNull(payload.hunger_score, 1, 10),
     stress_score: integerOrNull(payload.stress_score, 1, 10),
+    recovery_score: integerOrNull(payload.recovery_score, 1, 10),
     pain_level: integerOrNull(payload.pain_level, 0, 10),
     soreness_level: integerOrNull(payload.soreness_level, 0, 10),
+    available_minutes: integerOrNull(payload.available_minutes, 20, 120),
+    joint_pain_locations: normalizeLocations(payload.joint_pain_locations, JOINT_LOCATIONS),
+    muscle_soreness_locations: normalizeLocations(payload.muscle_soreness_locations, MUSCLE_LOCATIONS),
     steps: integerOrNull(payload.steps, 0, 200000),
     lactose_symptoms: Boolean(payload.lactose_symptoms),
     cravings_notes: cleanText(payload.cravings_notes),
@@ -148,12 +105,6 @@ function normalizeCheckinRow(userId, payload: any = {}): any {
 function normalizeDate(value) {
   const raw = String(value || todayKey()).slice(0, 10);
   return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : todayKey();
-}
-
-function numberOrMissing(value) {
-  if (value === '' || value === null || value === undefined) return null;
-  const n = Number(String(value).replace(',', '.'));
-  return Number.isFinite(n) ? n : null;
 }
 
 function decimalOrNull(value, min, max) {
@@ -183,6 +134,15 @@ function cleanText(value) {
   return text ? text : null;
 }
 
+const JOINT_LOCATIONS = ['ombro', 'cotovelo', 'punho', 'lombar', 'quadril', 'joelho', 'tornozelo', 'outro'];
+const MUSCLE_LOCATIONS = ['quadriceps', 'posterior_de_coxa', 'gluteos', 'peito', 'costas', 'ombros', 'biceps', 'triceps', 'panturrilhas', 'core', 'outro'];
+
+function normalizeLocations(value, allowed) {
+  if (!Array.isArray(value)) return null;
+  const locations = [...new Set(value.map((item) => String(item)).filter((item) => allowed.includes(item)))];
+  return locations.length ? locations : null;
+}
+
 function canFallbackToManualSave(error) {
   const message = String(error?.message ?? '').toLowerCase();
   const code = String(error?.code ?? '');
@@ -197,6 +157,10 @@ function canFallbackToManualSave(error) {
 
 function normalizeCheckinError(error) {
   const message = String(error?.message ?? error ?? 'Erro desconhecido ao salvar check-in.');
+
+  if (message.includes('recovery_score') || message.includes('available_minutes') || message.includes('joint_pain_locations')) {
+    return new Error('O treino adaptativo ainda não está pronto no Supabase. Rode a migration 2026_08_16_adaptive_workout.sql.');
+  }
 
   if (message.includes('daily_checkins') && (message.includes('does not exist') || message.includes('schema cache'))) {
     return new Error('A tabela daily_checkins não está pronta no Supabase. Rode a migration v3.9.5.');

@@ -175,8 +175,14 @@ export function normalizeExercisePayload(payload: any) {
     reps: String(payload.reps ?? '10').trim() || '10',
     load_kg: numberOrNull(payload.load_kg ?? payload.loadKg),
     rest_seconds: positiveIntegerOrNull(payload.rest_seconds ?? payload.restSeconds),
+    exercise_role: normalizeExerciseRole(payload.exercise_role ?? payload.exerciseRole ?? payload.role),
     notes: String(payload.notes ?? '').trim() || null,
   };
+}
+
+function normalizeExerciseRole(value: any) {
+  const role = String(value ?? '').toLowerCase();
+  return ['main', 'secondary', 'accessory'].includes(role) ? role : null;
 }
 
 function normalizeDayKind(value: any) {

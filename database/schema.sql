@@ -115,6 +115,7 @@ create table if not exists public.exercise_entries (
   reps text not null,
   load_kg numeric(6,2),
   rest_seconds integer,
+  exercise_role text check (exercise_role is null or exercise_role in ('main', 'secondary', 'accessory')),
   notes text,
   created_at timestamptz not null default now()
 );
@@ -127,6 +128,9 @@ create table if not exists public.workout_sessions (
   duration_minutes integer,
   perceived_effort integer check (perceived_effort between 1 and 10),
   completed boolean not null default false,
+  workout_variant text not null default 'base' check (workout_variant in ('base', 'adapted')),
+  readiness_score integer check (readiness_score is null or readiness_score between 0 and 100),
+  adaptation_summary jsonb,
   notes text,
   created_at timestamptz not null default now()
 );
@@ -163,8 +167,12 @@ create table if not exists public.daily_checkins (
   energy_score integer check (energy_score between 1 and 10),
   hunger_score integer check (hunger_score between 1 and 10),
   stress_score integer check (stress_score between 1 and 10),
+  recovery_score integer check (recovery_score between 1 and 10),
   pain_level integer check (pain_level between 0 and 10),
   soreness_level integer check (soreness_level between 0 and 10),
+  available_minutes integer check (available_minutes between 20 and 120),
+  joint_pain_locations text[],
+  muscle_soreness_locations text[],
   steps integer check (steps >= 0),
   lactose_symptoms boolean not null default false,
   cravings_notes text,

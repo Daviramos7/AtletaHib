@@ -1,4 +1,5 @@
-import { calculateReadiness } from '../services/checkinService';
+import { calculateReadiness, type ReadinessLevel } from '../domain/readiness';
+import { buildAdaptiveWorkoutRecommendation } from '../domain/adaptiveWorkout';
 
 export function buildDailyReadiness(payload: any = {}) {
   const {
@@ -7,163 +8,120 @@ export function buildDailyReadiness(payload: any = {}) {
     workoutHistory = [],
     cardioSessions = [],
     todayPlan = null,
+    now = new Date(),
+    timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone,
+    completedSets = [],
+    baseExercises = null,
   } = payload;
 
-  const base = calculateReadiness(checkin);
-  const sleep = pickLatestSleep(sleepSessions);
+  const adaptive = Array.isArray(baseExercises) ? buildAdaptiveWorkoutRecommendation({
+    checkin,
+    sleepSessions,
+    completedSets,
+    baseExercises,
+    cardioPlanned: Boolean(todayPlan?.cardio),
+    now,
+    timeZone,
+  }) : null;
+  const canonical = calculateReadiness({ checkin, sleepSessions, now, timeZone });
+  const readiness = adaptive?.checkinValid ? {
+    ...canonical,
+    score: adaptive.readinessScore ?? canonical.score,
+    level: adaptive.readinessLevel as ReadinessLevel,
+    reasons: adaptive.reasons,
+    warnings: adaptive.warnings,
+    relevantSignals: { ...canonical.relevantSignals, sleep: adaptive.sleep },
+    label: labelForLevel(adaptive.readinessLevel as ReadinessLevel),
+    tone: toneForLevel(adaptive.readinessLevel as ReadinessLevel),
+  } : canonical;
   const lastWorkout = pickLatestByDate(workoutHistory, 'performed_at');
   const lastCardio = pickLatestByDate(cardioSessions, 'performed_at');
-  const today = localDateKey(new Date());
-  const yesterday = shiftDate(today, -1);
-
-  let score = Number(base.score ?? 60);
-  const reasons = [];
-
-  if (!checkin) {
-    reasons.push('Sem check-in hoje. A decisão fica menos precisa.');
-  }
-
-  if (sleep) {
-    const minutes = Number(sleep.duration_minutes || 0);
-    const scoreSleep = Number(sleep.sleep_score || 0);
-
-    if (minutes && minutes < 330) {
-      score -= 14;
-      reasons.push('Sono curto: evite forçar progressão.');
-    } else if (minutes && minutes < 390) {
-      score -= 8;
-      reasons.push('Sono razoável: treine com controle.');
-    } else if (minutes >= 420) {
-      score += 4;
-      reasons.push('Sono bom: recuperação favorece treino.');
-    }
-
-    if (scoreSleep && scoreSleep < 65) {
-      score -= 6;
-      reasons.push('Qualidade do sono baixa.');
-    } else if (scoreSleep >= 80) {
-      score += 3;
-      reasons.push('Boa pontuação de sono.');
-    }
-  } else {
-    reasons.push('Sem sono importado recentemente.');
-  }
-
-  if (lastWorkout && localDateKey(lastWorkout.performed_at) === yesterday && todayPlan?.strength) {
-    score -= 5;
-    reasons.push('Treino de força ontem: aqueça melhor e não force ego.');
-  }
-
-  if (lastCardio && localDateKey(lastCardio.performed_at) === yesterday && todayPlan?.cardio) {
-    score -= 4;
-    reasons.push('Cardio recente: mantenha intensidade controlada se estiver cansado.');
-  }
-
-  score = clamp(Math.round(score), 0, 100);
-
-  const decision = buildDecision(score, todayPlan);
-  const flags = buildFlags({ checkin, sleep, todayPlan });
+  const decision = buildDecision(readiness.level, todayPlan);
+  const sleep = readiness.relevantSignals.sleep.hours === null ? null : readiness.relevantSignals.sleep;
 
   return {
-    score,
-    label: decision.label,
-    tone: decision.tone,
+    score: readiness.score,
+    level: readiness.level,
+    label: readiness.label,
+    tone: readiness.tone,
     headline: decision.headline,
     trainingAdvice: decision.trainingAdvice,
     cardioAdvice: decision.cardioAdvice,
     foodAdvice: decision.foodAdvice,
-    reasons: reasons.slice(0, 4),
-    flags,
+    reasons: readiness.reasons.slice(0, 4),
+    flags: buildFlags({ checkin, sleep, todayPlan }),
     sleep,
     lastWorkout,
     lastCardio,
   };
 }
 
-function buildDecision(score, todayPlan) {
+function labelForLevel(level: ReadinessLevel) {
+  if (level === 'recuperacao') return 'Recuperação';
+  if (level === 'baixa') return 'Baixa';
+  if (level === 'moderada') return 'Moderada';
+  return 'Boa';
+}
+
+function toneForLevel(level: ReadinessLevel) {
+  if (level === 'boa') return 'good' as const;
+  if (level === 'moderada') return 'warning' as const;
+  return 'danger' as const;
+}
+
+function buildDecision(level: ReadinessLevel, todayPlan: any) {
   const hasStrength = Boolean(todayPlan?.strength);
   const hasCardio = Boolean(todayPlan?.cardio);
 
-  if (score >= 80) {
+  if (level === 'boa') {
     return {
-      tone: 'good',
-      label: 'Boa',
       headline: 'Pode seguir o plano.',
-      trainingAdvice: hasStrength ? 'Treino normal. Pode tentar progressão pequena se a execução estiver limpa.' : 'Sem força pesada planejada.',
-      cardioAdvice: hasCardio ? 'Cardio normal. Evite transformar treino leve em tiro máximo.' : 'Cardio não é obrigatório hoje.',
-      foodAdvice: 'Mantenha água e proteína. Não complica.',
+      trainingAdvice: hasStrength ? 'Treino normal. Progressão pequena somente com execução limpa.' : 'Sem força pesada planejada.',
+      cardioAdvice: hasCardio ? 'Cardio leve a moderado, RPE 5–6.' : 'Cardio não é obrigatório hoje.',
+      foodAdvice: 'Mantenha água e proteína; cardio não compensa alimentação.',
     };
   }
 
-  if (score >= 60) {
+  if (level === 'moderada') {
     return {
-      tone: 'warning',
-      label: 'Média',
-      headline: 'Treine, mas sem inventar moda.',
-      trainingAdvice: hasStrength ? 'Mantenha carga ou suba só se estiver muito fácil. Reduza 1 série se estiver pesado.' : 'Força não é prioridade hoje.',
-      cardioAdvice: hasCardio ? 'Prefira zona 2, caminhada/trote ou futebol controlado. Sem tiro forte.' : 'Se fizer cardio extra, faça leve.',
-      foodAdvice: 'Coma normal. Fome alta pede refeição planejada, não belisco aleatório.',
+      headline: 'Treine com controle.',
+      trainingAdvice: hasStrength ? 'Mantenha cargas e aceite a redução de acessórios.' : 'Força não é prioridade hoje.',
+      cardioAdvice: hasCardio ? 'Cardio curto e conversável.' : 'Se fizer cardio extra, mantenha leve.',
+      foodAdvice: 'Mantenha refeições e hidratação normais.',
+    };
+  }
+
+  if (level === 'baixa') {
+    return {
+      headline: 'Reduza volume e intensidade.',
+      trainingAdvice: hasStrength ? 'Treino reduzido, longe da falha e sem progressão de carga.' : 'Evite força pesada.',
+      cardioAdvice: hasCardio ? 'Até 5 minutos leves, se fizer sentido.' : 'Caminhada leve é opcional.',
+      foodAdvice: 'Priorize água e refeições simples; não compense com restrição.',
     };
   }
 
   return {
-    tone: 'danger',
-    label: 'Baixa',
     headline: 'Recuperação primeiro.',
-    trainingAdvice: hasStrength ? 'Faça treino técnico leve ou reduza carga/volume. Sem recorde hoje.' : 'Evite esforço pesado.',
-    cardioAdvice: hasCardio ? 'Troque intervalado por caminhada, bike leve ou descanso.' : 'Caminhada leve só se ajudar a relaxar.',
-    foodAdvice: 'Priorize água, refeição simples e sono. Não compense com restrição.',
+    trainingAdvice: hasStrength ? 'Faça somente a versão técnica recomendada e pare se a dor piorar.' : 'Evite esforço pesado.',
+    cardioAdvice: 'Cardio pode ser retirado hoje.',
+    foodAdvice: 'Priorize água, refeição simples e sono.',
   };
 }
 
 function buildFlags({ checkin, sleep, todayPlan }) {
   const flags = [];
-
   if (todayPlan?.strength) flags.push('Força');
   if (todayPlan?.cardio) flags.push('Cardio');
   if (!todayPlan?.strength && !todayPlan?.cardio) flags.push('Recuperação');
-
-  if (checkin?.pain_level >= 7) flags.push('Dor alta');
-  else if (checkin?.pain_level >= 4) flags.push('Dor moderada');
-
-  if (checkin?.energy_score && checkin.energy_score <= 3) flags.push('Energia baixa');
-  if (checkin?.stress_score >= 7) flags.push('Estresse alto');
-
-  if (sleep?.duration_minutes) {
-    const hours = Number(sleep.duration_minutes) / 60;
-    flags.push(`${hours.toFixed(1)}h sono`);
-  }
-
+  if (Number(checkin?.pain_level) >= 7) flags.push('Dor alta');
+  else if (Number(checkin?.pain_level) >= 4) flags.push('Dor moderada');
+  if (Number(checkin?.energy_score) > 0 && Number(checkin.energy_score) <= 3) flags.push('Energia baixa');
+  if (Number(checkin?.stress_score) >= 8) flags.push('Estresse alto');
+  if (sleep?.hours) flags.push(`${Number(sleep.hours).toFixed(1)}h sono`);
   return flags.slice(0, 5);
-}
-
-function pickLatestSleep(sessions) {
-  const list = Array.isArray(sessions) ? sessions : [];
-  return [...list].sort((a, b) => {
-    const aTime = new Date(a.sleep_end_at || a.sleep_date || a.created_at || 0).getTime();
-    const bTime = new Date(b.sleep_end_at || b.sleep_date || b.created_at || 0).getTime();
-    return bTime - aTime;
-  })[0] ?? null;
 }
 
 function pickLatestByDate(rows, field) {
   const list = Array.isArray(rows) ? rows : [];
   return [...list].sort((a, b) => new Date(b[field] || 0).getTime() - new Date(a[field] || 0).getTime())[0] ?? null;
-}
-
-function localDateKey(value) {
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
-
-function shiftDate(dateKey, days) {
-  const [year, month, day] = String(dateKey).split('-').map(Number);
-  const date = new Date(year, month - 1, day);
-  date.setDate(date.getDate() + days);
-  return localDateKey(date);
-}
-
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
 }

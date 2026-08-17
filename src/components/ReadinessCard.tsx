@@ -3,7 +3,7 @@ import { Activity, Dumbbell, Moon, Salad, Timer } from 'lucide-react';
 import { getCheckin } from '../services/checkinService';
 import { listCardioSessions } from '../services/cardioService';
 import { listSleepSessions } from '../services/sleepService';
-import { listWorkoutHistory } from '../services/workoutService';
+import { listStrengthSets, listWorkoutHistory } from '../services/workoutService';
 import { todayKey } from '../services/dailyService';
 import { buildDailyReadiness } from '../utils/readinessAdvisor';
 
@@ -22,6 +22,7 @@ export default function ReadinessCard(props: any) {
   const [sleepSessions, setSleepSessions] = useState([]);
   const [workoutHistory, setWorkoutHistory] = useState([]);
   const [cardioSessions, setCardioSessions] = useState([]);
+  const [strengthSets, setStrengthSets] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -60,13 +61,24 @@ export default function ReadinessCard(props: any) {
     loadReadiness();
   }, [dailyTruth, dailyTruthLoading, onError, userId]);
 
+  useEffect(() => {
+    let alive = true;
+    if (!userId) return undefined;
+    listStrengthSets(userId, 180)
+      .then((sets) => { if (alive) setStrengthSets(sets); })
+      .catch((err) => onError?.(err.message));
+    return () => { alive = false; };
+  }, [onError, userId]);
+
   const readiness = useMemo(() => buildDailyReadiness({
     checkin,
     sleepSessions,
     workoutHistory,
     cardioSessions,
     todayPlan,
-  }), [checkin, sleepSessions, workoutHistory, cardioSessions, todayPlan]);
+    completedSets: strengthSets,
+    baseExercises: todayPlan?.strengthEntries ?? [],
+  }), [checkin, sleepSessions, workoutHistory, cardioSessions, strengthSets, todayPlan]);
 
   return (
     <section className={`simple-panel readiness-card-v36 ${readiness.tone} ${compact ? 'compact' : ''}`}>
