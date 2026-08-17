@@ -16,7 +16,7 @@ const TABS = [
 ];
 
 export default function RegisterHubView(props) {
-  const [tab, setTab] = useState('water');
+  const [tab, setTab] = useState(() => props.navigationIntent?.registerTab ?? 'water');
 
   return (
     <div className="simple-page">

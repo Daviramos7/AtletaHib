@@ -34,6 +34,7 @@ export default function App() {
   const tabHistoryRef = useRef([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [navigationIntent, setNavigationIntent] = useState(null);
   const userId = session?.user?.id;
 
   useEffect(() => {
@@ -120,13 +121,15 @@ export default function App() {
     );
   }
 
-  function navigateTo(tabId) {
+  function navigateTo(tabId, intent = null) {
     if (!NAV.some((item) => item.id === tabId)) return;
 
     if (tabId !== active) {
       tabHistoryRef.current = [...tabHistoryRef.current, active].slice(-12);
       setActive(tabId);
     }
+
+    setNavigationIntent(intent);
 
     setQuickOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -204,7 +207,15 @@ export default function App() {
         </aside>
 
         <section className="content-card content-card-v2">
-          <Current {...pageProps} onError={setError} onNavigate={navigateTo} />
+          <Current
+            {...pageProps}
+            navigationIntent={navigationIntent}
+            onError={setError}
+            onNavigate={navigateTo}
+            onCheckinSaved={(_data, mode) => {
+              if (mode === 'morning' && navigationIntent?.returnTo === 'gym') navigateTo('gym');
+            }}
+          />
         </section>
       </main>
 

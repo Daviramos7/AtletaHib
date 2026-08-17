@@ -20,6 +20,7 @@ A versão 4.1.2 consolida a identidade visual, padroniza os componentes de inter
 - Hidratação com atualização atômica no banco.
 - Cardio manual, planejado ou importado em um único histórico.
 - Treino de força por série, com carga, repetições, RPE, volume e estimativa de 1RM.
+- Academia adaptativa: o treino-base é ajustado de forma determinística por check-in, sono, carga muscular real, dor, pausa e tempo disponível.
 - Sono corrigido e dados de wearable com origem explícita.
 - Check-in separado entre manhã e fechamento do dia.
 - Peso, tendências semanais e revisão com janela temporal limitada.
@@ -100,6 +101,28 @@ database/migrations/2026_07_13_unify_cardio_sessions.sql
 ```
 
 Ela copia de forma idempotente os registros antigos de `run_sessions` para `cardio_sessions`. A tabela antiga é preservada como reserva histórica, mas o aplicativo deixa de ler e gravar nela.
+
+Para habilitar o treino adaptativo, aplique também:
+
+```text
+database/migrations/2026_08_16_adaptive_workout.sql
+```
+
+Essa migration adiciona campos opcionais de recuperação, tempo e localização de dor ao check-in, o papel explícito de cada exercício (`main`, `secondary` ou `accessory`) e um resumo compacto da recomendação na sessão executada. Registros antigos continuam válidos; nenhuma tabela ou policy RLS nova é criada.
+
+## Academia adaptativa
+
+- O check-in da manhã é exigido somente para gerar ou iniciar a recomendação de hoje; plano, histórico e editor continuam acessíveis.
+- O usuário pode escolher explicitamente o treino-base.
+- Painel e modo academia usam o mesmo cálculo canônico de prontidão, inclusive para sono corrigido, dor e carga recente.
+- O motor usa apenas séries realmente concluídas nas últimas 48–72 horas e o contexto independente dos últimos 7 dias.
+- Sono corrigido do dia de despertar tem prioridade e métrica ausente não vira zero.
+- O tempo recomendado considera séries, descansos, preparação, transições e cardio; a sessão adaptada cabe no tempo informado, com teto operacional de 50 minutos e no máximo 20 minutos de cardio.
+- A redução por tempo remove primeiro o cardio e depois volume/acessórios, preservando os exercícios principais enquanto houver espaço.
+- O papel de cada exercício é persistido no plano; planos antigos usam uma compatibilidade determinística sem depender da posição na lista.
+- A rotina padrão de quatro dias usa `Superior A`, `Inferior A`, `Superior B` e `Inferior B` na segunda, terça, quinta e sexta, sem repetir o mesmo grupo principal em dias consecutivos.
+- Uma sessão iniciada mantém o mesmo identificador, data, recomendação e rascunho mesmo após recarregar a página ou atravessar a meia-noite.
+- Sessões com volume restringido não são tratadas como regressão e não liberam progressão agressiva; a comparação volta à última sessão normal comparável.
 
 ## Aplicativo Android
 

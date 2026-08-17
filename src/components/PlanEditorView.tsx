@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, Plus, Save, Trash2 } from 'lucide-react';
 import { createExerciseEntry, deleteExerciseEntry, reorderExerciseEntries, updateExercise, updateTrainingDay } from '../services/trainingService';
 import { getDayKindLabel, getWeekdayLabel, normalizeTrainingDays, resolveDayKind } from '../utils/trainingPlanUtils';
+import { resolveExerciseRole } from '../domain/exerciseCatalog';
 
 const DAY_KIND_OPTIONS = [
   { id: 'strength', label: 'Força' },
@@ -16,8 +17,15 @@ const EMPTY_EXERCISE = {
   reps: '10',
   load_kg: '',
   rest_seconds: '90',
+  exercise_role: 'accessory',
   notes: '',
 };
+
+const EXERCISE_ROLE_OPTIONS = [
+  { id: 'main', label: 'Principal' },
+  { id: 'secondary', label: 'Secundário' },
+  { id: 'accessory', label: 'Acessório' },
+];
 
 export default function PlanEditorView(props: any) {
   const {
@@ -80,6 +88,7 @@ export default function PlanEditorView(props: any) {
         reps: draft.reps,
         load_kg: numberOrNull(draft.load_kg),
         rest_seconds: numberOrNull(draft.rest_seconds),
+        exercise_role: draft.exercise_role,
         notes: draft.notes?.trim() || null,
       });
       await refreshPlan();
@@ -246,6 +255,11 @@ export default function PlanEditorView(props: any) {
                     <label>Descanso s
                       <input type="number" min="0" step="5" value={draft.rest_seconds} onChange={(event) => updateExerciseDraft(exercise.id, { rest_seconds: event.target.value })} />
                     </label>
+                    <label>Prioridade
+                      <select value={draft.exercise_role} onChange={(event) => updateExerciseDraft(exercise.id, { exercise_role: event.target.value })}>
+                        {EXERCISE_ROLE_OPTIONS.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+                      </select>
+                    </label>
                     <label className="wide">Notas
                       <input value={draft.notes} onChange={(event) => updateExerciseDraft(exercise.id, { notes: event.target.value })} placeholder="máquina, alternativa, cuidado..." />
                     </label>
@@ -284,6 +298,11 @@ export default function PlanEditorView(props: any) {
           </label>
           <label>Descanso s
             <input type="number" min="0" step="5" value={newExercise.rest_seconds} onChange={(event) => setNewExercise({ ...newExercise, rest_seconds: event.target.value })} />
+          </label>
+          <label>Prioridade
+            <select value={newExercise.exercise_role} onChange={(event) => setNewExercise({ ...newExercise, exercise_role: event.target.value })}>
+              {EXERCISE_ROLE_OPTIONS.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+            </select>
           </label>
           <label className="wide">Notas
             <input value={newExercise.notes} onChange={(event) => setNewExercise({ ...newExercise, notes: event.target.value })} />
@@ -324,6 +343,7 @@ function buildExerciseForm(exercise: any = {}) {
     reps: exercise.reps ?? '10',
     load_kg: exercise.load_kg ?? '',
     rest_seconds: exercise.rest_seconds ?? '',
+    exercise_role: resolveExerciseRole(exercise),
     notes: exercise.notes ?? '',
   };
 }

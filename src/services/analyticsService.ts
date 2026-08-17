@@ -1,5 +1,5 @@
 import { requireSupabase } from '../lib/supabaseClient';
-import { calculateReadiness } from './checkinService';
+import { calculateReadiness } from '../domain/readiness';
 import { localDayRangeIso } from '../utils/dates';
 
 const DEFAULT_TARGETS = {
@@ -55,7 +55,12 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
     const checkin = checkinByDate.get(date);
     const wearable = wearableByDate.get(date);
     const correctedSleep = correctedSleepByDate.get(date);
-    const readiness = calculateReadiness(checkin);
+    const readiness = calculateReadiness({
+      checkin,
+      sleepSessions: correctedSleep ? [correctedSleep] : [],
+      now: new Date(`${date}T12:00:00`),
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    });
     const sleepMinutes = correctedSleep?.duration_minutes ?? wearable?.sleep_minutes ?? 0;
     const sleepHours = sleepMinutes ? Number(sleepMinutes) / 60 : 0;
     const steps = Number(wearable?.steps ?? 0);

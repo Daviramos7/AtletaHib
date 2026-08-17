@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Activity, CheckCircle2, Droplets, Dumbbell, Flame, Footprints, Moon, Salad, Save, ShieldAlert, Sparkles, Timer } from 'lucide-react';
-import { calculateReadiness, getCheckin, upsertCheckin } from '../services/checkinService';
+import { getCheckin, upsertCheckin } from '../services/checkinService';
 import { todayKey } from '../services/dailyService';
 import { loadCheckinAutofill } from '../services/checkinAutofillService';
+import { calculateReadiness } from '../domain/readiness';
 import { PageHeader } from './ui';
 
 const INITIAL = {
@@ -11,8 +12,12 @@ const INITIAL = {
   energy_score: 7,
   hunger_score: 5,
   stress_score: 5,
+  recovery_score: '',
   pain_level: 0,
   soreness_level: 3,
+  available_minutes: '',
+  joint_pain_locations: [],
+  muscle_soreness_locations: [],
   steps: '',
   lactose_symptoms: false,
   cravings_notes: '',
@@ -21,7 +26,18 @@ const INITIAL = {
   evening_notes: '',
 };
 
-export default function CheckInView({ userId, onError }) {
+const JOINT_LOCATIONS = [
+  ['ombro', 'Ombro'], ['cotovelo', 'Cotovelo'], ['punho', 'Punho'], ['lombar', 'Lombar'],
+  ['quadril', 'Quadril'], ['joelho', 'Joelho'], ['tornozelo', 'Tornozelo'], ['outro', 'Outro'],
+];
+
+const MUSCLE_LOCATIONS = [
+  ['quadriceps', 'Quadríceps'], ['posterior_de_coxa', 'Posterior'], ['gluteos', 'Glúteos'], ['peito', 'Peito'],
+  ['costas', 'Costas'], ['ombros', 'Ombros'], ['biceps', 'Bíceps'], ['triceps', 'Tríceps'],
+  ['panturrilhas', 'Panturrilhas'], ['core', 'Core'], ['outro', 'Outro'],
+];
+
+export default function CheckInView({ userId, onError, onCheckinSaved }) {
   const [form, setForm] = useState(INITIAL);
   const [saved, setSaved] = useState(null);
   const [autoData, setAutoData] = useState(null);
@@ -46,8 +62,12 @@ export default function CheckInView({ userId, onError }) {
           energy_score: checkinData.energy_score ?? 7,
           hunger_score: checkinData.hunger_score ?? 5,
           stress_score: checkinData.stress_score ?? 5,
+          recovery_score: checkinData.recovery_score ?? '',
           pain_level: checkinData.pain_level ?? 0,
           soreness_level: checkinData.soreness_level ?? 3,
+          available_minutes: checkinData.available_minutes ?? '',
+          joint_pain_locations: checkinData.joint_pain_locations ?? [],
+          muscle_soreness_locations: checkinData.muscle_soreness_locations ?? [],
           steps: valueAsInput(checkinData.steps ?? automaticData.steps),
           lactose_symptoms: Boolean(checkinData.lactose_symptoms),
           cravings_notes: checkinData.cravings_notes ?? '',
@@ -74,7 +94,7 @@ export default function CheckInView({ userId, onError }) {
 
   useEffect(() => { load(INITIAL.log_date); }, [load]);
 
-  const readiness = useMemo(() => calculateReadiness(form), [form]);
+  const readiness = useMemo(() => calculateReadiness({ checkin: form }), [form]);
   const hasAutoBasics = Boolean(autoData?.sleep_hours || autoData?.steps);
   const isMorning = mode === 'morning';
 
@@ -97,8 +117,12 @@ export default function CheckInView({ userId, onError }) {
         energy_score: data?.energy_score ?? old.energy_score,
         hunger_score: data?.hunger_score ?? old.hunger_score,
         stress_score: data?.stress_score ?? old.stress_score,
+        recovery_score: data?.recovery_score ?? old.recovery_score,
         pain_level: data?.pain_level ?? old.pain_level,
         soreness_level: data?.soreness_level ?? old.soreness_level,
+        available_minutes: data?.available_minutes ?? old.available_minutes,
+        joint_pain_locations: data?.joint_pain_locations ?? old.joint_pain_locations,
+        muscle_soreness_locations: data?.muscle_soreness_locations ?? old.muscle_soreness_locations,
         steps: valueAsInput(data?.steps ?? old.steps),
         lactose_symptoms: Boolean(data?.lactose_symptoms ?? old.lactose_symptoms),
         cravings_notes: data?.cravings_notes ?? old.cravings_notes,
@@ -107,6 +131,7 @@ export default function CheckInView({ userId, onError }) {
         evening_notes: data?.evening_notes ?? old.evening_notes,
       }));
       onError?.(isMorning ? 'Check-in da manhã salvo.' : 'Fechamento do dia salvo.');
+      if (isMorning) onCheckinSaved?.(data, mode);
     } catch (err: any) {
       onError?.(friendlyCheckinError(err));
     } finally {
@@ -123,6 +148,13 @@ export default function CheckInView({ userId, onError }) {
   function changeMode(nextMode) {
     setMode(nextMode);
     setForm((old) => ({ ...old, notes: nextMode === 'morning' ? old.morning_notes : old.evening_notes }));
+  }
+
+  function toggleLocation(key, location) {
+    setForm((old) => {
+      const current = Array.isArray(old[key]) ? old[key] : [];
+      return { ...old, [key]: current.includes(location) ? current.filter((item) => item !== location) : [...current, location] };
+    });
   }
 
   function applyAutomaticData() {
@@ -212,6 +244,18 @@ export default function CheckInView({ userId, onError }) {
             <label>Energia 1-10
               <input type="number" min="1" max="10" value={form.energy_score} onChange={(e) => update('energy_score', e.target.value)} />
             </label>
+            <label>Recuperação 1-10
+              <input type="number" min="1" max="10" value={form.recovery_score} onChange={(e) => update('recovery_score', e.target.value)} />
+            </label>
+            <label>Tempo disponível
+              <select value={form.available_minutes} onChange={(e) => update('available_minutes', e.target.value)}>
+                <option value="">Padrão do plano · 45 min</option>
+                <option value="30">30 min</option>
+                <option value="40">40 min</option>
+                <option value="45">45 min</option>
+                <option value="50">50 min</option>
+              </select>
+            </label>
             <label>Fome 1-10
               <input type="number" min="1" max="10" value={form.hunger_score} onChange={(e) => update('hunger_score', e.target.value)} />
             </label>
@@ -224,6 +268,8 @@ export default function CheckInView({ userId, onError }) {
             <label>Dor muscular 0-10
               <input type="number" min="0" max="10" value={form.soreness_level} onChange={(e) => update('soreness_level', e.target.value)} />
             </label>
+            {Number(form.pain_level) > 0 && <LocationPicker label="Onde há dor articular? (opcional)" options={JOINT_LOCATIONS} value={form.joint_pain_locations} onToggle={(location) => toggleLocation('joint_pain_locations', location)} />}
+            {Number(form.soreness_level) >= 4 && <LocationPicker label="Onde há dor muscular? (opcional)" options={MUSCLE_LOCATIONS} value={form.muscle_soreness_locations} onToggle={(location) => toggleLocation('muscle_soreness_locations', location)} />}
             <label className="check-row">
               <input type="checkbox" checked={form.lactose_symptoms} onChange={(e) => update('lactose_symptoms', e.target.checked)} /> sintomas alimentares hoje
             </label>
@@ -283,6 +329,20 @@ function AutoMetric({ icon: Icon, label, value, sub, ok }) {
   );
 }
 
+function LocationPicker({ label, options, value, onToggle }) {
+  const selected = Array.isArray(value) ? value : [];
+  return (
+    <fieldset className="full checkin-location-picker-v413">
+      <legend>{label}</legend>
+      <div>
+        {options.map(([id, text]) => (
+          <button key={id} className={selected.includes(id) ? 'active' : ''} type="button" aria-pressed={selected.includes(id)} onClick={() => onToggle(id)}>{text}</button>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
 function formatNumber(value) {
   return Number(value || 0).toLocaleString('pt-BR');
 }
@@ -293,6 +353,10 @@ function formatMacro(value) {
 
 function friendlyCheckinError(error) {
   const message = String(error?.message ?? error ?? 'Erro desconhecido ao salvar check-in.');
+
+  if (message.includes('recovery_score') || message.includes('available_minutes') || message.includes('joint_pain_locations')) {
+    return 'O treino adaptativo ainda não está pronto no Supabase. Rode a migration 2026_08_16_adaptive_workout.sql.';
+  }
 
   if (message.includes('daily_checkins') && (message.includes('does not exist') || message.includes('schema cache'))) {
     return 'A tabela daily_checkins não está pronta no Supabase. Rode a migration v3.9.5 e tente novamente.';

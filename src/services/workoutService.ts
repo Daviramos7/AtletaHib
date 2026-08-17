@@ -14,11 +14,20 @@ export async function completeWorkoutWithSets(userId, payload) {
       duration_minutes: Number(payload.duration_minutes || 0),
       perceived_effort: Number(payload.perceived_effort || 7),
       completed: true,
+      workout_variant: payload.workout_variant === 'adapted' ? 'adapted' : 'base',
+      readiness_score: payload.readiness_score ?? null,
+      adaptation_summary: payload.adaptation_summary ?? null,
       notes: payload.notes ?? null,
     })
     .select('*')
     .single();
-  if (sessionError) throw sessionError;
+  if (sessionError) {
+    const message = String(sessionError.message ?? '');
+    if (message.includes('workout_variant') || message.includes('readiness_score') || message.includes('adaptation_summary')) {
+      throw new Error('O treino adaptativo ainda não está pronto no Supabase. Rode a migration 2026_08_16_adaptive_workout.sql.');
+    }
+    throw sessionError;
+  }
 
   const validSets = (payload.sets ?? [])
     .filter((set) => Number(set.reps) > 0)
@@ -92,14 +101,39 @@ export async function listStrengthSets(userId, days = 120) {
   const client = requireSupabase();
   const from = new Date();
   from.setDate(from.getDate() - days);
-  const { data, error } = await client
+  const enriched = await client
+    .from('workout_exercise_sets')
+    .select('*, workout_session:workout_sessions(workout_variant, readiness_score, adaptation_summary)')
+    .eq('user_id', userId)
+    .gte('performed_at', from.toISOString())
+    .order('performed_at', { ascending: false });
+  if (!enriched.error) return (enriched.data ?? []).map(flattenWorkoutMetadata);
+
+  const message = String(enriched.error.message ?? '');
+  const canUseLegacyShape = message.includes('workout_variant')
+    || message.includes('readiness_score')
+    || message.includes('adaptation_summary')
+    || message.includes('relationship');
+  if (!canUseLegacyShape) throw enriched.error;
+
+  const legacy = await client
     .from('workout_exercise_sets')
     .select('*')
     .eq('user_id', userId)
     .gte('performed_at', from.toISOString())
     .order('performed_at', { ascending: false });
-  if (error) throw error;
-  return data ?? [];
+  if (legacy.error) throw legacy.error;
+  return legacy.data ?? [];
+}
+
+function flattenWorkoutMetadata(set) {
+  const session = Array.isArray(set.workout_session) ? set.workout_session[0] : set.workout_session;
+  return {
+    ...set,
+    workout_variant: session?.workout_variant ?? 'base',
+    readiness_score: session?.readiness_score ?? null,
+    adaptation_summary: session?.adaptation_summary ?? null,
+  };
 }
 
 export function calculateEstimatedOneRepMax(loadKg, reps) {
@@ -149,4 +183,3 @@ export function buildWeeklyStrengthProgress(sets, exerciseName) {
       totalVolume: Number(item.totalVolume.toFixed(0)),
     }));
 }
-
