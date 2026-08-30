@@ -7101,3 +7101,56 @@ video {
   .adaptive-details-toggle-v413 { width: 100%; justify-content: space-between; min-height: 42px; }
   .adaptive-workout-score-v413 { align-items: start; }
 }
+
+/* v4.2 — fila semanal flexível e ciclo completo da sessão de Academia */
+.weekly-gym-queue-v42,
+.gym-cardio-transition-v42,
+.gym-history-v42 { display: grid; gap: 16px; }
+.weekly-gym-grid-v42 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+.weekly-gym-grid-v42 button { min-width: 0; display: grid; gap: 5px; padding: 13px; text-align: left; border: 1px solid var(--border); border-radius: 15px; background: rgba(255,255,255,.025); color: var(--text); cursor: pointer; }
+.weekly-gym-grid-v42 button span,
+.weekly-gym-grid-v42 button small { color: var(--muted); font-size: .75rem; line-height: 1.35; }
+.weekly-gym-grid-v42 button.active,
+.weekly-gym-grid-v42 button.status-recommended { border-color: rgba(184,255,0,.35); background: rgba(184,255,0,.08); }
+.weekly-gym-grid-v42 button.status-completed { border-color: rgba(134,239,172,.24); }
+.weekly-gym-grid-v42 button.status-not_ideal { border-color: rgba(251,191,36,.28); }
+.weekly-days-strip-v42 { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+.weekly-days-strip-v42 span { display: grid; justify-items: center; gap: 2px; padding: 7px 2px; border-radius: 10px; background: rgba(255,255,255,.025); }
+.weekly-days-strip-v42 strong { font-size: .68rem; }
+.weekly-days-strip-v42 small { color: var(--muted); font-size: .68rem; }
+.weekly-reason-v42 { display: grid; gap: 6px; padding: 12px; border: 1px solid rgba(101,216,255,.18); border-radius: 14px; background: rgba(101,216,255,.055); }
+.weekly-reason-v42 span { color: var(--muted); line-height: 1.45; }
+.cardio-manual-fields-v42 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.cardio-manual-fields-v42 label { display: grid; gap: 6px; color: var(--muted); font-size: .8rem; font-weight: 800; }
+.cardio-manual-fields-v42 input { min-width: 0; }
+.gym-cardio-actions-v42 { flex-wrap: wrap; }
+.gym-finalize-v42 { width: fit-content; }
+.success-text-v42 { margin: 0; color: #86efac; font-weight: 800; }
+.gym-history-list-v42 { display: grid; gap: 10px; }
+.gym-history-list-v42 details { padding: 13px; border: 1px solid var(--border); border-radius: 14px; background: rgba(255,255,255,.025); }
+.gym-history-list-v42 summary { display: flex; justify-content: space-between; gap: 12px; cursor: pointer; }
+.gym-history-list-v42 summary > span:first-child { display: grid; gap: 3px; }
+.gym-history-list-v42 details span,
+.gym-history-list-v42 details small { color: var(--muted); font-size: .82rem; }
+.gym-history-list-v42 details[open] .gym-history-facts-v42 { margin-top: 12px; }
+.gym-history-facts-v42 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.json-link-choice-v42 { display: grid; gap: 8px; margin-top: 12px; padding: 12px; border: 1px solid rgba(184,255,0,.22); border-radius: 14px; background: rgba(184,255,0,.055); }
+.json-link-choice-v42 > span { color: var(--muted); line-height: 1.4; }
+.json-link-candidate-v42 { display: grid; gap: 5px; padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: rgba(0,0,0,.1); }
+.json-link-candidate-v42 small { color: var(--muted); }
+.json-link-choice-v42 button { width: fit-content; }
+
+@media (max-width: 760px) {
+  .weekly-gym-grid-v42 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cardio-manual-fields-v42,
+  .gym-history-facts-v42 { grid-template-columns: 1fr; }
+  .gym-cardio-actions-v42,
+  .gym-history-list-v42 summary { display: grid; }
+  .gym-cardio-actions-v42 button,
+  .gym-finalize-v42,
+  .json-link-choice-v42 button { width: 100%; justify-content: center; }
+}
+
+@media (max-width: 420px) {
+  .weekly-gym-grid-v42 { grid-template-columns: 1fr; }
+}

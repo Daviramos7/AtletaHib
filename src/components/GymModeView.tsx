@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Clock3, RotateCcw, Save, Square } from 'lucide-react';
-import { calculateVolumeKg, completeWorkoutWithSets, deleteWorkoutSession, listStrengthSets, listWorkoutHistory } from '../services/workoutService';
+import { calculateVolumeKg, completeStrengthForGymSession, finalizeGymSession, listGymSessionHistory, listStrengthSets, updateGymSessionCardioStatus } from '../services/workoutService';
 import { listCardioSessions, saveManualCardioSession } from '../services/cardioService';
 import { listWearableWorkoutSessions } from '../services/strengthWearableService';
 import { getCheckin } from '../services/checkinService';
@@ -13,6 +13,8 @@ import { ExerciseProgressMini, WorkoutProgressSummary } from './StrengthProgress
 import PlanEditorView from './PlanEditorView';
 import { localDateKey } from '../utils/dates';
 import { buildAdaptiveWorkoutRecommendation, selectWorkoutVariant } from '../domain/adaptiveWorkout';
+import { buildWeeklyGymQueue, selectionKindFor } from '../domain/weeklyGym';
+import { buildCardioPlanSnapshot, buildStrengthPlanSnapshot, deriveGymSessionLifecycle, plannedVsRealized } from '../domain/gymSession';
 import { resetPersonalizedTrainingPlan } from '../services/trainingService';
 import {
   clearActiveWorkoutDraft,
@@ -60,6 +62,14 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
   const [rowsPendingLocalDate, setRowsPendingLocalDate] = useState(null);
   const [draftHydrated, setDraftHydrated] = useState(false);
   const [regeneratingPlan, setRegeneratingPlan] = useState(false);
+  const [persistedWorkoutSessionId, setPersistedWorkoutSessionId] = useState(null);
+  const [strengthStatus, setStrengthStatus] = useState<'active' | 'completed'>('active');
+  const [cardioStatus, setCardioStatus] = useState<'not_planned' | 'pending' | 'awaiting_import' | 'completed' | 'skipped'>('not_planned');
+  const [selectionKind, setSelectionKind] = useState<'recommended' | 'manual' | 'extra'>('manual');
+  const [cardioPlan, setCardioPlan] = useState(null);
+  const [sessionStrengthPlan, setSessionStrengthPlan] = useState([]);
+  const [manualCardioMinutes, setManualCardioMinutes] = useState('');
+  const [manualCardioDistance, setManualCardioDistance] = useState('');
 
   const days = useMemo(() => normalizeTrainingDays(trainingPlan?.training_days ?? []), [trainingPlan]);
   const todayWeekday = new Date().getDay();
@@ -67,7 +77,7 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
   const dayKind = resolveDayKind(selectedDay);
   const strengthEntries = useMemo(() => getStrengthEntries(selectedDay), [selectedDay]);
   const cardioOptions = useMemo(() => getCardioOptions(selectedDay), [selectedDay]);
-  const selectedToday = selectedDay?.weekdayNumber === todayWeekday;
+  const selectedToday = Boolean(selectedDay);
   const recommendation = useMemo(() => buildAdaptiveWorkoutRecommendation({
     checkin,
     sleepSessions,
@@ -77,11 +87,21 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
     now: new Date(),
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   }), [checkin, selectedDay, sleepSessions, strengthEntries, strengthSets]);
+  const weeklyQueue = useMemo(() => buildWeeklyGymQueue({
+    planDays: days,
+    workoutSessions: history,
+    completedSets: strengthSets,
+    checkin,
+    sleepSessions,
+    now: new Date(),
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  }), [checkin, days, history, sleepSessions, strengthSets]);
+  const lifecycle = deriveGymSessionLifecycle({ strengthStatus, cardioStatus, completed: false });
   const load = useCallback(async () => {
     try {
       setRecommendationLoading(true);
       const [workoutData, cardioData, watchData, strengthSetData, checkinData, sleepData] = await Promise.all([
-        listWorkoutHistory(userId, 6),
+        listGymSessionHistory(userId, 80),
         listCardioSessions(userId, 20),
         listWearableWorkoutSessions(userId, 12),
         listStrengthSets(userId, 180),
@@ -94,6 +114,7 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
       setStrengthSets(strengthSetData);
       setCheckin(checkinData);
       setSleepSessions(sleepData);
+      return { workoutData, strengthSetData, checkinData, sleepData };
     } catch (err) {
       onError(err.message);
     } finally {
@@ -127,12 +148,18 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
       setSessionId(activeDraft.sessionId);
       setSessionLocalDate(activeDraft.sessionLocalDate);
       setSessionPlanDayId(activeDraft.planDayId);
+      setPersistedWorkoutSessionId(activeDraft.persistedWorkoutSessionId ?? null);
+      setStrengthStatus(activeDraft.strengthStatus ?? 'active');
+      setCardioStatus(activeDraft.cardioStatus ?? 'not_planned');
+      setSelectionKind(activeDraft.selectionKind ?? 'manual');
+      setCardioPlan(activeDraft.cardioPlan ?? null);
+      setSessionStrengthPlan(activeDraft.strengthPlan ?? []);
     } else {
       if (activeDraft) clearActiveWorkoutDraft(localStorage, userId, activeDraft.sessionId);
-      setSelectedDayId(defaultDay?.id ?? null);
+      setSelectedDayId(weeklyQueue.recommended?.day.id ?? defaultDay?.id ?? null);
     }
     setDraftHydrated(true);
-  }, [days, draftHydrated, todayKeyValue, todayWeekday, userId]);
+  }, [days, draftHydrated, todayKeyValue, todayWeekday, userId, weeklyQueue.recommended?.day.id]);
 
   useEffect(() => {
     if (!draftHydrated || !selectedDay || sessionId) return;
@@ -151,8 +178,39 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
     setTimerRunning(false);
     setSessionVariant('base');
     setSessionRecommendation(null);
+    setPersistedWorkoutSessionId(null);
+    setStrengthStatus('active');
+    setCardioStatus('not_planned');
+    setSelectionKind('manual');
+    setCardioPlan(null);
+    setSessionStrengthPlan([]);
     setSelectedCardioChoice(cardioOptions[0]?.label ?? '');
   }, [cardioOptions, draftHydrated, selectedDay, sessionId, strengthEntries, todayKeyValue, userId]);
+
+  useEffect(() => {
+    if (!draftHydrated || sessionId) return;
+    const openSession = history.find((item) => !item.completed && item.strength_status === 'completed' && item.session_status === 'strength_completed');
+    if (!openSession) return;
+    const day = days.find((item) => String(item.id) === String(openSession.training_day_id));
+    if (!day) return;
+    setSelectedDayId(day.id);
+    setStartedAt(openSession.performed_at);
+    setTimerRunning(false);
+    setDuration(String(openSession.duration_minutes ?? ''));
+    setSessionVariant(openSession.workout_variant === 'adapted' ? 'adapted' : 'base');
+    setSessionRecommendation(openSession.adaptation_summary ?? null);
+    setSessionId(`recovered-${openSession.id}`);
+    setSessionLocalDate(openSession.session_local_date ?? localDateKey(new Date(openSession.performed_at)));
+    setSessionPlanDayId(String(openSession.training_day_id));
+    setPersistedWorkoutSessionId(openSession.id);
+    setStrengthStatus('completed');
+    setCardioStatus(openSession.cardio_status ?? 'not_planned');
+    setSelectionKind(openSession.selection_kind ?? 'manual');
+    setCardioPlan(openSession.cardio_plan ?? null);
+    setSessionStrengthPlan(openSession.strength_plan ?? []);
+    setSelectedCardioChoice(openSession.cardio_plan?.activity_label ?? '');
+    onError?.('Sessão pós-força recuperada. Resolva o cardio e finalize quando estiver pronto.');
+  }, [days, draftHydrated, history, onError, sessionId]);
 
   useEffect(() => {
     if (!draftHydrated || sessionId || !selectedDay || rowsPlanDayId !== String(selectedDay.id) || rowsPendingLocalDate !== todayKeyValue || !setRows.length) return;
@@ -173,16 +231,21 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
       selectedCardioChoice,
       duration,
       effort,
+      persistedWorkoutSessionId,
+      strengthStatus,
+      cardioStatus,
+      selectionKind,
+      cardioPlan,
+      strengthPlan: sessionStrengthPlan,
     }));
-  }, [draftHydrated, duration, effort, selectedCardioChoice, selectedDay?.weekdayNumber, sessionId, sessionLocalDate, sessionPlanDayId, sessionRecommendation, sessionVariant, setRows, startedAt, userId]);
+  }, [cardioPlan, cardioStatus, draftHydrated, duration, effort, persistedWorkoutSessionId, selectedCardioChoice, selectedDay?.weekdayNumber, selectionKind, sessionId, sessionLocalDate, sessionPlanDayId, sessionRecommendation, sessionStrengthPlan, sessionVariant, setRows, startedAt, strengthStatus, userId]);
 
   const todayCardios = useMemo(() => cardios.filter((item) => localDateKey(new Date(item.performed_at)) === todayKeyValue), [cardios, todayKeyValue]);
   const todayWearableStrength = useMemo(() => wearableSessions.filter((item) => localDateKey(new Date(item.performed_at)) === todayKeyValue), [wearableSessions, todayKeyValue]);
   const completedSets = setRows.filter((row) => row.done).length;
   const totalSets = setRows.length;
   const totalVolume = calculateVolumeKg(setRows.filter((row) => row.done && Number(row.reps) > 0));
-  const canFinishSession = Boolean(startedAt || duration || (isStrengthDay(selectedDay) && setRows.some((row) => row.done)));
-  const finishLabel = isStrengthDay(selectedDay) ? 'Finalizar treino' : isCardioDay(selectedDay) ? 'Finalizar cardio' : 'Salvar sessão';
+  const canConcludeStrength = strengthStatus === 'active' && Boolean(startedAt || duration || (isStrengthDay(selectedDay) && setRows.some((row) => row.done)));
 
   function selectDay(day) {
     if (sessionId && startedAt && String(day.id) !== String(sessionPlanDayId)) {
@@ -194,16 +257,34 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
   }
 
   function requestStartSession() {
-    if (!selectedToday) {
-      startSession('base');
-      return;
-    }
+    if (!confirmQueueChoice()) return;
+    const isRecommended = String(weeklyQueue.recommended?.day.id) === String(selectedDay?.id)
+      && !weeklyQueue.items.find((item) => String(item.day.id) === String(selectedDay?.id))?.completionCount;
     if (!recommendation.checkinValid) {
       setRecommendationDetailsOpen(true);
       onError('Faça o check-in da manhã ou escolha explicitamente usar o treino-base.');
       return;
     }
-    startSession('recommended');
+    startSession(isRecommended ? 'recommended' : 'manual');
+  }
+
+  function requestBaseSession() {
+    if (!confirmQueueChoice()) return;
+    startSession('base');
+  }
+
+  function confirmQueueChoice() {
+    const queueItem = weeklyQueue.items.find((item) => String(item.day.id) === String(selectedDay?.id));
+    const isRecommended = String(weeklyQueue.recommended?.day.id) === String(selectedDay?.id) && !queueItem?.completionCount;
+    if (!isRecommended) {
+      const reason = queueItem?.completionCount
+        ? 'Esta sessão-base já foi concluída na semana. A repetição será salva como treino extra e não aumentará a aderência-base.'
+        : queueItem?.status === 'not_ideal'
+          ? 'Esta não é a melhor sessão para a recuperação atual.'
+          : 'Há outra sessão recomendada para preservar sequência e recuperação.';
+      if (!window.confirm(`${reason}\n\nDeseja iniciar mesmo assim?`)) return false;
+    }
+    return true;
   }
 
   function startSession(choice) {
@@ -213,16 +294,20 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
     }
 
     const now = new Date().toISOString();
-    const useRecommendation = choice === 'recommended' && selectedToday && recommendation.checkinValid;
+    const useRecommendation = recommendation.checkinValid && choice !== 'base';
     const variant = useRecommendation ? recommendation.recommendedVariant : 'base';
     const candidateRows = useRecommendation
       ? buildSetRowsFromVariant(selectWorkoutVariant(strengthEntries, recommendation, 'adapted'))
       : buildInitialSetRows(strengthEntries);
     const rows = rowsPlanDayId === String(selectedDay?.id) ? mergeRowsPreservingInput(candidateRows, setRows) : candidateRows;
-    const recommendationSummary = selectedToday && recommendation.checkinValid ? buildRecommendationSummary(recommendation) : null;
+    const recommendationSummary = recommendation.checkinValid ? buildRecommendationSummary(recommendation) : null;
     const stableSessionId = createStableSessionId(new Date(now));
     const localSessionDate = localDateKey(new Date(now));
     const planDayId = String(selectedDay?.id ?? '');
+    const queueRequestedKind = String(weeklyQueue.recommended?.day.id) === planDayId ? 'recommended' : 'manual';
+    const nextSelectionKind = selectionKindFor(weeklyQueue, planDayId, queueRequestedKind);
+    const nextCardioPlan = buildCardioPlanSnapshot({ selectedDay, selectedChoice: selectedCardioChoice, recommendedMinutes: recommendationSummary?.cardioMinutes });
+    const nextStrengthPlan = buildStrengthPlanSnapshot(rows);
     const draft = createActiveWorkoutDraft({
       sessionId: stableSessionId,
       startedAt: now,
@@ -235,6 +320,12 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
       selectedCardioChoice,
       duration: '',
       effort,
+      persistedWorkoutSessionId: null,
+      strengthStatus: 'active',
+      cardioStatus: nextCardioPlan.planned ? 'pending' : 'not_planned',
+      selectionKind: nextSelectionKind,
+      cardioPlan: nextCardioPlan,
+      strengthPlan: nextStrengthPlan,
     });
 
     setSetRows(rows);
@@ -248,9 +339,15 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
     setSessionId(stableSessionId);
     setSessionLocalDate(localSessionDate);
     setSessionPlanDayId(planDayId);
+    setPersistedWorkoutSessionId(null);
+    setStrengthStatus('active');
+    setCardioStatus(nextCardioPlan.planned ? 'pending' : 'not_planned');
+    setSelectionKind(nextSelectionKind);
+    setCardioPlan(nextCardioPlan);
+    setSessionStrengthPlan(nextStrengthPlan);
     clearPendingWorkoutRows(localStorage, userId, planDayId);
     saveActiveWorkoutDraft(localStorage, userId, draft);
-    onError(useRecommendation ? 'Treino recomendado iniciado.' : 'Treino-base iniciado.');
+    onError(nextSelectionKind === 'extra' ? 'Treino extra iniciado.' : useRecommendation ? 'Treino recomendado iniciado.' : 'Treino-base iniciado.');
   }
 
   function stopSessionTimer() {
@@ -323,6 +420,10 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
   }
 
   function resetDraft() {
+    if (persistedWorkoutSessionId) {
+      onError?.('A força já foi salva. Escolha o destino do cardio e finalize a sessão; os dados registrados não serão apagados.');
+      return;
+    }
     if (!window.confirm('Limpar marcações deste treino?')) return;
     if (sessionId) clearActiveWorkoutDraft(localStorage, userId, sessionId);
     if (selectedDay?.id) clearPendingWorkoutRows(localStorage, userId, String(selectedDay.id));
@@ -336,6 +437,12 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
     setSessionId(null);
     setSessionLocalDate(null);
     setSessionPlanDayId(null);
+    setPersistedWorkoutSessionId(null);
+    setStrengthStatus('active');
+    setCardioStatus('not_planned');
+    setSelectionKind('manual');
+    setCardioPlan(null);
+    setSessionStrengthPlan([]);
   }
 
   async function regeneratePlan() {
@@ -367,7 +474,7 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
     }
   }
 
-  async function finishWorkout() {
+  async function concludeStrength() {
     if (!selectedDay || saving) return;
     const validSets = setRows.filter((row) => row.done && Number(row.reps) > 0);
     const sessionStartedAt = resolveSessionPerformedAt(startedAt);
@@ -382,66 +489,144 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
       if (!shouldContinue) return;
     }
 
-    let createdWorkoutSessionId = null;
     try {
       setSaving(true);
-
-      const cardioPayload = await resolveCardioPayloadBeforePersisting({
-        selectedDay,
-        validSets,
-        sessionStartedAt,
-        selectedCardioChoice,
-        duration,
-        recommendedCardioMinutes: sessionRecommendation?.cardioMinutes,
+      const snapshot = cardioPlan ?? buildCardioPlanSnapshot({ selectedDay, selectedChoice: selectedCardioChoice, recommendedMinutes: sessionRecommendation?.cardioMinutes });
+      const completedWorkout = await completeStrengthForGymSession(userId, {
+        training_day_id: selectedDay.id,
+        performed_at: sessionStartedAt,
+        session_local_date: sessionLocalDate ?? localDateKey(new Date(sessionStartedAt)),
+        duration_minutes: Number(duration || 0) || elapsedMinutes(sessionStartedAt) || 30,
+        perceived_effort: Number(effort || 7),
+        notes: `${selectedDay.title} · força concluída`,
+        workout_variant: sessionVariant,
+        readiness_score: sessionRecommendation?.readinessScore ?? null,
+        adaptation_summary: sessionRecommendation,
+        selection_kind: selectionKind,
+        strength_plan: sessionStrengthPlan.length ? sessionStrengthPlan : buildStrengthPlanSnapshot(setRows),
+        cardio_plan: snapshot,
+        all_rows: setRows,
+        sets: validSets.map((row) => ({
+          ...row,
+          exercise_name: row.exercise_name,
+          notes: [row.notes, row.original_exercise_name ? `Original: ${row.original_exercise_name}` : null].filter(Boolean).join(' · ') || null,
+        })),
       });
 
-      if (validSets.length) {
-        const completedWorkout = await completeWorkoutWithSets(userId, {
-          training_day_id: selectedDay.id,
-          performed_at: sessionStartedAt,
-          duration_minutes: Number(duration || 0) || elapsedMinutes(sessionStartedAt) || 30,
-          perceived_effort: Number(effort || 7),
-          notes: `${selectedDay.title}${isCardioDay(selectedDay) ? ' · cardio planejado' : ''}`,
-          workout_variant: sessionVariant,
-          readiness_score: sessionRecommendation?.readinessScore ?? null,
-          adaptation_summary: sessionRecommendation,
-          sets: validSets.map((row) => ({
-            ...row,
-            exercise_name: row.exercise_name,
-            notes: [row.notes, row.original_exercise_name ? `Original: ${row.original_exercise_name}` : null].filter(Boolean).join(' · ') || null,
-          })),
-        });
-        createdWorkoutSessionId = completedWorkout.session.id;
+      setPersistedWorkoutSessionId(completedWorkout.session.id);
+      setStrengthStatus('completed');
+      setCardioStatus(completedWorkout.session.cardio_status);
+      setCardioPlan(snapshot);
+      if (sessionId) {
+        saveActiveWorkoutDraft(localStorage, userId, createActiveWorkoutDraft({
+          sessionId,
+          startedAt: sessionStartedAt,
+          sessionLocalDate: sessionLocalDate ?? localDateKey(new Date(sessionStartedAt)),
+          planDayId: String(selectedDay.id),
+          planDayWeekday: selectedDay.weekdayNumber ?? null,
+          workoutVariant: sessionVariant === 'adapted' ? 'adapted' : 'base',
+          recommendation: sessionRecommendation,
+          rows: setRows,
+          selectedCardioChoice,
+          duration,
+          effort,
+          persistedWorkoutSessionId: completedWorkout.session.id,
+          strengthStatus: 'completed',
+          cardioStatus: completedWorkout.session.cardio_status,
+          selectionKind,
+          cardioPlan: snapshot,
+          strengthPlan: sessionStrengthPlan.length ? sessionStrengthPlan : buildStrengthPlanSnapshot(setRows),
+        }));
       }
+      setTimerRunning(false);
+      await load();
+      onError(snapshot.planned ? 'Força concluída. Agora registre, importe ou pule o cardio antes de finalizar a sessão.' : 'Força concluída. A sessão já pode ser finalizada.');
+    } catch (err) {
+      onError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
 
-      if (cardioPayload) {
-        await saveManualCardioSession(userId, cardioPayload);
-      }
+  async function chooseCardioStatus(nextStatus) {
+    if (!persistedWorkoutSessionId || saving) return;
+    try {
+      setSaving(true);
+      await updateGymSessionCardioStatus(userId, persistedWorkoutSessionId, nextStatus);
+      setCardioStatus(nextStatus);
+      await load();
+      onError(nextStatus === 'awaiting_import'
+        ? 'Sessão marcada para aguardar o JSON do relógio. Ela pode ser finalizada agora.'
+        : 'Cardio pulado sem criar execução fictícia. A sessão pode ser finalizada.');
+    } catch (err) {
+      onError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
 
+  async function saveManualCardio() {
+    if (!persistedWorkoutSessionId || saving) return;
+    const minutes = Number(manualCardioMinutes || 0);
+    if (minutes <= 0) {
+      onError('Informe os minutos realmente realizados.');
+      return;
+    }
+    if (minutes > 20 && !window.confirm(`Você registrou ${minutes} min. O plano recomenda no máximo 20 min. Salvar o valor real mesmo assim?`)) return;
+    try {
+      setSaving(true);
+      const manualActivityType = inferCardioActivityType(cardioPlan?.activity_label || selectedCardioChoice);
+      await saveManualCardioSession(userId, {
+        workout_session_id: persistedWorkoutSessionId,
+        performed_at: resolveSessionPerformedAt(startedAt),
+        activity_type: manualActivityType,
+        activity_label: cardioPlan?.activity_label || selectedCardioChoice || 'Cardio pós-treino',
+        duration_minutes: minutes,
+        distance_km: manualCardioDistance || null,
+        distance_source: manualCardioDistance ? (manualActivityType === 'treadmill' ? 'treadmill' : 'manual') : null,
+        notes: `${selectedDay?.title ?? 'Treino'} · execução informada manualmente`,
+      });
+      setCardioStatus('completed');
+      await load();
+      onError('Cardio real vinculado à sessão.');
+    } catch (err) {
+      onError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function finishGymSession() {
+    if (!persistedWorkoutSessionId || !lifecycle.canFinish || saving) return;
+    try {
+      setSaving(true);
+      await finalizeGymSession(userId, persistedWorkoutSessionId, {
+        duration_minutes: Number(duration || 0) || elapsedMinutes(resolveSessionPerformedAt(startedAt)) || 30,
+      });
       if (sessionId) clearActiveWorkoutDraft(localStorage, userId, sessionId);
       if (selectedDay?.id) clearPendingWorkoutRows(localStorage, userId, String(selectedDay.id));
-      setSetRows(buildInitialSetRows(strengthEntries));
-      setRowsPlanDayId(selectedDay?.id ? String(selectedDay.id) : null);
-      setRowsPendingLocalDate(todayKeyValue);
-      setStartedAt(null);
-      setTimerRunning(false);
-      setDuration('');
-      setSessionVariant('base');
-      setSessionRecommendation(null);
-      setSessionId(null);
-      setSessionLocalDate(null);
-      setSessionPlanDayId(null);
-      await load();
-      onError('Sessão salva.');
-    } catch (err) {
-      if (createdWorkoutSessionId) {
-        try {
-          await deleteWorkoutSession(userId, createdWorkoutSessionId);
-        } catch (rollbackError) {
-          onError(`Falha ao salvar a sessão e o rollback também falhou. Revise o histórico antes de tentar novamente: ${rollbackError.message}`);
-          return;
-        }
+      const refreshed = await load();
+      resetSessionState(selectedDay, strengthEntries, todayKeyValue, {
+        setSetRows, setRowsPlanDayId, setRowsPendingLocalDate, setStartedAt, setTimerRunning, setDuration,
+        setSessionVariant, setSessionRecommendation, setSessionId, setSessionLocalDate, setSessionPlanDayId,
+        setPersistedWorkoutSessionId, setStrengthStatus, setCardioStatus, setSelectionKind, setCardioPlan,
+        setSessionStrengthPlan,
+        setManualCardioMinutes, setManualCardioDistance,
+      });
+      if (refreshed) {
+        const nextQueue = buildWeeklyGymQueue({
+          planDays: days,
+          workoutSessions: refreshed.workoutData,
+          completedSets: refreshed.strengthSetData,
+          checkin: refreshed.checkinData,
+          sleepSessions: refreshed.sleepData,
+          now: new Date(),
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        });
+        setSelectedDayId(nextQueue.recommended?.day.id ?? selectedDay?.id ?? null);
       }
+      onError('Sessão finalizada. Força, cardio e dados do relógio permanecem separados no histórico.');
+    } catch (err) {
       onError(err.message);
     } finally {
       setSaving(false);
@@ -500,14 +685,15 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
     <div className="simple-page gym-v32-page">
       <div className="simple-hero gym-v32-hero">
         <div>
-          <p className="eyebrow">{selectedDay ? getWeekdayLabel(selectedDay.weekdayNumber) : 'Treino'}</p>
+          <p className="eyebrow">{persistedWorkoutSessionId ? 'Sessão em andamento' : selectedDay ? `Preferência: ${getWeekdayLabel(selectedDay.weekdayNumber)}` : 'Treino'}</p>
           <h2>{selectedDay?.title ?? 'Sem treino'}</h2>
-          <p>{getDayKindLabel(dayKind)}</p>
+          <p>{strengthStatus === 'completed' ? 'Força concluída · escolha o destino do cardio' : `${getDayKindLabel(dayKind)} · o dia da semana é apenas uma preferência`}</p>
         </div>
         <div className="gym-hero-actions-v37">
           <button className="ghost-btn" type="button" onClick={() => setMode('editor')}>Editar plano</button>
-          {startedAt ? (
+          {startedAt && strengthStatus === 'active' ? (
             <>
+              <button className="ghost-btn" type="button" onClick={() => document.querySelector('.gym-log-panel-v32')?.scrollIntoView({ behavior: 'smooth' })}>Continuar treino</button>
               <button className="primary-btn" type="button" disabled><Clock3 size={16} /> {timerRunning ? elapsedMinutes(startedAt) : Number(duration || 0)} min</button>
               {timerRunning ? (
                 <button className="ghost-btn timer-stop-v393" type="button" onClick={stopSessionTimer}><Square size={15} /> Parar timer</button>
@@ -515,23 +701,23 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
                 <span className="session-frozen-v40">timer parado</span>
               )}
             </>
-          ) : (
+          ) : !persistedWorkoutSessionId ? (
             <button className="primary-btn" type="button" onClick={requestStartSession}><Clock3 size={16} /> Iniciar</button>
+          ) : null}
+          {canConcludeStrength && (
+            <button className="primary-btn finish-session-v394" type="button" onClick={concludeStrength} disabled={saving}>
+              <Save size={16} /> Concluir força
+            </button>
           )}
-          {canFinishSession && (
-            <button className="primary-btn finish-session-v394" type="button" onClick={finishWorkout} disabled={saving}>
-              <Save size={16} /> {finishLabel}
+          {persistedWorkoutSessionId && lifecycle.canFinish && (
+            <button className="primary-btn finish-session-v394" type="button" onClick={finishGymSession} disabled={saving}>
+              <CheckCircle2 size={16} /> Finalizar sessão
             </button>
           )}
         </div>
       </div>
 
-      <section className="simple-panel gym-day-picker">
-        <p className="eyebrow">Semana</p>
-        <div className="gym-day-cards">
-          {days.map((day) => <button key={day.id} type="button" className={selectedDay?.id === day.id ? 'active' : ''} onClick={() => selectDay(day)}><strong>{getWeekdayLabel(day.weekdayNumber)}</strong><span>{getDayKindLabel(resolveDayKind(day))}</span></button>)}
-        </div>
-      </section>
+      <WeeklyGymQueueCard queue={weeklyQueue} selectedDayId={selectedDay?.id} activePlanDayId={sessionPlanDayId} onSelect={selectDay} />
 
       <section className="simple-panel gym-plan-summary">
         <div className="today-binary-grid">
@@ -540,7 +726,7 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
         </div>
       </section>
 
-      <AdaptiveWorkoutCard
+      {strengthStatus === 'active' && <AdaptiveWorkoutCard
         recommendation={recommendation}
         loading={recommendationLoading}
         started={Boolean(startedAt)}
@@ -550,12 +736,12 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
         selectedToday={selectedToday}
         showDetails={recommendationDetailsOpen}
         onToggleDetails={() => setRecommendationDetailsOpen((open) => !open)}
-        onStartRecommended={() => startSession('recommended')}
-        onUseBase={() => startSession('base')}
+        onStartRecommended={requestStartSession}
+        onUseBase={requestBaseSession}
         onCheckin={() => onNavigate?.('register', { registerTab: 'checkin', returnTo: 'gym' })}
-      />
+      />}
 
-      {isStrengthDay(selectedDay) && (
+      {isStrengthDay(selectedDay) && strengthStatus === 'active' && (
         <WorkoutProgressSummary
           currentRows={setRows}
           strengthSets={strengthSets}
@@ -574,12 +760,12 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
         />
       )}
 
-      {isStrengthDay(selectedDay) && (
+      {isStrengthDay(selectedDay) && strengthStatus === 'active' && (
         <section className="simple-panel gym-log-panel-v32">
           <div className="gym-log-top-v32">
             <button className="ghost-btn" type="button" onClick={resetDraft}><RotateCcw size={16} /> Limpar</button>
             <div><p className="eyebrow">Treino</p><h3>{completedSets}/{totalSets} séries</h3><span>{Math.round(totalVolume)} kg</span></div>
-            <button className="primary-btn" type="button" onClick={finishWorkout} disabled={saving}><Save size={16} /> Finalizar</button>
+            <button className="primary-btn" type="button" onClick={concludeStrength} disabled={!canConcludeStrength || saving}><Save size={16} /> Concluir força</button>
           </div>
 
           <div className="hevy-exercise-list-v32">
@@ -647,6 +833,28 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
         </section>
       )}
 
+      {persistedWorkoutSessionId && strengthStatus === 'completed' && (
+        <GymCardioTransition
+          cardioPlan={cardioPlan}
+          cardioStatus={cardioStatus}
+          manualMinutes={manualCardioMinutes}
+          manualDistance={manualCardioDistance}
+          saving={saving}
+          onMinutes={setManualCardioMinutes}
+          onDistance={setManualCardioDistance}
+          onSaveManual={saveManualCardio}
+          onBegin={() => {
+            if (!manualCardioMinutes) setManualCardioMinutes(String(cardioPlan?.target_minutes ?? 10));
+            onError?.('Cardio iniciado. Ao terminar, registre o valor real ou escolha anexar o relógio depois.');
+          }}
+          onAwaitImport={() => chooseCardioStatus('awaiting_import')}
+          onSkip={() => chooseCardioStatus('skipped')}
+          onFinish={finishGymSession}
+          canFinish={lifecycle.canFinish}
+          onOpenImport={() => onNavigate?.('register', { registerTab: 'json', returnTo: 'gym' })}
+        />
+      )}
+
       <section className="simple-panel centralized-json-note-v364">
         <div>
           <p className="eyebrow">Importação por JSON</p>
@@ -664,39 +872,129 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
           <StatusMini label="Treinos salvos" value={history.length} />
         </div>
       </section>
+
+      <GymSessionHistory sessions={history.filter((item) => item.completed).slice(0, 8)} />
     </div>
   );
 }
 
-async function resolveCardioPayloadBeforePersisting({ selectedDay, validSets, sessionStartedAt, selectedCardioChoice, duration, recommendedCardioMinutes }) {
-  if (!isCardioDay(selectedDay)) return null;
+function WeeklyGymQueueCard({ queue, selectedDayId, activePlanDayId, onSelect }) {
+  return (
+    <section className="simple-panel weekly-gym-queue-v42">
+      <div className="simple-section-head">
+        <div>
+          <p className="eyebrow">Fila semanal flexível</p>
+          <h3>{queue.completedBaseCount}/{queue.targetCount} sessões-base concluídas</h3>
+          <p className="muted-text">Segunda a domingo. O dia do plano é preferência; sequência, recuperação e disponibilidade definem a recomendação.</p>
+        </div>
+        {queue.extraCount > 0 && <span className="pill">{queue.extraCount} extra(s)</span>}
+      </div>
+      <div className="weekly-days-strip-v42">
+        {queue.week.days.map((dateKey, index) => <span key={dateKey}><strong>{['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'][index]}</strong><small>{dateKey.slice(8, 10)}</small></span>)}
+      </div>
+      <div className="weekly-gym-grid-v42">
+        {queue.items.map((item) => {
+          const active = String(activePlanDayId ?? selectedDayId) === String(item.day.id);
+          const label = item.status === 'completed' ? 'Concluído' : item.status === 'recommended' ? 'Recomendado' : item.status === 'not_ideal' ? 'Não ideal hoje' : 'Pendente';
+          return (
+            <button key={item.day.id} type="button" className={`${active ? 'active' : ''} status-${item.status}`} onClick={() => onSelect(item.day)}>
+              <span>{item.sequenceOrder} · preferência {getWeekdayLabel(item.preferredWeekday)}</span>
+              <strong>{item.day.title}</strong>
+              <small>{label} · ~{item.estimatedMinutes} min</small>
+            </button>
+          );
+        })}
+      </div>
+      {queue.recommended && (
+        <div className="weekly-reason-v42">
+          <strong>Por que {queue.recommended.day.title}?</strong>
+          <span>{queue.recommended.reasons.slice(0, 3).join(' ')}</span>
+        </div>
+      )}
+    </section>
+  );
+}
 
-  if (validSets.length) {
-    const shouldSaveCardio = window.confirm('Também registrar o cardio planejado deste dia?');
-    if (!shouldSaveCardio) return null;
-  }
+function GymCardioTransition({ cardioPlan, cardioStatus, manualMinutes, manualDistance, saving, onMinutes, onDistance, onSaveManual, onBegin, onAwaitImport, onSkip, onFinish, canFinish, onOpenImport }) {
+  const planned = Boolean(cardioPlan?.planned);
+  return (
+    <section className="simple-panel gym-cardio-transition-v42">
+      <div>
+        <p className="eyebrow">Força concluída</p>
+        <h3>{planned ? cardioPlan.activity_label || 'Cardio pós-treino' : 'Sem cardio planejado'}</h3>
+        <p className="muted-text">{planned ? `${cardioPlan.target_minutes ?? '--'} min · ${cardioPlan.intensity ?? 'leve'} · RPE ${cardioPlan.target_rpe ?? '5–6'}` : 'Você pode finalizar a sessão sem criar um cardio fictício.'}</p>
+      </div>
+      {planned && cardioStatus === 'pending' && (
+        <>
+          <div className="cardio-manual-fields-v42">
+            <label>Minutos reais<input type="number" min="1" value={manualMinutes} onChange={(event) => onMinutes(event.target.value)} /></label>
+            <label>Distância real (km, opcional)<input type="number" min="0" step="0.01" value={manualDistance} onChange={(event) => onDistance(event.target.value)} /></label>
+          </div>
+          <div className="form-actions gym-cardio-actions-v42">
+            <button className="primary-btn" type="button" onClick={onBegin} disabled={saving}>Fazer cardio</button>
+            <button className="primary-btn" type="button" onClick={onSaveManual} disabled={saving}>Salvar cardio feito</button>
+            <button className="ghost-btn" type="button" onClick={onAwaitImport} disabled={saving}>Fiz cardio — anexar relógio depois</button>
+            <button className="ghost-btn" type="button" onClick={onSkip} disabled={saving}>Pular cardio</button>
+          </div>
+        </>
+      )}
+      {cardioStatus === 'awaiting_import' && (
+        <div className="weekly-reason-v42"><strong>Aguardando importação</strong><span>O relógio será a verdade fisiológica. Vincule explicitamente o JSON ou mantenha a sessão finalizada enquanto aguarda.</span><button className="ghost-btn" type="button" onClick={onOpenImport}>Abrir importação JSON</button></div>
+      )}
+      {cardioStatus === 'completed' && <p className="success-text-v42">Cardio real vinculado. Distância e métricas vieram da execução registrada.</p>}
+      {cardioStatus === 'skipped' && <p className="muted-text">Cardio pulado. Nenhuma linha com duração ou distância zero foi criada.</p>}
+      {canFinish && <button className="primary-btn gym-finalize-v42" type="button" onClick={onFinish} disabled={saving}><CheckCircle2 size={16} /> Finalizar sessão</button>}
+    </section>
+  );
+}
 
-  const suggestedMinutes = selectedCardioChoice?.match(/(\d+)\s*min/i)?.[1] ?? '';
-  const defaultMinutes = recommendedCardioMinutes !== null && recommendedCardioMinutes !== undefined
-    ? String(Math.min(Number(recommendedCardioMinutes), 20))
-    : suggestedMinutes ? String(Math.min(Number(suggestedMinutes), 20)) : '20';
-  const minutes = validSets.length
-    ? Math.max(Number(window.prompt('Quantos minutos de cardio você fez? Teto recomendado: 20 min.', defaultMinutes) || 0), 0)
-    : Number(duration || 0) || elapsedMinutes(sessionStartedAt) || Number(recommendedCardioMinutes || 0) || 20;
+function GymSessionHistory({ sessions }) {
+  if (!sessions.length) return null;
+  return (
+    <section className="simple-panel gym-history-v42">
+      <div><p className="eyebrow">Histórico</p><h3>Planejado x realizado</h3></div>
+      <div className="gym-history-list-v42">
+        {sessions.map((session) => {
+          const detail = plannedVsRealized(session);
+          return (
+            <details key={session.id}>
+              <summary><span><strong>{session.training_day?.title ?? session.notes ?? 'Treino'}</strong><small>{new Date(session.performed_at).toLocaleDateString('pt-BR')} · {session.selection_kind === 'extra' ? 'extra' : 'sessão-base'} · {session.workout_variant ?? 'base'}</small></span><span>Ver detalhes</span></summary>
+              <div className="gym-history-facts-v42">
+                <span>Força planejada: {detail.strength.planned.length} exercícios</span>
+                <span>Força realizada: {detail.strength.realized.length} séries</span>
+                <span>Cardio planejado: {detail.cardio.planned ? `${detail.cardio.planned.target_minutes ?? '--'} min · RPE ${detail.cardio.planned.target_rpe ?? '--'}` : 'não'}</span>
+                <span>Cardio realizado: {detail.cardio.realized ? `${Math.round(Number(detail.cardio.realized.duration_seconds || 0) / 60)} min · ${detail.cardio.realized.distance_km ?? '--'} km · FC ${detail.cardio.realized.avg_heart_rate ?? '--'}` : detail.cardio.status}</span>
+                <span>Relógio força: {detail.wearable ? `${detail.wearable.duration_seconds ? Math.round(detail.wearable.duration_seconds / 60) : '--'} min · FC ${detail.wearable.avg_heart_rate ?? '--'}` : 'não vinculado'}</span>
+                <span>Prontidão: {session.readiness_score ?? '--'} · duração total {detail.timing.durationMinutes ?? '--'} min</span>
+              </div>
+            </details>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
 
-  if (minutes > 20 && !window.confirm(`Você registrou ${minutes} min. O plano recomenda no máximo 20 min. Salvar o valor real mesmo assim?`)) {
-    throw new Error('Sessão cancelada antes de salvar: cardio acima de 20 min não confirmado.');
-  }
-
-  if (minutes <= 0) return null;
-
-  return {
-    performed_at: sessionStartedAt,
-    activity_type: inferCardioActivityType(selectedCardioChoice || selectedDay.title),
-    activity_label: selectedCardioChoice || selectedDay.title || (validSets.length ? 'Cardio pós-treino' : 'Cardio'),
-    duration_minutes: minutes,
-    notes: `${selectedDay.title} · registrado pela Academia · kcal não informada`,
-  };
+function resetSessionState(selectedDay, strengthEntries, todayKeyValue, setters) {
+  setters.setSetRows(buildInitialSetRows(strengthEntries));
+  setters.setRowsPlanDayId(selectedDay?.id ? String(selectedDay.id) : null);
+  setters.setRowsPendingLocalDate(todayKeyValue);
+  setters.setStartedAt(null);
+  setters.setTimerRunning(false);
+  setters.setDuration('');
+  setters.setSessionVariant('base');
+  setters.setSessionRecommendation(null);
+  setters.setSessionId(null);
+  setters.setSessionLocalDate(null);
+  setters.setSessionPlanDayId(null);
+  setters.setPersistedWorkoutSessionId(null);
+  setters.setStrengthStatus('active');
+  setters.setCardioStatus('not_planned');
+  setters.setSelectionKind('manual');
+  setters.setCardioPlan(null);
+  setters.setSessionStrengthPlan([]);
+  setters.setManualCardioMinutes('');
+  setters.setManualCardioDistance('');
 }
 
 function StatusMini({ label, active = false, value = undefined }) {

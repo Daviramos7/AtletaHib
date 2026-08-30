@@ -131,9 +131,74 @@ create table if not exists public.workout_sessions (
   workout_variant text not null default 'base' check (workout_variant in ('base', 'adapted')),
   readiness_score integer check (readiness_score is null or readiness_score between 0 and 100),
   adaptation_summary jsonb,
+  session_status text not null default 'active' check (session_status in ('active', 'strength_completed', 'completed', 'legacy')),
+  strength_status text not null default 'active' check (strength_status in ('active', 'completed')),
+  cardio_status text not null default 'not_planned' check (cardio_status in ('not_planned', 'pending', 'awaiting_import', 'completed', 'skipped')),
+  selection_kind text not null default 'manual' check (selection_kind in ('recommended', 'manual', 'extra')),
+  session_local_date date,
+  strength_completed_at timestamptz,
+  completed_at timestamptz,
+  strength_plan jsonb not null default '[]'::jsonb,
+  cardio_plan jsonb not null default '{}'::jsonb,
   notes text,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  constraint workout_sessions_lifecycle_coherence_check check (
+    (completed = false and session_status = 'legacy' and strength_status = 'active' and cardio_status = 'not_planned')
+    or (completed = false and session_status = 'active' and strength_status = 'active' and cardio_status = 'not_planned')
+    or (completed = false and session_status = 'strength_completed' and strength_status = 'completed'
+      and cardio_status in ('not_planned', 'pending', 'awaiting_import', 'completed', 'skipped'))
+    or (completed = true and session_status = 'completed' and strength_status = 'completed'
+      and cardio_status in ('not_planned', 'awaiting_import', 'completed', 'skipped'))
+  )
 );
+
+create or replace function public.normalize_legacy_workout_session_lifecycle()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if tg_op = 'INSERT' then
+    if new.completed = true
+      and new.session_status = 'active'
+      and new.strength_status = 'active'
+      and new.cardio_status = 'not_planned'
+      and new.selection_kind = 'manual'
+      and new.session_local_date is null
+      and new.strength_completed_at is null
+      and new.completed_at is null
+      and new.strength_plan = '[]'::jsonb
+      and new.cardio_plan = '{}'::jsonb then
+      new.session_status := 'completed';
+      new.strength_status := 'completed';
+    end if;
+  elsif tg_op = 'UPDATE' then
+    if old.completed = false
+      and new.completed = true
+      and old.session_status = 'active'
+      and old.strength_status = 'active'
+      and old.cardio_status = 'not_planned'
+      and old.selection_kind = 'manual'
+      and old.session_local_date is null
+      and old.strength_completed_at is null
+      and old.completed_at is null
+      and old.strength_plan = '[]'::jsonb
+      and old.cardio_plan = '{}'::jsonb
+      and (to_jsonb(new) - 'completed') = (to_jsonb(old) - 'completed') then
+      new.session_status := 'completed';
+      new.strength_status := 'completed';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists normalize_legacy_workout_session_lifecycle on public.workout_sessions;
+create trigger normalize_legacy_workout_session_lifecycle
+before insert or update on public.workout_sessions
+for each row execute function public.normalize_legacy_workout_session_lifecycle();
 
 create or replace function public.set_updated_at()
 returns trigger as $$
@@ -197,6 +262,8 @@ create index if not exists idx_meal_entries_user_date on public.meal_entries(use
 create unique index if not exists meal_entries_user_dedupe_uidx on public.meal_entries(user_id, dedupe_key) where dedupe_key is not null;
 create index if not exists idx_weight_logs_user_date on public.weight_logs(user_id, log_date desc);
 create index if not exists idx_workout_sessions_user_performed_at on public.workout_sessions(user_id, performed_at desc);
+create index if not exists idx_workout_sessions_user_week on public.workout_sessions(user_id, session_local_date, training_day_id);
+create index if not exists idx_workout_sessions_user_lifecycle on public.workout_sessions(user_id, session_status, cardio_status, performed_at desc);
 
 create or replace function public.increment_daily_water(p_user_id uuid, p_log_date date, p_delta integer)
 returns public.daily_logs

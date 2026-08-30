@@ -17,6 +17,12 @@ export interface ActiveWorkoutDraft {
   selectedCardioChoice: string;
   duration: string;
   effort: string;
+  persistedWorkoutSessionId?: string | null;
+  strengthStatus?: 'active' | 'completed';
+  cardioStatus?: 'not_planned' | 'pending' | 'awaiting_import' | 'completed' | 'skipped';
+  selectionKind?: 'recommended' | 'manual' | 'extra';
+  cardioPlan?: Record<string, any> | null;
+  strengthPlan?: Array<Record<string, any>>;
 }
 
 export interface PendingWorkoutDraft {
@@ -148,6 +154,8 @@ function cloneDraft(draft: ActiveWorkoutDraft): ActiveWorkoutDraft {
   return {
     ...draft,
     recommendation: draft.recommendation ? { ...draft.recommendation } : null,
+    cardioPlan: draft.cardioPlan ? { ...draft.cardioPlan } : null,
+    strengthPlan: (draft.strengthPlan ?? []).map((item) => ({ ...item })),
     rows: cloneRows(draft.rows),
   };
 }

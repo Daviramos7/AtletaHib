@@ -1,9 +1,29 @@
 import { requireSupabase } from '../lib/supabaseClient';
 import { localDateKey, startOfWeekLocal } from '../utils/dates';
+import { buildCardioPlanSnapshot, buildStrengthPlanSnapshot, canFinalizeGymSessionState, normalizeCardioPlanSnapshot } from '../domain/gymSession';
 
 export async function completeWorkoutWithSets(userId, payload) {
+  const result = await completeStrengthForGymSession(userId, {
+    ...payload,
+    cardio_plan: payload.cardio_plan ?? { planned: false },
+    selection_kind: payload.selection_kind ?? 'manual',
+  });
+  const session = await finalizeGymSession(userId, result.session.id, {
+    duration_minutes: Number(payload.duration_minutes || 0),
+  });
+  return { ...result, session };
+}
+
+export async function completeStrengthForGymSession(userId, payload) {
   const client = requireSupabase();
   const performedAt = payload.performed_at ?? new Date().toISOString();
+  const cardioPlan = normalizeCardioPlanSnapshot(payload.cardio_plan ?? buildCardioPlanSnapshot({
+    selectedDay: payload.selected_day,
+    selectedChoice: payload.selected_cardio_choice,
+    recommendedMinutes: payload.recommended_cardio_minutes,
+  }));
+  const strengthPlan = payload.strength_plan ?? buildStrengthPlanSnapshot(payload.all_rows ?? payload.sets ?? []);
+  const cardioStatus = cardioPlan?.planned ? 'pending' : 'not_planned';
 
   const { data: session, error: sessionError } = await client
     .from('workout_sessions')
@@ -13,7 +33,16 @@ export async function completeWorkoutWithSets(userId, payload) {
       performed_at: performedAt,
       duration_minutes: Number(payload.duration_minutes || 0),
       perceived_effort: Number(payload.perceived_effort || 7),
-      completed: true,
+      completed: false,
+      session_status: 'strength_completed',
+      strength_status: 'completed',
+      cardio_status: cardioStatus,
+      selection_kind: ['recommended', 'manual', 'extra'].includes(payload.selection_kind) ? payload.selection_kind : 'manual',
+      session_local_date: payload.session_local_date ?? localDateKey(new Date(performedAt)),
+      strength_completed_at: payload.strength_completed_at ?? new Date().toISOString(),
+      completed_at: null,
+      strength_plan: strengthPlan,
+      cardio_plan: cardioPlan,
       workout_variant: payload.workout_variant === 'adapted' ? 'adapted' : 'base',
       readiness_score: payload.readiness_score ?? null,
       adaptation_summary: payload.adaptation_summary ?? null,
@@ -23,8 +52,8 @@ export async function completeWorkoutWithSets(userId, payload) {
     .single();
   if (sessionError) {
     const message = String(sessionError.message ?? '');
-    if (message.includes('workout_variant') || message.includes('readiness_score') || message.includes('adaptation_summary')) {
-      throw new Error('O treino adaptativo ainda não está pronto no Supabase. Rode a migration 2026_08_16_adaptive_workout.sql.');
+    if (isFlexibleGymSchemaError(message)) {
+      throw new Error('A Academia flexível ainda não está pronta no Supabase. Revise e aplique a migration 2026_08_30_flexible_gym_sessions.sql.');
     }
     throw sessionError;
   }
@@ -61,6 +90,63 @@ export async function completeWorkoutWithSets(userId, payload) {
   return { session, sets: validSets };
 }
 
+export async function finalizeGymSession(userId, workoutSessionId, payload: any = {}) {
+  if (!workoutSessionId) throw new Error('Sessão sem ID para finalizar.');
+  const client = requireSupabase();
+  const current = await client
+    .from('workout_sessions')
+    .select('completed,session_status,strength_status,cardio_status')
+    .eq('user_id', userId)
+    .eq('id', workoutSessionId)
+    .single();
+  if (current.error) throw current.error;
+  if (!canFinalizeGymSessionState({
+    completed: current.data.completed,
+    sessionStatus: current.data.session_status,
+    strengthStatus: current.data.strength_status,
+    cardioStatus: current.data.cardio_status,
+  })) {
+    throw new Error(current.data.cardio_status === 'pending'
+      ? 'Resolva o cardio pendente antes de finalizar a sessão.'
+      : 'A sessão não está em um estado válido para finalização.');
+  }
+
+  const { data, error } = await client
+    .from('workout_sessions')
+    .update({
+      completed: true,
+      session_status: 'completed',
+      completed_at: payload.completed_at ?? new Date().toISOString(),
+      duration_minutes: payload.duration_minutes == null ? undefined : Number(payload.duration_minutes || 0),
+    })
+    .eq('user_id', userId)
+    .eq('id', workoutSessionId)
+    .eq('completed', false)
+    .eq('session_status', 'strength_completed')
+    .eq('strength_status', 'completed')
+    .neq('cardio_status', 'pending')
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateGymSessionCardioStatus(userId, workoutSessionId, cardioStatus) {
+  if (!['not_planned', 'pending', 'awaiting_import', 'completed', 'skipped'].includes(cardioStatus)) {
+    throw new Error('Status de cardio inválido.');
+  }
+  const client = requireSupabase();
+  const { data, error } = await client
+    .from('workout_sessions')
+    .update({ cardio_status: cardioStatus })
+    .eq('user_id', userId)
+    .eq('id', workoutSessionId)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export async function listWorkoutHistory(userId, limit = 10) {
   const client = requireSupabase();
   const { data, error } = await client
@@ -74,10 +160,38 @@ export async function listWorkoutHistory(userId, limit = 10) {
   return data ?? [];
 }
 
+export async function listGymSessionHistory(userId, limit = 80) {
+  const client = requireSupabase();
+  const { data, error } = await client
+    .from('workout_sessions')
+    .select('*, training_day:training_days(id,title,weekday,day_kind,type), workout_exercise_sets(*), cardio_sessions(*), wearable_workout_sessions(*)')
+    .eq('user_id', userId)
+    .order('performed_at', { ascending: false })
+    .limit(limit);
+  if (error) {
+    const message = String(error.message ?? '');
+    if (isFlexibleGymSchemaError(message) || message.includes('relationship')) {
+      throw new Error('A Academia flexível ainda não está pronta no Supabase. Revise e aplique a migration 2026_08_30_flexible_gym_sessions.sql.');
+    }
+    throw error;
+  }
+  return data ?? [];
+}
+
 export async function deleteWorkoutSession(userId, workoutSessionId) {
   if (!workoutSessionId) throw new Error('Treino sem ID para apagar.');
 
   const client = requireSupabase();
+
+  const relations = ['cardio_sessions', 'wearable_workout_sessions'];
+  for (const table of relations) {
+    const { error: unlinkError } = await client
+      .from(table)
+      .update({ workout_session_id: null })
+      .eq('user_id', userId)
+      .eq('workout_session_id', workoutSessionId);
+    if (unlinkError) throw unlinkError;
+  }
 
   const { error: setsError } = await client
     .from('workout_exercise_sets')
@@ -95,6 +209,21 @@ export async function deleteWorkoutSession(userId, workoutSessionId) {
 
   if (sessionError) throw sessionError;
   return true;
+}
+
+function isFlexibleGymSchemaError(message) {
+  return [
+    'session_status',
+    'strength_status',
+    'cardio_status',
+    'selection_kind',
+    'session_local_date',
+    'strength_plan',
+    'cardio_plan',
+    'workout_variant',
+    'readiness_score',
+    'adaptation_summary',
+  ].some((column) => message.includes(column));
 }
 
 export async function listStrengthSets(userId, days = 120) {

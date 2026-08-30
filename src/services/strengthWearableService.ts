@@ -1,6 +1,7 @@
 import { requireSupabase } from '../lib/supabaseClient';
 import { buildLocalDateTimeIso, localDateKeyFromInstant, normalizeDateKey, normalizeTimeKey, todayLocalKey } from '../utils/dates';
 import { integerOrNull, numberOrNull, parseDurationSeconds, slug } from '../utils/durations';
+import { rankGymImportCandidates, withOptionalWorkoutLink } from '../domain/gymSession';
 
 const VALID_ACTIVITY_TYPES = new Set([
   'strength_training',
@@ -37,18 +38,48 @@ export async function deleteWearableWorkoutSession(userId, sessionId) {
   return true;
 }
 
-export async function saveWearableWorkoutSessionFromJson(userId, rawPayload) {
+export async function saveWearableWorkoutSessionFromJson(userId, rawPayload, options: any = {}) {
   const client = requireSupabase();
   const payload = normalizeWearableWorkoutPayload(rawPayload);
+  const row = withOptionalWorkoutLink(payload, options.workoutSessionId);
 
   const { data, error } = await client
     .from('wearable_workout_sessions')
-    .upsert({ user_id: userId, ...payload }, { onConflict: 'user_id,dedupe_key' })
+    .upsert({ user_id: userId, ...row }, { onConflict: 'user_id,dedupe_key' })
     .select('*')
     .single();
 
   if (error) throw error;
   return data;
+}
+
+export async function findStrengthGymCandidates(userId, performedAt) {
+  const client = requireSupabase();
+  const { data, error } = await client
+    .from('workout_sessions')
+    .select('*, training_day:training_days(id,title), wearable_workout_sessions(id)')
+    .eq('user_id', userId)
+    .gte('performed_at', dayBoundary(performedAt, -1))
+    .lte('performed_at', dayBoundary(performedAt, 1));
+  if (error) throw error;
+  return rankGymImportCandidates({ userId, performedAt, sessions: data ?? [], kind: 'strength' });
+}
+
+export async function linkWearableToGymSession(userId, wearableSessionId, workoutSessionId) {
+  const client = requireSupabase();
+  const { data, error } = await client
+    .from('wearable_workout_sessions')
+    .update({ workout_session_id: workoutSessionId })
+    .eq('user_id', userId)
+    .eq('id', wearableSessionId)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function unlinkWearableFromGymSession(userId, wearableSessionId) {
+  return linkWearableToGymSession(userId, wearableSessionId, null);
 }
 
 export function normalizeWearableWorkoutPayload(raw) {
@@ -163,4 +194,10 @@ function normalizeConfidence(value) {
 
 function buildDedupeKey({ date, activityType, startTime, durationSeconds, sourceApp }) {
   return `${date}_${activityType}_${String(startTime || '').replace(':', '')}_${durationSeconds}s_${slug(sourceApp || 'manual')}`;
+}
+
+function dayBoundary(performedAt, offsetDays) {
+  const date = new Date(performedAt);
+  date.setDate(date.getDate() + offsetDays);
+  return date.toISOString();
 }

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { CheckCircle2, Copy, FileJson, Plus, ShieldCheck } from 'lucide-react';
-import { isCardioImportShape, normalizeCardioImportPayload, saveCardioSessionFromJson } from '../services/cardioService';
+import { findCardioGymCandidates, isCardioImportShape, normalizeCardioImportPayload, saveCardioSessionFromJson } from '../services/cardioService';
 import { normalizeMealImportPayload, saveMealEntriesFromJson } from '../services/mealService';
 import { normalizeSleepImportPayload, saveSleepSessionFromJson } from '../services/sleepService';
-import { isStrengthWearableImportShape, normalizeWearableWorkoutPayload, saveWearableWorkoutSessionFromJson } from '../services/strengthWearableService';
+import { findStrengthGymCandidates, isStrengthWearableImportShape, normalizeWearableWorkoutPayload, saveWearableWorkoutSessionFromJson } from '../services/strengthWearableService';
 import { formatDatePtBr, localDateKeyFromInstant, normalizeDateKey, todayLocalKey } from '../utils/dates';
 import { formatDurationClock } from '../utils/durations';
 
@@ -76,6 +76,7 @@ export default function ImportJsonView({ userId, onError }) {
   const [preview, setPreview] = useState(null);
   const [resolvedKind, setResolvedKind] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [linkCandidates, setLinkCandidates] = useState([]);
   const previewDateWarning = preview ? buildImportDateWarning(resolvedKind, preview) : null;
 
   const config = getImportType(kind);
@@ -102,11 +103,11 @@ export default function ImportJsonView({ userId, onError }) {
     return normalizeCardioImportPayload(raw);
   }
 
-  async function saveByKind(targetKind, raw) {
+  async function saveByKind(targetKind, raw, workoutSessionId = null) {
     if (targetKind === 'meal') return saveMealEntriesFromJson(userId, raw);
     if (targetKind === 'sleep') return saveSleepSessionFromJson(userId, raw);
-    if (targetKind === 'strength') return saveWearableWorkoutSessionFromJson(userId, raw);
-    return saveCardioSessionFromJson(userId, raw);
+    if (targetKind === 'strength') return saveWearableWorkoutSessionFromJson(userId, raw, { workoutSessionId });
+    return saveCardioSessionFromJson(userId, raw, { workoutSessionId });
   }
 
   function parseJson() {
@@ -117,7 +118,7 @@ export default function ImportJsonView({ userId, onError }) {
     }
   }
 
-  function handlePreview() {
+  async function handlePreview() {
     try {
       const raw = parseJson();
       const targetKind = resolveKind(raw);
@@ -125,10 +126,12 @@ export default function ImportJsonView({ userId, onError }) {
 
       setResolvedKind(targetKind);
       setPreview(normalized);
+      setLinkCandidates(await findLinkCandidates(targetKind, normalized));
       onError?.(`JSON validado como ${getImportType(targetKind).label}.`);
     } catch (err: any) {
       setPreview(null);
       setResolvedKind(null);
+      setLinkCandidates([]);
       onError?.(err.message);
     }
   }
@@ -141,16 +144,26 @@ export default function ImportJsonView({ userId, onError }) {
       const normalized = normalizeByKind(targetKind, raw);
       const dateWarning = buildImportDateWarning(targetKind, normalized);
 
+      const candidates = await findLinkCandidates(targetKind, normalized);
+      if (candidates.length) {
+        setResolvedKind(targetKind);
+        setPreview(normalized);
+        setLinkCandidates(candidates);
+        onError?.('Encontrei uma sessão compatível. Escolha explicitamente vincular ou salvar separado.');
+        return;
+      }
+
       if (dateWarning && !window.confirm(`${dateWarning.title}\n\n${dateWarning.message}\n\nImportar mesmo assim?`)) {
         onError?.('Importação cancelada para evitar salvar na data errada.');
         return;
       }
 
-      await saveByKind(targetKind, raw);
+      await saveByKind(targetKind, raw, null);
 
       setJsonText('');
       setPreview(null);
       setResolvedKind(null);
+      setLinkCandidates([]);
       onError?.(`${getImportType(targetKind).label} importado com sucesso.`);
     } catch (err: any) {
       onError?.(err.message);
@@ -159,10 +172,38 @@ export default function ImportJsonView({ userId, onError }) {
     }
   }
 
+  async function handleImportChoice(workoutSessionId) {
+    try {
+      setBusy(true);
+      const raw = parseJson();
+      const targetKind = resolveKind(raw);
+      const normalized = normalizeByKind(targetKind, raw);
+      const dateWarning = buildImportDateWarning(targetKind, normalized);
+      if (dateWarning && !window.confirm(`${dateWarning.title}\n\n${dateWarning.message}\n\nImportar mesmo assim?`)) return;
+      await saveByKind(targetKind, raw, workoutSessionId);
+      setJsonText('');
+      setPreview(null);
+      setResolvedKind(null);
+      setLinkCandidates([]);
+      onError?.(workoutSessionId ? 'JSON importado e vinculado à sessão escolhida.' : 'JSON importado como sessão separada.');
+    } catch (err: any) {
+      onError?.(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function findLinkCandidates(targetKind, normalized) {
+    if (targetKind === 'cardio') return findCardioGymCandidates(userId, normalized.performed_at);
+    if (targetKind === 'strength') return findStrengthGymCandidates(userId, normalized.performed_at);
+    return [];
+  }
+
   function applyExample(example = examples[0]) {
     setJsonText(example.value);
     setPreview(null);
     setResolvedKind(null);
+    setLinkCandidates([]);
   }
 
   async function copyPromptHint() {
@@ -199,6 +240,7 @@ export default function ImportJsonView({ userId, onError }) {
               setKind(item.id);
               setPreview(null);
               setResolvedKind(null);
+              setLinkCandidates([]);
             }}>
               {item.label}
             </button>
@@ -241,13 +283,14 @@ export default function ImportJsonView({ userId, onError }) {
             setJsonText(event.target.value);
             setPreview(null);
             setResolvedKind(null);
+            setLinkCandidates([]);
           }}
           placeholder="Cole aqui o JSON puro retornado pelo leitor."
         />
 
         <div className="form-actions">
           <button className="ghost-btn" type="button" onClick={handlePreview} disabled={!jsonText.trim()}>Validar JSON</button>
-          <button className="primary-btn" type="button" onClick={handleImport} disabled={!jsonText.trim() || busy}><Plus size={16} /> Importar</button>
+          {!linkCandidates.length && <button className="primary-btn" type="button" onClick={handleImport} disabled={!jsonText.trim() || busy}><Plus size={16} /> Importar</button>}
         </div>
 
         {preview && (
@@ -264,6 +307,22 @@ export default function ImportJsonView({ userId, onError }) {
                 </div>
               )}
               {resolvedKind === 'meal' && <MealPreviewItems items={preview.items ?? []} />}
+              {linkCandidates.length > 0 && (
+                <div className="json-link-choice-v42">
+                  <strong>Possível sessão da Academia</strong>
+                  <span>A correspondência usa data e proximidade de horário, mas o vínculo nunca é automático.</span>
+                  {linkCandidates.slice(0, 3).map((candidate) => (
+                    <div key={candidate.id} className="json-link-candidate-v42">
+                      <span>{candidate.training_day?.title ?? candidate.notes ?? 'Sessão da Academia'} · {new Date(candidate.performed_at).toLocaleDateString('pt-BR')}</span>
+                      {resolvedKind === 'cardio' && <small>Planejado: {candidate.cardio_plan?.target_minutes ?? '--'} min · {candidate.cardio_plan?.intensity ?? 'intensidade não informada'}</small>}
+                      <button className="primary-btn" type="button" disabled={busy} onClick={() => handleImportChoice(candidate.id)}>
+                        Vincular à sessão
+                      </button>
+                    </div>
+                  ))}
+                  <button className="ghost-btn" type="button" disabled={busy} onClick={() => handleImportChoice(null)}>Salvar separado</button>
+                </div>
+              )}
             </div>
           </div>
         )}

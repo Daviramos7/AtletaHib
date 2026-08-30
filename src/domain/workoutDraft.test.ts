@@ -16,6 +16,40 @@ import {
 } from './workoutDraft';
 
 describe('rascunho estável da sessão', () => {
+  it('preserva a fase pós-força e o vínculo persistido ao recarregar', () => {
+    const storage = new MemoryStorage();
+    saveActiveWorkoutDraft(storage, 'user-1', createActiveWorkoutDraft({
+      sessionId: 'gym-1',
+      startedAt: '2026-08-23T23:55:00-03:00',
+      sessionLocalDate: '2026-08-23',
+      planDayId: 'upper-a',
+      planDayWeekday: 1,
+      workoutVariant: 'adapted',
+      recommendation: { readinessScore: 72 },
+      rows: [{ rowId: 'supino-1', done: true }],
+      selectedCardioChoice: 'Esteira 10 min',
+      duration: '40',
+      effort: '8',
+      persistedWorkoutSessionId: 'db-session-1',
+      strengthStatus: 'completed',
+      cardioStatus: 'awaiting_import',
+      selectionKind: 'recommended',
+      cardioPlan: { planned: true, target_minutes: 10 },
+      strengthPlan: [{ exercise_name: 'Supino máquina', planned_sets: 3, planned_reps: '8-10' }],
+    }));
+
+    const restored = loadActiveWorkoutDraft(storage, 'user-1');
+    expect(restored).toMatchObject({
+      sessionLocalDate: '2026-08-23',
+      persistedWorkoutSessionId: 'db-session-1',
+      strengthStatus: 'completed',
+      cardioStatus: 'awaiting_import',
+      selectionKind: 'recommended',
+      cardioPlan: { planned: true, target_minutes: 10 },
+      strengthPlan: [{ exercise_name: 'Supino máquina', planned_sets: 3, planned_reps: '8-10' }],
+    });
+  });
+
   it('preserva identidade, startedAt e data local ao atravessar meia-noite', () => {
     const storage = new MemoryStorage();
     const startedAt = '2026-08-17T23:55:00-03:00';

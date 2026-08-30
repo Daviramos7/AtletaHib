@@ -1,5 +1,6 @@
 import { requireSupabase } from '../lib/supabaseClient';
 import { calculateReadiness } from '../domain/readiness';
+import { countUniqueBaseSessionsByWeek } from '../domain/weeklyGym';
 import { localDayRangeIso } from '../utils/dates';
 
 const DEFAULT_TARGETS = {
@@ -107,7 +108,9 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
   const totalKm = sum(cardioSessionsRows.map((session) => Number(session.distance_km || 0)));
   const strengthVolume = sum((setRes.data ?? []).map((set) => Number(set.load_kg || 0) * Number(set.reps || 0)));
   const strengthSets = (setRes.data ?? []).length;
-  const workouts = (workoutRes.data ?? []).filter((item) => item.completed).length;
+  // Repetir um treino já concluído na mesma semana continua aparecendo no
+  // histórico, mas não infla a aderência da fila-base.
+  const workouts = countUniqueBaseSessionsByWeek(workoutRes.data ?? []);
   const cardioSessions = cardioSessionsRows.length;
   const latestWeight = weightRes.data?.[0] ?? null;
   const oldestWeight = [...(weightRes.data ?? [])].sort((a, b) => a.log_date.localeCompare(b.log_date))[0] ?? null;

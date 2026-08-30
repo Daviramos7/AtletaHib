@@ -1,6 +1,7 @@
 import { requireSupabase } from '../lib/supabaseClient';
 import { buildLocalDateTimeIso, localDateKeyFromInstant, normalizeDateKey, normalizeTimeKey, todayLocalKey } from '../utils/dates';
 import { integerOrNull, numberOrNull, parseDurationSeconds, slug } from '../utils/durations';
+import { cardioStatusAfterDeletingLinkedExecution, rankGymImportCandidates, withOptionalWorkoutLink } from '../domain/gymSession';
 
 const VALID_ACTIVITY_TYPES = new Set(['treadmill', 'outdoor_run', 'walk', 'stairs', 'bike', 'elliptical', 'other']);
 const CARDIO_CAP_SECONDS = 20 * 60;
@@ -21,6 +22,14 @@ export async function deleteCardioSession(userId, sessionId) {
   if (!sessionId) throw new Error('Sessão de cardio sem ID para apagar.');
 
   const client = requireSupabase();
+  const current = await client
+    .from('cardio_sessions')
+    .select('id,workout_session_id')
+    .eq('user_id', userId)
+    .eq('id', sessionId)
+    .maybeSingle();
+  if (current.error) throw current.error;
+
   const { error } = await client
     .from('cardio_sessions')
     .delete()
@@ -28,18 +37,36 @@ export async function deleteCardioSession(userId, sessionId) {
     .eq('id', sessionId);
 
   if (error) throw error;
+  if (current.data?.workout_session_id) {
+    const parent = await client
+      .from('workout_sessions')
+      .select('cardio_plan,completed')
+      .eq('user_id', userId)
+      .eq('id', current.data.workout_session_id)
+      .maybeSingle();
+    if (parent.error) throw parent.error;
+    const status = cardioStatusAfterDeletingLinkedExecution(parent.data?.cardio_plan, parent.data?.completed === true);
+    const restored = await client
+      .from('workout_sessions')
+      .update({ cardio_status: status })
+      .eq('user_id', userId)
+      .eq('id', current.data.workout_session_id);
+    if (restored.error) throw restored.error;
+  }
   return true;
 }
 
-export async function saveCardioSessionFromJson(userId, rawPayload) {
+export async function saveCardioSessionFromJson(userId, rawPayload, options: any = {}) {
   const client = requireSupabase();
   const payload = normalizeCardioImportPayload(rawPayload);
+  const row = withOptionalWorkoutLink(payload, options.workoutSessionId);
   const { data, error } = await client
     .from('cardio_sessions')
-    .upsert({ user_id: userId, ...payload }, { onConflict: 'user_id,dedupe_key' })
+    .upsert({ user_id: userId, ...row }, { onConflict: 'user_id,dedupe_key' })
     .select('*')
     .single();
   if (error) throw error;
+  if (data?.workout_session_id) await markLinkedCardioCompleted(client, userId, data.workout_session_id);
   return data;
 }
 
@@ -67,7 +94,7 @@ export async function saveManualCardioSession(userId, payload) {
     source: `${source}_${slug(activityLabel)}`,
   }));
 
-  const row = {
+  const row: any = {
     user_id: userId,
     performed_at: performedAt,
     activity_type: activityType,
@@ -77,6 +104,7 @@ export async function saveManualCardioSession(userId, payload) {
     source_app: payload.source_app ?? 'Atleta Híbrido',
     device_name: payload.device_name ?? null,
     distance_km: numberOrNull(payload.distance_km),
+    distance_source: payload.distance_source ?? (payload.distance_km == null ? null : 'manual'),
     duration_seconds: durationSeconds,
     active_kcal: integerOrNull(payload.active_kcal),
     total_kcal: integerOrNull(payload.total_kcal),
@@ -89,6 +117,7 @@ export async function saveManualCardioSession(userId, payload) {
     notes: buildCardioNotes(payload.notes, durationSeconds),
     raw_json: payload,
   };
+  if (payload.workout_session_id) row.workout_session_id = payload.workout_session_id;
 
   const { data, error } = await client
     .from('cardio_sessions')
@@ -97,6 +126,54 @@ export async function saveManualCardioSession(userId, payload) {
     .single();
 
   if (error) throw error;
+  if (data?.workout_session_id) await markLinkedCardioCompleted(client, userId, data.workout_session_id);
+  return data;
+}
+
+export async function findCardioGymCandidates(userId, performedAt) {
+  const client = requireSupabase();
+  const { data, error } = await client
+    .from('workout_sessions')
+    .select('*, training_day:training_days(id,title), cardio_sessions(id)')
+    .eq('user_id', userId)
+    .gte('performed_at', dayBoundary(performedAt, -1))
+    .lte('performed_at', dayBoundary(performedAt, 1));
+  if (error) throw error;
+  return rankGymImportCandidates({ userId, performedAt, sessions: data ?? [], kind: 'cardio' });
+}
+
+export async function linkCardioToGymSession(userId, cardioSessionId, workoutSessionId) {
+  const client = requireSupabase();
+  const { data, error } = await client
+    .from('cardio_sessions')
+    .update({ workout_session_id: workoutSessionId })
+    .eq('user_id', userId)
+    .eq('id', cardioSessionId)
+    .select('*')
+    .single();
+  if (error) throw error;
+  await markLinkedCardioCompleted(client, userId, workoutSessionId);
+  return data;
+}
+
+export async function unlinkCardioFromGymSession(userId, cardioSessionId) {
+  const client = requireSupabase();
+  const current = await client.from('cardio_sessions').select('workout_session_id').eq('user_id', userId).eq('id', cardioSessionId).single();
+  if (current.error) throw current.error;
+  const { data, error } = await client
+    .from('cardio_sessions')
+    .update({ workout_session_id: null })
+    .eq('user_id', userId)
+    .eq('id', cardioSessionId)
+    .select('*')
+    .single();
+  if (error) throw error;
+  if (current.data?.workout_session_id) {
+    const parent = await client.from('workout_sessions').select('cardio_plan,completed').eq('user_id', userId).eq('id', current.data.workout_session_id).single();
+    if (parent.error) throw parent.error;
+    const update = await client.from('workout_sessions').update({ cardio_status: cardioStatusAfterDeletingLinkedExecution(parent.data?.cardio_plan, parent.data?.completed === true) }).eq('user_id', userId).eq('id', current.data.workout_session_id);
+    if (update.error) throw update.error;
+  }
   return data;
 }
 
@@ -132,6 +209,7 @@ export function normalizeCardioImportPayload(raw) {
   }));
 
   return {
+    workout_session_id: null,
     performed_at: performedAt,
     activity_type: activityType,
     activity_label: raw.activity_label ?? raw.activityLabel ?? labelForActivity(activityType),
@@ -140,6 +218,7 @@ export function normalizeCardioImportPayload(raw) {
     source_app: sourceApp,
     device_name: deviceName,
     distance_km: distanceKm,
+    distance_source: raw.distance_source ?? raw.distanceSource ?? (distanceKm == null ? null : 'wearable'),
     duration_seconds: durationSeconds,
     active_kcal: integerOrNull(raw.active_kcal ?? raw.activeKcal ?? raw.kcal_active ?? raw.kcalAtiva),
     total_kcal: integerOrNull(raw.total_kcal ?? raw.totalKcal),
@@ -164,6 +243,21 @@ export function normalizeCardioImportPayload(raw) {
     dedupe_key: dedupeKey,
     notes: buildCardioNotes(raw.notes ?? 'Sessão importada por JSON de print. Métricas diárias continuam vindo do Health Connect para evitar duplicidade.', durationSeconds),
   };
+}
+
+async function markLinkedCardioCompleted(client, userId, workoutSessionId) {
+  const { error } = await client
+    .from('workout_sessions')
+    .update({ cardio_status: 'completed' })
+    .eq('user_id', userId)
+    .eq('id', workoutSessionId);
+  if (error) throw error;
+}
+
+function dayBoundary(performedAt, offsetDays) {
+  const date = new Date(performedAt);
+  date.setDate(date.getDate() + offsetDays);
+  return date.toISOString();
 }
 
 export function isCardioImportShape(raw) {
