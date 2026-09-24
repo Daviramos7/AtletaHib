@@ -29,7 +29,7 @@ data class AuthResponse(
 
 @Serializable
 data class SupabaseErrorResponse(
-    val code: Int? = null,
+    val code: String? = null,
     val error: String? = null,
     @SerialName("error_code") val errorCode: String? = null,
     val msg: String? = null,

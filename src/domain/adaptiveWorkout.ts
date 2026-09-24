@@ -25,6 +25,7 @@ export interface AdaptiveBaseExercise {
 }
 
 export interface CompletedStrengthSet {
+  duration_seconds?: number | string | null;
   exercise_name?: string | null;
   reps?: number | string | null;
   load_kg?: number | string | null;
@@ -218,12 +219,13 @@ export function calculateRecentMuscleLoad(sets: CompletedStrengthSet[], nowInput
     const reps = toOptionalNumber(set.reps);
     const performedAt = toDate(set.performed_at ?? '');
     const ageHours = (now.getTime() - performedAt.getTime()) / 3_600_000;
-    if (!reps || reps <= 0 || Number.isNaN(performedAt.getTime()) || ageHours < 0 || ageHours > 168) continue;
+    const duration = toOptionalNumber(set.duration_seconds);
+    if ((reps <= 0 && (duration ?? 0) <= 0) || Number.isNaN(performedAt.getTime()) || ageHours < 0 || ageHours > 168) continue;
 
     const metadata = getExerciseMetadata(set.exercise_name);
     const rpe = toOptionalNumber(set.perceived_effort);
     const effortWeight = rpe !== null && rpe >= 9 ? 1.5 : rpe !== null && rpe >= 8 ? 1.25 : rpe !== null && rpe <= 5 ? 0.75 : 1;
-    const repWeight = reps <= 5 ? 0.85 : reps <= 12 ? 1 : reps <= 20 ? 1.1 : 1.2;
+    const repWeight = duration && duration > 0 ? 1 : reps <= 5 ? 0.85 : reps <= 12 ? 1 : reps <= 20 ? 1.1 : 1.2;
     const exposure = effortWeight * repWeight;
     addMusclePoints(result, metadata.primaryMuscles, ageHours, exposure, set.performed_at ?? null);
     addMusclePoints(result, metadata.secondaryMuscles, ageHours, exposure * 0.35, set.performed_at ?? null);
@@ -418,7 +420,7 @@ function volumeAdjustmentForLevel(level: ReadinessLevel, mode: 'normal' | 'retor
 
 function calculateReturnGapDays(sets: CompletedStrengthSet[], now: Date) {
   const timestamps = sets
-    .filter((set) => (toOptionalNumber(set.reps) ?? 0) > 0)
+    .filter((set) => (toOptionalNumber(set.reps) ?? 0) > 0 || (toOptionalNumber(set.duration_seconds) ?? 0) > 0)
     .map((set) => dateValue(set.performed_at))
     .filter((value) => Number.isFinite(value) && value <= now.getTime());
   if (timestamps.length === 0) return null;

@@ -36,13 +36,13 @@ private val HibColors = darkColorScheme(
 )
 
 private val HibTypography = Typography(
-    headlineLarge = TextStyle(fontSize = 34.sp, lineHeight = 35.sp, fontWeight = FontWeight.Black, letterSpacing = (-1.2).sp),
-    headlineMedium = TextStyle(fontSize = 27.sp, lineHeight = 29.sp, fontWeight = FontWeight.Black, letterSpacing = (-0.8).sp),
-    titleLarge = TextStyle(fontSize = 21.sp, lineHeight = 25.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.35).sp),
+    headlineLarge = TextStyle(fontSize = 32.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold),
+    headlineMedium = TextStyle(fontSize = 26.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold),
+    titleLarge = TextStyle(fontSize = 20.sp, lineHeight = 28.sp, fontWeight = FontWeight.SemiBold),
     titleMedium = TextStyle(fontSize = 17.sp, lineHeight = 22.sp, fontWeight = FontWeight.Bold),
     bodyLarge = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, fontWeight = FontWeight.Medium),
     bodyMedium = TextStyle(fontSize = 14.sp, lineHeight = 21.sp, fontWeight = FontWeight.Medium),
-    labelLarge = TextStyle(fontSize = 14.sp, lineHeight = 18.sp, fontWeight = FontWeight.ExtraBold)
+    labelLarge = TextStyle(fontSize = 14.sp, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold)
 )
 
 @Composable

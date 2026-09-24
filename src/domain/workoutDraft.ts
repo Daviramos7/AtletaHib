@@ -112,11 +112,13 @@ export function clearPendingWorkoutRows(storage: StorageLike, userId: string, pl
   storage.removeItem(pendingDraftKey(userId, planDayId));
 }
 
-export function mergeRowsPreservingInput(candidateRows: Array<Record<string, any>>, currentRows: Array<Record<string, any>>) {
+export function mergeRowsPreservingInput(candidateRows: Array<Record<string, any>>, currentRows: Array<Record<string, any>>): Array<Record<string, any>> {
   const currentById = new Map((currentRows ?? []).map((row) => [String(row.rowId), row]));
   return (candidateRows ?? []).map((row) => {
     const current = currentById.get(String(row.rowId));
-    return current ? { ...row, ...current, exercise: { ...row.exercise, ...current.exercise } } : { ...row, exercise: { ...row.exercise } };
+    return current ? { ...row, ...current,
+      ...(row.tracking_type === 'duration' && current.duration_seconds === undefined ? { duration_seconds: null, done: false } : {}),
+      exercise: { ...row.exercise, ...current.exercise } } : { ...row, exercise: { ...row.exercise } };
   });
 }
 

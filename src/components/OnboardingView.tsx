@@ -70,8 +70,8 @@ export default function OnboardingView({ userId, profile, onReady, onError }) {
     <div className="onboarding-page">
       <section className="onboarding-hero">
         <p className="eyebrow">Primeira configuração</p>
-        <h1>Monte seu próprio perfil antes de entrar no app.</h1>
-        <p>Nenhum dado de outro usuário é copiado. O plano, as metas e a rotina são gerados a partir das respostas desta tela.</p>
+        <h1>Configure sua rotina.</h1>
+        <p>Esses dados definem suas metas e seu plano inicial. Você pode ajustá-los depois.</p>
         <div className="onboarding-steps">
           <span><UserRound size={16} /> Perfil</span>
           <span><Dumbbell size={16} /> Rotina</span>
@@ -81,7 +81,7 @@ export default function OnboardingView({ userId, profile, onReady, onError }) {
 
       <form className="panel form-grid onboarding-card" onSubmit={handleSubmit}>
         <label>Nome
-          <input value={form.name ?? ''} onChange={(e) => update('name', e.target.value)} placeholder="Seu nome" required />
+          <input autoComplete="name" value={form.name ?? ''} onChange={(e) => update('name', e.target.value)} placeholder="Seu nome" required />
         </label>
         <label>Altura cm
           <input type="number" min="120" max="230" step="0.1" value={form.height_cm ?? ''} onChange={(e) => update('height_cm', e.target.value)} required />
@@ -157,7 +157,7 @@ export default function OnboardingView({ userId, profile, onReady, onError }) {
         <section className="panel full onboarding-preview">
           <p className="eyebrow">Prévia do plano</p>
           <h3>{preview}</h3>
-          <p>Depois você pode editar exercícios, refeições, metas e regenerar o plano no Criador.</p>
+          <p>Depois, ajuste seus exercícios em Academia → Editar plano.</p>
         </section>
 
         <button className="primary-btn full" disabled={busy}>{busy ? 'Criando perfil...' : 'Criar meu plano e entrar'}</button>

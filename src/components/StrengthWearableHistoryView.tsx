@@ -76,18 +76,18 @@ export default function StrengthWearableHistoryView({ userId, onError }: any) {
         <div className="simple-section-head">
           <div>
             <p className="eyebrow">Força do relógio</p>
-            <h3>Calorias, frequência cardíaca e duração</h3>
+            <h3>Força · dados do relógio</h3>
           </div>
           <Watch size={24} />
         </div>
 
         <p className="muted-text">
-          Aqui ficam os dados fisiológicos importados do Mi Fitness/relógio nos treinos de força. Isso é diferente das séries, cargas e reps da aba Força.
+          Fisiologia da sessão. Séries, cargas e repetições ficam na aba Força.
         </p>
 
         <div className="strength-watch-warning-v403">
           <AlertTriangle size={16} />
-          <span>Kcal do relógio são detalhe da sessão. Não some manualmente com kcal ativas do dia se o Health Connect já registrou o total.</span>
+          <span>Kcal da sessão não somam novamente ao total do Health Connect.</span>
         </div>
 
         <div className="strength-watch-periods-v403">

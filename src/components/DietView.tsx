@@ -3,12 +3,15 @@ import { Plus, Trash2 } from 'lucide-react';
 import { MEALS } from '../data/defaultPlan';
 import { addMeal, deleteMeal, listCustomFoods, listMeals, saveCustomFood, searchFoodLocally } from '../services/mealService';
 import { todayKey } from '../services/dailyService';
-import { MetricCard, PageHeader } from './ui';
+import { ConfirmDialog, MetricCard, PageHeader } from './ui';
 
 export default function DietView({ userId, profile, onError }) {
   const [date, setDate] = useState(todayKey());
   const [items, setItems] = useState([]);
   const [customFoods, setCustomFoods] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({ meal_type: 'almoco', food_name: '', grams: '', kcal_per_100g: '', protein_per_100g: '', carbs_per_100g: '', fat_per_100g: '', save_food: true });
 
   const load = useCallback(async () => {
@@ -35,7 +38,9 @@ export default function DietView({ userId, profile, onError }) {
 
   async function handleAdd(event) {
     event.preventDefault();
+    if (saving) return;
     try {
+      setSaving(true);
       const grams = parsePositiveNumber(form.grams);
       const kcal100 = parseRequiredNonNegativeNumber(form.kcal_per_100g);
       const protein100 = parseOptionalNonNegativeNumber(form.protein_per_100g);
@@ -44,7 +49,7 @@ export default function DietView({ userId, profile, onError }) {
 
       if (!form.food_name.trim()) throw new Error('Informe o nome do alimento.');
       if (grams === null) throw new Error('Informe gramas válidas acima de zero.');
-      if (kcal100 === null) throw new Error('Informe kcal/100g. Campo vazio não pode virar 0 kcal.');
+      if (kcal100 === null) throw new Error('Informe as calorias por 100 g.');
 
       const factor = grams / 100;
       await addMeal(userId, {
@@ -70,17 +75,25 @@ export default function DietView({ userId, profile, onError }) {
 
       setForm((old) => ({ ...old, food_name: '', grams: '', kcal_per_100g: '', protein_per_100g: '', carbs_per_100g: '', fat_per_100g: '' }));
       await load();
+      onError('Alimento registrado.');
     } catch (err) {
       onError(err.message);
+    } finally {
+      setSaving(false);
     }
   }
 
   async function handleDelete(id) {
     try {
+      setDeleting(true);
       await deleteMeal(userId, id);
       await load();
+      setPendingDelete(null);
+      onError('Alimento excluído.');
     } catch (err) {
       onError(err.message);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -89,26 +102,24 @@ export default function DietView({ userId, profile, onError }) {
       ...old,
       food_name: food.name,
       kcal_per_100g: food.kcal_per_100g,
-      protein_per_100g: food.protein_per_100g ?? 0,
-      carbs_per_100g: food.carbs_per_100g ?? 0,
-      fat_per_100g: food.fat_per_100g ?? 0,
+      protein_per_100g: food.protein_per_100g ?? '',
+      carbs_per_100g: food.carbs_per_100g ?? '',
+      fat_per_100g: food.fat_per_100g ?? '',
     }));
   }
 
   return (
     <div>
       <PageHeader
-        eyebrow="Alimentação"
-        title="Registro alimentar"
-        description="Macros ausentes continuam ausentes; os totais indicam quando são parciais."
+        title="Comida"
         action={<input aria-label="Data dos registros alimentares" className="date-input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />}
       />
 
       <div className="metric-grid four">
-        <MetricCard label="Kcal" value={totals.kcal} detail={`meta ${profile?.kcal_goal ?? 2300}`} />
-        <MetricCard label="Proteína" value={formatMacroTotal(totals.protein, items.length, macrosComplete)} detail={macrosComplete ? 'total registrado' : 'total parcial'} />
-        <MetricCard label="Carbo" value={formatMacroTotal(totals.carbs, items.length, macrosComplete)} detail={macrosComplete ? 'total registrado' : 'total parcial'} />
-        <MetricCard label="Gordura" value={formatMacroTotal(totals.fat, items.length, macrosComplete)} detail={macrosComplete ? 'total registrado' : 'total parcial'} />
+        <MetricCard label="Kcal" value={items.length ? totals.kcal : '—'} detail={`meta ${profile?.kcal_goal ?? 2300}`} />
+        <MetricCard label="Proteína" value={formatMacroTotal(totals.protein, items.filter((item) => item.protein_g != null).length, macrosComplete)} detail={!items.length ? 'sem registros' : macrosComplete ? 'total registrado' : 'total parcial'} />
+        <MetricCard label="Carboidratos" value={formatMacroTotal(totals.carbs, items.filter((item) => item.carbs_g != null).length, macrosComplete)} detail={!items.length ? 'sem registros' : macrosComplete ? 'total registrado' : 'total parcial'} />
+        <MetricCard label="Gordura" value={formatMacroTotal(totals.fat, items.filter((item) => item.fat_g != null).length, macrosComplete)} detail={!items.length ? 'sem registros' : macrosComplete ? 'total registrado' : 'total parcial'} />
       </div>
 
       <form className="panel form-grid" onSubmit={handleAdd}>
@@ -118,38 +129,44 @@ export default function DietView({ userId, profile, onError }) {
           </select>
         </label>
         <label>Alimento
-          <input value={form.food_name} onChange={(e) => setForm({ ...form, food_name: e.target.value })} placeholder="frango, arroz, macaxeira..." />
+          <input value={form.food_name} onChange={(e) => setForm({ ...form, food_name: e.target.value })} placeholder="Ex.: arroz cozido" required />
         </label>
-        <label>Gramas
-          <input type="number" min="1" value={form.grams} onChange={(e) => setForm({ ...form, grams: e.target.value })} />
+        {suggestions.length > 0 && form.food_name && (
+          <div className="suggestions full" aria-label="Alimentos salvos">
+            {suggestions.map((food) => <button type="button" key={food.id ?? food.name} onClick={() => applySuggestion(food)}>{food.name}<span>{food.kcal_per_100g} kcal/100 g</span></button>)}
+          </div>
+        )}
+        <label>Peso da porção (g)
+          <input type="number" inputMode="decimal" min="0.1" step="0.1" value={form.grams} onChange={(e) => setForm({ ...form, grams: e.target.value })} required />
         </label>
-        <label>Kcal/100g
-          <input type="number" min="0" value={form.kcal_per_100g} onChange={(e) => setForm({ ...form, kcal_per_100g: e.target.value })} />
+        <label>Calorias por 100 g
+          <input type="number" inputMode="decimal" min="0" step="0.1" value={form.kcal_per_100g} onChange={(e) => setForm({ ...form, kcal_per_100g: e.target.value })} required />
         </label>
-        <label>Proteína/100g
-          <input type="number" min="0" step="0.1" value={form.protein_per_100g} onChange={(e) => setForm({ ...form, protein_per_100g: e.target.value })} />
+        <details className="full disclosure-panel">
+          <summary>Macros por 100 g (opcional)</summary>
+          <div className="form-section-grid">
+        <label>Proteína (g)
+          <input type="number" inputMode="decimal" min="0" step="0.1" value={form.protein_per_100g} onChange={(e) => setForm({ ...form, protein_per_100g: e.target.value })} />
         </label>
-        <label>Carbo/100g
-          <input type="number" min="0" step="0.1" value={form.carbs_per_100g} onChange={(e) => setForm({ ...form, carbs_per_100g: e.target.value })} />
+        <label>Carboidratos (g)
+          <input type="number" inputMode="decimal" min="0" step="0.1" value={form.carbs_per_100g} onChange={(e) => setForm({ ...form, carbs_per_100g: e.target.value })} />
         </label>
-        <label>Gordura/100g
-          <input type="number" min="0" step="0.1" value={form.fat_per_100g} onChange={(e) => setForm({ ...form, fat_per_100g: e.target.value })} />
+        <label>Gordura (g)
+          <input type="number" inputMode="decimal" min="0" step="0.1" value={form.fat_per_100g} onChange={(e) => setForm({ ...form, fat_per_100g: e.target.value })} />
         </label>
+          </div>
+          <p className="field-hint-v401">Deixe em branco os valores que não souber.</p>
+        </details>
         <label className="check-row">
-          <input type="checkbox" checked={form.save_food} onChange={(e) => setForm({ ...form, save_food: e.target.checked })} /> salvar alimento
+          <input type="checkbox" checked={form.save_food} onChange={(e) => setForm({ ...form, save_food: e.target.checked })} /> Salvar para usar novamente
         </label>
-        <button className="primary-btn"><Plus size={16} /> Adicionar</button>
+        <button className="primary-btn" disabled={saving}><Plus size={16} /> {saving ? 'Registrando…' : 'Registrar alimento'}</button>
       </form>
-
-      {suggestions.length > 0 && form.food_name && (
-        <div className="suggestions">
-          {suggestions.map((food) => <button key={food.id ?? food.name} onClick={() => applySuggestion(food)}>{food.name}<span>{food.kcal_per_100g} kcal/100g</span></button>)}
-        </div>
-      )}
 
       <div className="panel">
         <p className="eyebrow">Registros do dia</p>
-        {MEALS.map((meal) => {
+        {!items.length && <p className="muted">Nenhum alimento registrado nesta data.</p>}
+        {MEALS.filter((meal) => items.some((item) => item.meal_type === meal.id)).map((meal) => {
           const mealItems = items.filter((item) => item.meal_type === meal.id);
           const subtotal = mealItems.reduce((sum, item) => sum + Number(item.kcal), 0);
           return (
@@ -157,14 +174,15 @@ export default function DietView({ userId, profile, onError }) {
               <div className="meal-head"><strong>{meal.name}</strong><span>{subtotal} kcal</span></div>
               {mealItems.length === 0 ? <p className="muted">Nenhum registro.</p> : mealItems.map((item) => (
                 <div className="entry-row" key={item.id}>
-                  <div><strong>{item.food_name}</strong><span>{Number(item.grams)}g · {item.kcal} kcal · {mealSourceLabel(item)}</span></div>
-                  <button className="icon-btn danger" onClick={() => handleDelete(item.id)}><Trash2 size={16} /></button>
+                  <div><strong>{item.food_name}</strong><span>{item.grams == null ? 'Peso não informado' : `${Number(item.grams)} g`} · {item.kcal ?? '—'} kcal · {mealSourceLabel(item)}{item.confidence === 'estimated' || String(item.source).includes('_ai') ? ' · estimado' : ''}</span></div>
+                  <button className="icon-btn danger" type="button" aria-label={`Excluir ${item.food_name}`} onClick={() => setPendingDelete(item)}><Trash2 size={16} /></button>
                 </div>
               ))}
             </div>
           );
         })}
       </div>
+      <ConfirmDialog open={Boolean(pendingDelete)} title="Excluir alimento?" description={pendingDelete?.food_name} confirmLabel="Excluir" danger busy={deleting} onCancel={() => setPendingDelete(null)} onConfirm={() => handleDelete(pendingDelete.id)} />
     </div>
   );
 }

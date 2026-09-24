@@ -1,4 +1,5 @@
 import { dateKeyInTimeZone } from './readiness';
+import { exerciseTracking, isDurationExercise } from './exerciseTracking';
 
 export type StrengthStatus = 'active' | 'completed';
 export type CardioStatus = 'not_planned' | 'pending' | 'awaiting_import' | 'completed' | 'skipped';
@@ -118,7 +119,8 @@ export function buildStrengthPlanSnapshot(rows: Array<Record<string, any>>) {
       exercise_name: row.exercise_name ?? 'Exercício',
       planned_sets: 0,
       planned_reps: row.planned_reps ?? null,
-      planned_load_kg: nullableNumber(row.load_kg),
+      planned_load_kg: isDurationExercise(row) ? null : nullableNumber(row.load_kg),
+      tracking_type: exerciseTracking(row),
     };
     current.planned_sets += 1;
     grouped.set(key, current);

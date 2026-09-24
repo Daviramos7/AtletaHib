@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Droplets, Minus, Plus, RotateCcw, Save } from 'lucide-react';
+import { Droplets, Minus, Plus, RotateCcw } from 'lucide-react';
 import { getOrCreateDailyLog, incrementWater, setWater, todayKey } from '../services/dailyService';
 
 export default function WaterView(props: any) {
@@ -7,6 +7,8 @@ export default function WaterView(props: any) {
   const [date, setDate] = useState(todayKey());
   const [daily, setDaily] = useState(null);
   const [customMl, setCustomMl] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const waterGoal = Number(profile?.water_goal_ml ?? 3000);
   const water = Number(daily?.water_ml ?? 0);
@@ -16,9 +18,12 @@ export default function WaterView(props: any) {
   const load = useCallback(async (targetDate = date) => {
     try {
       if (!userId) return;
+      setLoading(true);
       setDaily(await getOrCreateDailyLog(userId, targetDate));
     } catch (err) {
       onError?.(err.message);
+    } finally {
+      setLoading(false);
     }
   }, [date, onError, userId]);
 
@@ -26,79 +31,92 @@ export default function WaterView(props: any) {
 
   async function updateWater(nextMl, message = 'Água atualizada.') {
     try {
+      setBusy(true);
       const safeMl = Math.max(0, Math.round(Number(nextMl || 0)));
       const updated = await setWater(userId, date, safeMl);
       setDaily(updated);
       onError?.(message);
     } catch (err) {
       onError?.(err.message);
+    } finally {
+      setBusy(false);
     }
   }
 
-  function add(amount) {
-    incrementWater(userId, date, amount)
-      .then((updated) => { setDaily(updated); onError?.(amount > 0 ? `+${amount} ml de água.` : `${amount} ml de água.`); })
-      .catch((err) => onError?.(err.message));
+  async function add(amount) {
+    if (busy || loading) return false;
+    setBusy(true);
+    try {
+      const updated = await incrementWater(userId, date, amount);
+      setDaily(updated);
+      onError?.(`${amount > 0 ? '+' : ''}${amount} ml de água.`);
+      return true;
+    } catch (err) {
+      onError?.(err.message);
+      return false;
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function saveCustom() {
-    const amount = Number(customMl);
+  async function saveCustom(event) {
+    event.preventDefault();
+    const amount = Number(customMl.replace(',', '.'));
     if (!Number.isFinite(amount) || amount <= 0) {
       onError?.('Informe uma quantidade válida de água.');
       return;
     }
 
-    add(amount);
-    setCustomMl('');
+    if (await add(amount)) setCustomMl('');
   }
 
   return (
     <div className="simple-page water-page-v361">
       <div className="page-title compact-title">
         <div>
-          <p className="eyebrow">Água</p>
-          <h2>Registro de hidratação</h2>
+          <h2>Água</h2>
         </div>
-        <input className="date-input" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+        <input aria-label="Data do registro de água" className="date-input" type="date" value={date} disabled={busy || loading} onChange={(event) => event.target.value && setDate(event.target.value)} />
       </div>
 
       <section className="simple-panel water-hero-v361">
         <div>
-          <p className="eyebrow">Hoje</p>
-          <h3>{water} ml</h3>
-          <span>{percent}% da meta · faltam {remaining} ml</span>
+          <p className="eyebrow">{date === todayKey() ? 'Hoje' : 'Nesta data'}</p>
+          <h3>{loading ? '—' : water.toLocaleString('pt-BR')} ml</h3>
+          <span>{loading ? 'Carregando…' : remaining > 0 ? `${percent}% da meta · faltam ${remaining.toLocaleString('pt-BR')} ml` : 'Meta atingida'}</span>
         </div>
         <Droplets size={42} />
       </section>
 
-      <div className="water-progress-track-v361" aria-label={`Água ${percent}%`}>
+      <div className="water-progress-track-v361" role="progressbar" aria-label="Meta de água" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
         <span style={{ width: `${percent}%` }} />
       </div>
 
       <section className="simple-panel water-actions-v361">
         <p className="eyebrow">Adicionar rápido</p>
         <div>
-          <button type="button" onClick={() => add(200)}><Plus size={16} /> 200 ml</button>
-          <button type="button" onClick={() => add(300)}><Plus size={16} /> 300 ml</button>
-          <button type="button" onClick={() => add(500)}><Plus size={16} /> 500 ml</button>
-          <button type="button" onClick={() => add(1000)}><Plus size={16} /> 1 L</button>
-          <button type="button" className="danger" onClick={() => add(-500)}><Minus size={16} /> 500 ml</button>
-          <button type="button" className="danger" onClick={() => window.confirm('Zerar água de hoje?') && updateWater(0, 'Água zerada.')}><RotateCcw size={16} /> Zerar</button>
+          <button type="button" disabled={busy || loading} onClick={() => add(200)}><Plus size={16} /> 200 ml</button>
+          <button type="button" disabled={busy || loading} onClick={() => add(300)}><Plus size={16} /> 300 ml</button>
+          <button type="button" disabled={busy || loading} onClick={() => add(500)}><Plus size={16} /> 500 ml</button>
+          <button type="button" disabled={busy || loading} onClick={() => add(1000)}><Plus size={16} /> 1 L</button>
         </div>
       </section>
 
-      <section className="simple-panel water-custom-v361">
-        <p className="eyebrow">Quantidade manual</p>
+      <form className="simple-panel water-custom-v361" onSubmit={saveCustom}>
+        <label htmlFor="water-custom-ml">Outra quantidade (ml)</label>
         <div>
-          <input type="number" min="1" step="50" value={customMl} onChange={(event) => setCustomMl(event.target.value)} placeholder="Ex.: 750" />
-          <button className="primary-btn" type="button" onClick={saveCustom}><Save size={16} /> Salvar</button>
+          <input id="water-custom-ml" type="number" inputMode="numeric" min="1" step="1" value={customMl} onChange={(event) => setCustomMl(event.target.value)} placeholder="Ex.: 750" required />
+          <button className="primary-btn" type="submit" disabled={busy || loading}><Plus size={16} /> Adicionar</button>
         </div>
-      </section>
+      </form>
 
-      <section className="simple-panel water-note-v361">
-        <p className="eyebrow">Regra simples</p>
-        <p>Bata a meta ao longo do dia. Não precisa virar 1 litro de uma vez só. O ideal é ir somando aos poucos.</p>
-      </section>
+      <details className="simple-panel disclosure-panel">
+        <summary>Corrigir quantidade</summary>
+        <div className="form-actions">
+          <button type="button" className="ghost-btn" disabled={busy || loading || !water} onClick={() => add(-500)}><Minus size={16} /> Remover 500 ml</button>
+          <button type="button" className="ghost-btn danger" disabled={busy || loading || !water} onClick={() => window.confirm('Zerar a água registrada nesta data?') && updateWater(0, 'Água zerada.')}><RotateCcw size={16} /> Zerar registro</button>
+        </div>
+      </details>
     </div>
   );
 }
@@ -106,6 +124,7 @@ export default function WaterView(props: any) {
 export function WaterQuickCard(props: any) {
   const { userId, profile, onError, onNavigate } = props;
   const [daily, setDaily] = useState(null);
+  const [busy, setBusy] = useState(false);
   const waterGoal = Number(profile?.water_goal_ml ?? 3000);
   const water = Number(daily?.water_ml ?? 0);
   const percent = Math.min(Math.round((water / Math.max(waterGoal, 1)) * 100), 100);
@@ -122,12 +141,16 @@ export function WaterQuickCard(props: any) {
   useEffect(() => { load(); }, [load]);
 
   async function add(amount) {
+    if (busy || !daily) return;
+    setBusy(true);
     try {
       const updated = await incrementWater(userId, todayKey(), amount);
       setDaily(updated);
       onError?.(`+${amount} ml de água.`);
     } catch (err) {
       onError?.(err.message);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -136,10 +159,10 @@ export function WaterQuickCard(props: any) {
       <div className="simple-section-head">
         <div>
           <p className="eyebrow">Água</p>
-          <h3>{water} ml</h3>
-          <span>{percent}% da meta de {waterGoal} ml</span>
+          <h3>{daily ? `${water} ml` : '--'}</h3>
+          <span>{daily ? `${percent}% da meta de ${waterGoal} ml` : 'Carregando água…'}</span>
         </div>
-        <button className="ghost-btn" type="button" onClick={() => onNavigate?.('register')}>Abrir</button>
+        <button className="ghost-btn" type="button" onClick={() => onNavigate?.('register', { registerTab: 'water' })}>Abrir</button>
       </div>
 
       <div className="water-progress-track-v361" aria-label={`Água ${percent}%`}>
@@ -147,9 +170,9 @@ export function WaterQuickCard(props: any) {
       </div>
 
       <div className="water-quick-actions-v361">
-        <button type="button" onClick={() => add(300)}>+300</button>
-        <button type="button" onClick={() => add(500)}>+500</button>
-        <button type="button" onClick={() => add(1000)}>+1L</button>
+        <button type="button" disabled={busy || !daily} onClick={() => add(300)}>+300</button>
+        <button type="button" disabled={busy || !daily} onClick={() => add(500)}>+500</button>
+        <button type="button" disabled={busy || !daily} onClick={() => add(1000)}>+1L</button>
       </div>
     </section>
   );

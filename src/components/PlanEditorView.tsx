@@ -86,7 +86,7 @@ export default function PlanEditorView(props: any) {
         exercise_name: draft.exercise_name,
         sets: draft.sets,
         reps: draft.reps,
-        load_kg: numberOrNull(draft.load_kg),
+        load_kg: isDurationExercise(draft) ? null : numberOrNull(draft.load_kg),
         rest_seconds: numberOrNull(draft.rest_seconds),
         exercise_role: draft.exercise_role,
         notes: draft.notes?.trim() || null,
@@ -111,6 +111,7 @@ export default function PlanEditorView(props: any) {
     try {
       await createExerciseEntry(userId, selectedDay.id, {
         ...newExercise,
+        load_kg: isDurationExercise(newExercise) ? null : numberOrNull(newExercise.load_kg),
         position: exercises.length + 1,
       });
       setNewExercise(EMPTY_EXERCISE);
@@ -246,12 +247,12 @@ export default function PlanEditorView(props: any) {
                     <label>Séries
                       <input value={draft.sets} onChange={(event) => updateExerciseDraft(exercise.id, { sets: event.target.value })} />
                     </label>
-                    <label>Reps
+                    <label>Reps ou segundos (ex.: 20–45s)
                       <input value={draft.reps} onChange={(event) => updateExerciseDraft(exercise.id, { reps: event.target.value })} />
                     </label>
-                    <label>Kg inicial
+                    {!isDurationExercise(draft) && <label>Kg inicial
                       <input type="number" min="0" step="0.5" value={draft.load_kg} onChange={(event) => updateExerciseDraft(exercise.id, { load_kg: event.target.value })} />
-                    </label>
+                    </label>}
                     <label>Descanso s
                       <input type="number" min="0" step="5" value={draft.rest_seconds} onChange={(event) => updateExerciseDraft(exercise.id, { rest_seconds: event.target.value })} />
                     </label>
@@ -290,12 +291,12 @@ export default function PlanEditorView(props: any) {
           <label>Séries
             <input value={newExercise.sets} onChange={(event) => setNewExercise({ ...newExercise, sets: event.target.value })} />
           </label>
-          <label>Reps
+          <label>Reps ou segundos (ex.: 20–45s)
             <input value={newExercise.reps} onChange={(event) => setNewExercise({ ...newExercise, reps: event.target.value })} />
           </label>
-          <label>Kg inicial
+          {!isDurationExercise(newExercise) && <label>Kg inicial
             <input type="number" min="0" step="0.5" value={newExercise.load_kg} onChange={(event) => setNewExercise({ ...newExercise, load_kg: event.target.value })} />
-          </label>
+          </label>}
           <label>Descanso s
             <input type="number" min="0" step="5" value={newExercise.rest_seconds} onChange={(event) => setNewExercise({ ...newExercise, rest_seconds: event.target.value })} />
           </label>
@@ -383,3 +384,4 @@ function numberOrNull(value) {
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 }
+import { isDurationExercise } from '../domain/exerciseTracking';

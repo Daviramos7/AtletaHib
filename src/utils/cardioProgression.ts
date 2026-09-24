@@ -67,19 +67,72 @@ const DEFAULT_PROGRESSIONS = [
   },
 ];
 
-export function getCardioProgression(cardioSessions = [], selectedOption = null) {
-  const sessions = Array.isArray(cardioSessions) ? cardioSessions : [];
-  const completed = sessions.length;
-  const phaseIndex = Math.min(Math.floor(completed / 3), DEFAULT_PROGRESSIONS.length - 1);
+export function getCardioProgression(cardioSessions = [], selectedOption = null, context: any = {}) {
+  const now = new Date(context.now ?? Date.now());
+  const zone = context.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC';
+  const parents = new Map((context.workoutSessions ?? []).map((row) => [row.id, row]));
+  const sessions = (Array.isArray(cardioSessions) ? cardioSessions : [])
+    .filter((row) => Number(row.duration_seconds) > 0 && new Date(row.performed_at).getTime() <= now.getTime())
+    .filter((row) => !['skipped', 'pending', 'awaiting_import'].includes(row.status ?? row.cardio_status) && row.completed !== false)
+    // An explicit workout link is evidence of which prescription was performed. Standalone imports are not stage completions.
+    .filter((row) => {
+      if (!row.workout_session_id) return false;
+      const parent: any = parents.get(row.workout_session_id);
+      return !parent || (parent.cardio_status === 'completed' && parent.cardio_plan?.planned === true);
+    })
+    .filter((row, index, rows) => rows.findIndex((other) => other.workout_session_id === row.workout_session_id) === index)
+    .sort((a, b) => new Date(a.performed_at).getTime() - new Date(b.performed_at).getTime());
+  let phaseIndex = 0;
+  let inPhase = 0;
+  let lastStage = 0;
+  let lastDate: string | null = null;
+  const applyPause = (gap: number) => {
+    if (gap >= 28) { phaseIndex = 0; inPhase = 0; }
+    else if (gap >= 14) { phaseIndex = Math.max(0, lastStage - 1); inPhase = 0; }
+    else if (gap >= 8) { phaseIndex = lastStage; inPhase = 0; }
+  };
+  for (const session of sessions) {
+    const date = dateKeyInTimeZone(session.performed_at, zone);
+    if (lastDate) applyPause(calendarGap(lastDate, date));
+    lastStage = phaseIndex;
+    const parent: any = parents.get(session.workout_session_id);
+    const effort = Number(session.perceived_effort ?? session.raw_json?.perceived_effort ?? parent?.perceived_effort);
+    const adapted = parent?.adaptation_summary;
+    if (!(effort >= 9) && adapted?.progression_allowed !== false && adapted?.workoutMode !== 'retorno') {
+      inPhase++;
+      if (inPhase >= 3) { phaseIndex = Math.min(phaseIndex + 1, DEFAULT_PROGRESSIONS.length - 1); inPhase = 0; }
+    }
+    lastDate = date;
+  }
+  const gap = lastDate ? calendarGap(lastDate, dateKeyInTimeZone(now, zone)) : null;
+  if (gap !== null) applyPause(gap);
+  const recommendation = context.recommendation;
+  const adaptiveReturn = recommendation?.workoutMode === 'retorno';
+  const progressionBlocked = recommendation && recommendation.progressionAllowed !== true;
+  if (progressionBlocked || adaptiveReturn) phaseIndex = Math.min(phaseIndex, lastStage);
+  if (adaptiveReturn) phaseIndex = Math.max(0, Math.min(phaseIndex, lastStage - 1));
+  const returnMode = adaptiveReturn || (gap !== null && gap >= 14);
+  const paused = gap !== null && gap >= 8;
   const phase = DEFAULT_PROGRESSIONS[phaseIndex];
-  const inPhase = completed % 3;
+  const completed = sessions.length;
   const nextUnlock = 3 - inPhase;
+  const adaptiveMinutes = recommendation?.checkinValid ? Number(recommendation.cardioGuidance?.minutes) : null;
+  const phaseMinutes = phaseIndex === 0 ? 15 : [1, 3].includes(phaseIndex) ? 18 : 20;
+  const targetMinutes = Math.min(phaseMinutes, adaptiveMinutes === null || !Number.isFinite(adaptiveMinutes) ? 20 : Math.max(0, adaptiveMinutes));
+  const reduced = targetMinutes < phaseMinutes;
+  const common = {
+    ...phase, phaseIndex, completed, inPhase, nextUnlock, gapDays: gap, returnMode, targetMinutes,
+    phaseLabel: `Fase ${phase.phase} de ${DEFAULT_PROGRESSIONS.length}`,
+    progressText: `${inPhase}/3 execuções elegíveis nesta fase`, maxMinutes: MAX_RECOMMENDED_CARDIO_MINUTES,
+    statusLabel: returnMode ? 'Retorno · ritmo reduzido após pausa' : paused ? 'Repetir estágio após pausa' : progressionBlocked ? 'Progressão aguardando prontidão' : null,
+    ...(reduced ? { workout: `${targetMinutes} min leves`, prescription: targetMinutes > 0 ? `Faça ${targetMinutes} min em ritmo conversável, conforme a prontidão de hoje.` : 'Sem cardio prescrito hoje.', intensity: 'Leve' } : {}),
+  };
 
   if (isFootballOption(selectedOption)) {
     return {
-      ...phase,
+      ...common,
       title: 'Futebol controlado',
-      workout: 'até 20 min recomendados',
+      workout: `até ${targetMinutes} min recomendados`,
       prescription: 'Se jogar futebol de verdade, não faça cardio extra no mesmo dia. Para o plano do app, o teto recomendado continua 20 min.',
       intensity: 'RPE 6-8',
       custom: true,
@@ -87,20 +140,16 @@ export function getCardioProgression(cardioSessions = [], selectedOption = null)
       inPhase,
       nextUnlock,
       phaseLabel: `Fase ${phase.phase} de ${DEFAULT_PROGRESSIONS.length}`,
-      progressText: `${inPhase}/3 cardios nesta fase`,
+      progressText: common.progressText,
       maxMinutes: MAX_RECOMMENDED_CARDIO_MINUTES,
     };
   }
 
-  return {
-    ...phase,
-    completed,
-    inPhase,
-    nextUnlock,
-    phaseLabel: `Fase ${phase.phase} de ${DEFAULT_PROGRESSIONS.length}`,
-    progressText: `${inPhase}/3 cardios nesta fase`,
-    maxMinutes: MAX_RECOMMENDED_CARDIO_MINUTES,
-  };
+  return common;
+}
+
+function calendarGap(first: string, last: string) {
+  return Math.max(0, Math.round((Date.parse(`${last}T12:00:00Z`) - Date.parse(`${first}T12:00:00Z`)) / 86_400_000));
 }
 
 export function getSelectedCardioOption(options = [], selectedLabel = '') {
@@ -118,3 +167,4 @@ function isFootballOption(option) {
   const text = String(option?.label ?? '').toLowerCase();
   return text.includes('futebol') || text.includes('bola');
 }
+import { dateKeyInTimeZone } from '../domain/readiness';

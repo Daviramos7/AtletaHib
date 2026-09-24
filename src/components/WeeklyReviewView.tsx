@@ -1,24 +1,28 @@
 import { useCallback, useEffect, useState } from 'react';
 import { BarChart3, CheckCircle2, Copy, Download, Droplets, Dumbbell, Flame, Footprints, Moon, NotebookTabs, Scale, Target, TrendingUp, TriangleAlert } from 'lucide-react';
 import { loadWeeklyReview } from '../services/analyticsService';
-import { LoadingState, PageHeader } from './ui';
+import { ErrorState, LoadingState, PageHeader } from './ui';
 
 export default function WeeklyReviewView({ userId, profile, onError }) {
   const [review, setReview] = useState(null);
   const [days, setDays] = useState(7);
   const [showExport, setShowExport] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const load = useCallback(async (selectedDays = days) => {
     try {
+      setFailed(false);
       setReview(await loadWeeklyReview(userId, profile, selectedDays));
     } catch (err) {
+      setFailed(true);
       onError(err.message);
     }
   }, [days, onError, profile, userId]);
 
   useEffect(() => { load(days); }, [days, load]);
 
-  if (!review) return <LoadingState title="Carregando revisão" description="Cruzando somente os dias disponíveis dentro da janela escolhida." />;
+  if (failed) return <ErrorState title="Não foi possível carregar o período" action={<button className="ghost-btn" onClick={() => load(days)}>Tentar novamente</button>} />;
+  if (!review) return <LoadingState title="Carregando revisão" />;
 
   const report = review.ruleReport;
   const exportText = JSON.stringify(review.exportPayload, null, 2);
@@ -46,10 +50,10 @@ export default function WeeklyReviewView({ userId, profile, onError }) {
     <div className="weekly-review-page">
       <PageHeader
         eyebrow="Semana"
-        title="Resumo inteligente da semana"
-        description="Análise por regras claras, com origem e ausência preservadas em treino, cardio, sono, água, alimentação e check-in."
+        title="Resumo do período"
+        description="Treino, alimentação e recuperação nos dias registrados."
         action={<div className="weekly-actions">
-          <select className="date-input" value={days} onChange={(e) => setDays(Number(e.target.value))}>
+          <select aria-label="Período da revisão" className="date-input" value={days} onChange={(e) => setDays(Number(e.target.value))}>
             <option value={7}>Últimos 7 dias</option>
             <option value={14}>Últimos 14 dias</option>
             <option value={30}>Últimos 30 dias</option>
@@ -92,7 +96,7 @@ export default function WeeklyReviewView({ userId, profile, onError }) {
               <button className="ghost-btn" type="button" onClick={downloadExport}><Download size={16} /> Baixar</button>
             </div>
           </div>
-          <textarea className="json-import-box weekly-export-box" value={exportText} readOnly />
+          <textarea aria-label="Relatório em JSON" className="json-import-box weekly-export-box" value={exportText} readOnly />
         </section>
       )}
 

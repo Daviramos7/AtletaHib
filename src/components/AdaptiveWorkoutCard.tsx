@@ -21,17 +21,15 @@ export default function AdaptiveWorkoutCard(props: AdaptiveWorkoutCardProps) {
 
   if (started) {
     return (
-      <section className="simple-panel adaptive-workout-card-v413 good">
+      <section className="gym-session-context">
         <div className="adaptive-workout-title-v413">
           <Gauge size={21} />
           <div>
-            <p className="eyebrow">Sessão em andamento</p>
             <h3>{props.activeVariant === 'adapted' ? 'Treino adaptado' : 'Treino-base'}</h3>
           </div>
         </div>
         <p className="muted-text">
-          Início preservado: {formatStartedAt(props.activeStartedAt)} · sessão local {formatLocalDate(props.activeSessionLocalDate)}.
-          O check-in só será exigido para uma nova recomendação.
+          Iniciado às {formatStartedAt(props.activeStartedAt)} · {formatLocalDate(props.activeSessionLocalDate)}
         </p>
       </section>
     );
@@ -50,7 +48,7 @@ export default function AdaptiveWorkoutCard(props: AdaptiveWorkoutCardProps) {
   }
 
   if (loading) {
-    return <section className="simple-panel adaptive-workout-card-v413 neutral"><p className="eyebrow">Treino de hoje</p><h3>Preparando recomendação…</h3></section>;
+    return <section className="simple-panel adaptive-workout-card-v413 neutral" role="status" aria-busy="true"><p className="eyebrow">Treino de hoje</p><h3>Preparando recomendação…</h3></section>;
   }
 
   if (!recommendation.checkinValid) {
@@ -58,11 +56,11 @@ export default function AdaptiveWorkoutCard(props: AdaptiveWorkoutCardProps) {
       <section className="simple-panel adaptive-workout-card-v413 awaiting">
         <div className="adaptive-workout-title-v413">
           <Activity size={22} />
-          <div><p className="eyebrow">Treino de hoje</p><h3>Faça seu check-in da manhã</h3></div>
+          <div><p className="eyebrow">Treino de hoje</p><h3>Falta o check-in</h3></div>
         </div>
-        <p>Precisamos dos sinais de hoje para preparar o treino. O plano e o histórico continuam disponíveis.</p>
+        <p>Registre como está hoje para ajustar o treino.</p>
         <div className="adaptive-workout-actions-v413">
-          <button className="primary-btn" type="button" onClick={props.onCheckin}><Activity size={16} /> Fazer check-in agora</button>
+          <button className="primary-btn" type="button" onClick={props.onCheckin}><Activity size={16} /> Fazer check-in</button>
           <button className="ghost-btn" type="button" onClick={props.onUseBase}><Dumbbell size={16} /> Usar treino-base</button>
         </div>
       </section>
@@ -78,7 +76,7 @@ export default function AdaptiveWorkoutCard(props: AdaptiveWorkoutCardProps) {
         <div>
           <p className="eyebrow">Treino recomendado</p>
           <h3>Prontidão {formatLevel(recommendation.readinessLevel)}</h3>
-          <span>{recommendation.workoutMode === 'retorno' ? 'Modo de retorno ativo' : `${changedCount} ajuste(s) no treino-base`}</span>
+          <span>{recommendation.workoutMode === 'retorno' ? 'Retorno aos treinos' : changedCount ? `${changedCount} ${changedCount === 1 ? 'ajuste' : 'ajustes'} no treino-base` : 'Treino-base mantido'}</span>
         </div>
         <strong>{recommendation.readinessScore}<small>/100</small></strong>
       </div>
@@ -90,16 +88,16 @@ export default function AdaptiveWorkoutCard(props: AdaptiveWorkoutCardProps) {
       </div>
 
       <div className="adaptive-workout-summary-v413">
-        {recommendation.recommendations.slice(0, 3).map((item) => <p key={item}><CheckCircle2 size={15} /> {item}</p>)}
+        {recommendation.recommendations.slice(0, 2).map((item) => <p key={item}><CheckCircle2 size={15} aria-hidden="true" /> {item}</p>)}
       </div>
 
       <div className="adaptive-workout-actions-v413">
-        <button className="primary-btn" type="button" onClick={props.onStartRecommended}><Dumbbell size={16} /> Iniciar treino recomendado</button>
+        <button className="primary-btn" type="button" onClick={props.onStartRecommended}><Dumbbell size={16} /> Iniciar treino</button>
         <button className="ghost-btn" type="button" onClick={props.onUseBase}>Usar treino-base</button>
       </div>
 
       <button className="adaptive-details-toggle-v413" type="button" aria-expanded={showDetails} onClick={props.onToggleDetails}>
-        Ver motivos e alterações <ChevronDown className={showDetails ? 'open' : ''} size={17} />
+        {showDetails ? 'Ocultar ajustes' : 'Ver ajustes e motivos'} <ChevronDown className={showDetails ? 'open' : ''} size={17} aria-hidden="true" />
       </button>
 
       {showDetails && (

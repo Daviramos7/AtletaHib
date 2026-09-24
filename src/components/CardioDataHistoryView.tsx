@@ -79,23 +79,23 @@ export default function CardioDataHistoryView({ userId, onError }: any) {
         <div className="simple-section-head">
           <div>
             <p className="eyebrow">Dados de cardio</p>
-            <h3>Cardios importados, manuais e do relógio</h3>
+            <h3>Histórico de cardio</h3>
           </div>
           <HeartPulse size={24} />
         </div>
 
         <p className="muted-text">
-          Aqui você confere os dados das sessões de cardio: duração, kcal, distância, ritmo, FC e fonte. Isso é diferente da prescrição do treino.
+          Duração, distância e esforço realizados, com a origem de cada registro.
         </p>
 
         <div className="cardio-data-warning-v404">
           <AlertTriangle size={16} />
-          <span>Kcal de cardio podem já estar incluídas nas kcal ativas diárias do Health Connect. Use como detalhe da sessão, não como soma automática.</span>
+          <span>Kcal da sessão não somam novamente ao total do Health Connect.</span>
         </div>
 
         <div className="cardio-data-periods-v404">
           {PERIODS.map((item) => (
-            <button key={item.value} type="button" className={period === item.value ? 'active' : ''} onClick={() => setPeriod(item.value)}>
+            <button key={item.value} type="button" aria-pressed={period === item.value} className={period === item.value ? 'active' : ''} onClick={() => setPeriod(item.value)}>
               {item.label}
             </button>
           ))}

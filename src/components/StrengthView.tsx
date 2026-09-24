@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { formatSetExecution, isDurationExercise, recordedDuration } from '../domain/exerciseTracking';
 import { Activity, Dumbbell, TrendingUp } from 'lucide-react';
 import { buildWeeklyStrengthProgress, calculateEstimatedOneRepMax, calculateVolumeKg, listStrengthSets } from '../services/workoutService';
 
@@ -24,11 +25,13 @@ export default function StrengthView({ userId, onError }) {
   const selectedSets = useMemo(() => sets.filter((set) => set.exercise_name === exerciseName), [sets, exerciseName]);
   const weeklyData = useMemo(() => buildWeeklyStrengthProgress(sets, exerciseName), [sets, exerciseName]);
   const bestSet = useMemo(() => {
-    return [...selectedSets].sort((a, b) => calculateEstimatedOneRepMax(b.load_kg, b.reps) - calculateEstimatedOneRepMax(a.load_kg, a.reps))[0] ?? null;
+    return selectedSets.filter((set) => !isDurationExercise(set)).sort((a, b) => calculateEstimatedOneRepMax(b.load_kg, b.reps) - calculateEstimatedOneRepMax(a.load_kg, a.reps))[0] ?? null;
   }, [selectedSets]);
 
   const totalVolume = calculateVolumeKg(selectedSets);
   const lastSet = selectedSets[0];
+  const timed = selectedSets.some(isDurationExercise);
+  const seconds = selectedSets.map(recordedDuration).filter((value) => value !== null);
 
   return (
     <div>
@@ -64,9 +67,11 @@ export default function StrengthView({ userId, onError }) {
 
           <div className="metric-grid four">
             <Metric icon={Dumbbell} label="Séries registradas" value={selectedSets.length} sub={exerciseName || 'Selecione um exercício'} />
+            {timed ? <Metric icon={Activity} label="Duração registrada" value={seconds.length ? `${seconds.reduce((a, b) => a + b, 0)} s` : '--'} sub="Sem converter registros antigos" /> : <>
             <Metric icon={Activity} label="Volume total" value={`${totalVolume.toFixed(0)} kg`} sub="kg x reps na janela" />
             <Metric icon={TrendingUp} label="Melhor carga" value={bestSet ? `${Number(bestSet.load_kg).toFixed(1)} kg` : '--'} sub={bestSet ? `${bestSet.reps} reps` : 'sem dado'} />
             <Metric icon={TrendingUp} label="Estimativa 1RM" value={bestSet ? `${calculateEstimatedOneRepMax(bestSet.load_kg, bestSet.reps).toFixed(1)} kg` : '--'} sub="Epley: carga x (1 + reps/30)" />
+            </>}
           </div>
 
           <section className="panel">
@@ -89,8 +94,8 @@ export default function StrengthView({ userId, onError }) {
                     <strong>{new Date(set.performed_at).toLocaleDateString('pt-BR')}</strong>
                     <span>Série {set.set_number} · RPE {set.perceived_effort ?? '--'}</span>
                   </div>
-                  <div><strong>{set.reps} reps</strong><span>{Number(set.load_kg).toFixed(1)} kg</span></div>
-                  <div><strong>{calculateEstimatedOneRepMax(set.load_kg, set.reps).toFixed(1)} kg</strong><span>1RM estimado</span></div>
+                  <div><strong>{formatSetExecution(set)}</strong></div>
+                  {!isDurationExercise(set) && <div><strong>{calculateEstimatedOneRepMax(set.load_kg, set.reps).toFixed(1)} kg</strong><span>1RM estimado</span></div>}
                 </div>
               ))}
             </div>

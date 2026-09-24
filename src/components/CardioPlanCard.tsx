@@ -8,10 +8,12 @@ export default function CardioPlanCard(props: any) {
     selectedCardioChoice = '',
     onSelectCardioChoice,
     compact = false,
+    recommendation = null,
+    workoutSessions = [],
   } = props;
 
   const selectedOption = getSelectedCardioOption(cardioOptions, selectedCardioChoice);
-  const progression = getCardioProgression(cardioSessions, selectedOption);
+  const progression = getCardioProgression(cardioSessions, selectedOption, { recommendation, workoutSessions });
 
   return (
     <section className={`simple-panel cardio-progress-card ${compact ? 'compact' : ''}`}>
@@ -19,14 +21,15 @@ export default function CardioPlanCard(props: any) {
         <div>
           <p className="eyebrow">Progresso do cardio</p>
           <h3>{progression.phaseLabel}</h3>
-          <span>{progression.progressText} · {progression.completed} cardio(s) registrado(s)</span>
+          {progression.statusLabel && <span>{progression.statusLabel}</span>}
+          <span>{progression.progressText} · {progression.completed} {progression.completed === 1 ? 'sessão registrada' : 'sessões registradas'}</span>
         </div>
         <TrendingUp size={24} />
       </div>
 
       <div className="cardio-prescription-card">
         <div>
-          <p className="eyebrow">Faça hoje</p>
+          <p className="eyebrow">Cardio planejado</p>
           <h4>{selectedOption?.label ?? progression.title}</h4>
           <strong>{progression.workout}</strong>
         </div>
@@ -37,7 +40,7 @@ export default function CardioPlanCard(props: any) {
 
       <div className="cardio-cap-note-v402">
         <ShieldCheck size={16} />
-        <span>Teto recomendado: {progression.maxMinutes ?? 20} min por sessão. Se fizer mais, registre o real, mas não use isso como meta.</span>
+        <span>Até {progression.maxMinutes ?? 20} min recomendados. Registre a duração real, mesmo se passar.</span>
       </div>
 
       <div className="cardio-progress-meta">
@@ -52,6 +55,7 @@ export default function CardioPlanCard(props: any) {
               key={option.label}
               type="button"
               className={(selectedOption?.label ?? '') === option.label ? 'active' : ''}
+              aria-pressed={(selectedOption?.label ?? '') === option.label}
               onClick={() => onSelectCardioChoice?.(option.label)}
             >
               {option.label}
@@ -61,7 +65,7 @@ export default function CardioPlanCard(props: any) {
       )}
 
       <small className="cardio-help-text">
-        Ao importar/registrar um cardio, o app avança automaticamente. A progressão aumenta qualidade e controle, não passa de 20 min.
+        Avanço depende de execução vinculada, recência e prontidão. O histórico avulso continua preservado.
       </small>
     </section>
   );

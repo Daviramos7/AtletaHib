@@ -29,6 +29,8 @@ export default function ExerciseReplacementPanel(props: any) {
       tag: option.tag,
       detail: option.reason,
       safetyNote: option.safetyNote,
+      tracking_type: option.tracking_type,
+      reps: option.reps,
     };
 
     setPending((current) => current?.name === option.name ? null : { name: option.name, meta });
@@ -51,10 +53,11 @@ export default function ExerciseReplacementPanel(props: any) {
             key={reason.id}
             type="button"
             className={selectedReason === reason.id ? 'active' : ''}
+            aria-pressed={selectedReason === reason.id}
             onClick={() => toggleReason(reason.id)}
           >
             <strong>{reason.label}</strong>
-            <span>{selectedReason === reason.id ? 'Selecionado · toque de novo para limpar' : reason.hint}</span>
+            <span>{selectedReason === reason.id ? 'Selecionado' : reason.hint}</span>
           </button>
         ))}
       </div>
@@ -65,6 +68,7 @@ export default function ExerciseReplacementPanel(props: any) {
             key={option.name}
             type="button"
             className={pending?.name === option.name ? 'selected' : ''}
+            aria-pressed={pending?.name === option.name}
             onClick={() => togglePending(option)}
           >
             <div>
@@ -80,18 +84,14 @@ export default function ExerciseReplacementPanel(props: any) {
         <div className="replacement-confirm-v332">
           <div>
             <strong>Trocar para {pending.name}?</strong>
-            <span>As séries, kg, reps e RPE já preenchidos serão mantidos.</span>
+            <span>Os valores serão mantidos quando a unidade for a mesma. Ao trocar entre repetições e duração, confira e marque as séries novamente.</span>
           </div>
           <div>
             <button type="button" className="ghost-btn" onClick={() => setPending(null)}>Desmarcar</button>
             <button type="button" className="primary-btn" onClick={() => onConfirm(pending.name, pending.meta)}>Confirmar troca</button>
           </div>
         </div>
-      ) : (
-        <p className="replacement-safety-v33">
-          Escolha uma opção acima. Nada será alterado até você confirmar.
-        </p>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -1,13 +1,14 @@
 import { buildExerciseProgress, buildWorkoutProgressSummary } from '../utils/strengthProgression';
+import { formatSetExecution, isDurationExercise } from '../domain/exerciseTracking';
 
 export function ExerciseProgressMini(props: any) {
-  const { exerciseName, strengthSets = [] } = props;
-  const progress = buildExerciseProgress(exerciseName, strengthSets);
+  const { exerciseName, strengthSets = [], exercise } = props;
+  const progress = buildExerciseProgress(exerciseName, strengthSets, exercise);
 
   if (!progress.hasHistory) {
     return (
       <div className="exercise-progress-mini-v34 empty">
-        <span>Sem histórico ainda</span>
+        <span>Primeiro registro</span>
         <strong>{progress.suggestion}</strong>
       </div>
     );
@@ -19,17 +20,17 @@ export function ExerciseProgressMini(props: any) {
     <div className="exercise-progress-mini-v34">
       <div>
         <span>Última vez</span>
-        <strong>{Number(best?.load_kg || 0)} kg · {Number(best?.reps || 0)} reps · RPE {progress.lastSession.avgRpe || '--'}</strong>
+        <strong>{formatSetExecution(best)} · RPE {progress.lastSession.avgRpe ?? '--'}</strong>
       </div>
       <div>
         <span>Sugestão</span>
         <strong>{progress.suggestion}</strong>
       </div>
-      <div className="exercise-progress-stats-v34">
+      <details className="exercise-progress-stats-v34">
+        <summary>Histórico do exercício</summary>
         <small>{progress.trendLabel}</small>
-        <small>Melhor carga: {progress.bestLoad} kg</small>
-        <small>Melhor volume: {progress.bestVolume} kg</small>
-      </div>
+        {!isDurationExercise(exercise ?? best) && <><small>Melhor carga: {progress.bestLoad} kg</small><small>Melhor volume: {progress.bestVolume} kg</small></>}
+      </details>
     </div>
   );
 }
@@ -41,7 +42,7 @@ export function WorkoutProgressSummary(props: any) {
   return (
     <section className="simple-panel workout-progress-summary-v34">
       <div>
-        <p className="eyebrow">Performance</p>
+        <p className="eyebrow">Volume realizado</p>
         <h3>{summary.currentVolume} kg</h3>
         <span>Volume atual · {summary.diffLabel}</span>
       </div>

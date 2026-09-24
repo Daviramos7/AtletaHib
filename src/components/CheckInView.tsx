@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Activity, CheckCircle2, Droplets, Dumbbell, Flame, Footprints, Moon, Salad, Save, ShieldAlert, Sparkles, Timer } from 'lucide-react';
+import { Activity, Droplets, Dumbbell, Flame, Footprints, Moon, Salad, Save, ShieldAlert, RefreshCw, Timer } from 'lucide-react';
 import { getCheckin, upsertCheckin } from '../services/checkinService';
 import { todayKey } from '../services/dailyService';
 import { loadCheckinAutofill } from '../services/checkinAutofillService';
@@ -9,12 +9,12 @@ import { PageHeader } from './ui';
 const INITIAL = {
   log_date: todayKey(),
   sleep_hours: '',
-  energy_score: 7,
-  hunger_score: 5,
-  stress_score: 5,
+  energy_score: '',
+  hunger_score: '',
+  stress_score: '',
   recovery_score: '',
-  pain_level: 0,
-  soreness_level: 3,
+  pain_level: '',
+  soreness_level: '',
   available_minutes: '',
   joint_pain_locations: [],
   muscle_soreness_locations: [],
@@ -38,14 +38,15 @@ const MUSCLE_LOCATIONS = [
 ];
 
 export default function CheckInView({ userId, onError, onCheckinSaved }) {
-  const [form, setForm] = useState(INITIAL);
+  const [form, setForm] = useState(() => ({ ...INITIAL, log_date: todayKey() }));
   const [saved, setSaved] = useState(null);
   const [autoData, setAutoData] = useState(null);
   const [loadingAuto, setLoadingAuto] = useState(false);
   const [saving, setSaving] = useState(false);
   const [mode, setMode] = useState('morning');
 
-  const load = useCallback(async (date = form.log_date) => {
+  const load = useCallback(async (date = todayKey()) => {
+    if (!date) return;
     try {
       setLoadingAuto(true);
       const [checkinData, automaticData] = await Promise.all([
@@ -59,12 +60,12 @@ export default function CheckInView({ userId, onError, onCheckinSaved }) {
         setForm({
           log_date: checkinData.log_date,
           sleep_hours: valueAsInput(checkinData.sleep_hours ?? automaticData.sleep_hours),
-          energy_score: checkinData.energy_score ?? 7,
-          hunger_score: checkinData.hunger_score ?? 5,
-          stress_score: checkinData.stress_score ?? 5,
+          energy_score: checkinData.energy_score ?? '',
+          hunger_score: checkinData.hunger_score ?? '',
+          stress_score: checkinData.stress_score ?? '',
           recovery_score: checkinData.recovery_score ?? '',
-          pain_level: checkinData.pain_level ?? 0,
-          soreness_level: checkinData.soreness_level ?? 3,
+          pain_level: checkinData.pain_level ?? '',
+          soreness_level: checkinData.soreness_level ?? '',
           available_minutes: checkinData.available_minutes ?? '',
           joint_pain_locations: checkinData.joint_pain_locations ?? [],
           muscle_soreness_locations: checkinData.muscle_soreness_locations ?? [],
@@ -86,16 +87,18 @@ export default function CheckInView({ userId, onError, onCheckinSaved }) {
         setSaved(null);
       }
     } catch (err: any) {
-      onError(err.message);
+      console.error('Falha ao carregar check-in', err);
+      onError('Não foi possível carregar o check-in. Tente abrir a data novamente.');
     } finally {
       setLoadingAuto(false);
     }
-  }, [form.log_date, onError, userId]);
+  }, [onError, userId]);
 
-  useEffect(() => { load(INITIAL.log_date); }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   const readiness = useMemo(() => calculateReadiness({ checkin: form }), [form]);
-  const hasAutoBasics = Boolean(autoData?.sleep_hours || autoData?.steps);
+  const hasAutoBasics = autoData?.sleep_hours != null || autoData?.steps != null;
+  const hasReadinessSignals = [form.sleep_hours, form.energy_score, form.recovery_score, form.hunger_score, form.stress_score, form.pain_level, form.soreness_level].some((value) => value !== '' && value != null);
   const isMorning = mode === 'morning';
 
   async function handleSubmit(event) {
@@ -166,73 +169,30 @@ export default function CheckInView({ userId, onError, onCheckinSaved }) {
       steps: valueAsInput(autoData.steps) || old.steps,
     }));
 
-    onError('Valores do relógio aplicados sem arredondar.');
+    onError('Sono e passos atualizados.');
   }
 
   return (
     <div>
       <PageHeader
-        eyebrow="Check-in"
         title={isMorning ? 'Check-in da manhã' : 'Fechamento do dia'}
-        description={isMorning ? 'Use pela manhã para decidir treino, cardio e recuperação.' : 'Use à noite para fechar passos, fome/compulsão e observações do dia.'}
-        action={<input aria-label="Data do check-in" className="date-input" type="date" value={form.log_date} onChange={(e) => load(e.target.value)} />}
+        description={isMorning ? 'Como você acordou? Preencha o que souber.' : 'Complete os registros de hoje.'}
+        action={<input aria-label="Data do check-in" className="date-input" type="date" value={form.log_date} disabled={loadingAuto || saving} onChange={(e) => load(e.target.value)} />}
       />
 
       <div className="checkin-mode-tabs-v406">
-        <button type="button" className={isMorning ? 'active' : ''} onClick={() => changeMode('morning')}>
+        <button type="button" aria-pressed={isMorning} className={isMorning ? 'active' : ''} onClick={() => changeMode('morning')}>
           Manhã
           <span>sono, energia, fome, dor</span>
         </button>
-        <button type="button" className={!isMorning ? 'active' : ''} onClick={() => changeMode('evening')}>
+        <button type="button" aria-pressed={!isMorning} className={!isMorning ? 'active' : ''} onClick={() => changeMode('evening')}>
           Fechamento
           <span>passos, compulsão, notas</span>
         </button>
       </div>
 
-      <section className={`panel readiness-panel ${readiness.tone}`}>
-        <div>
-          <p className="eyebrow">Score de prontidão</p>
-          <h3>{readiness.score}/100 · {readiness.label}</h3>
-          <p>{readiness.advice}</p>
-        </div>
-        <ShieldAlert size={38} />
-      </section>
-
-      <section className="panel smart-checkin-panel-v372">
-        <div className="section-title-row">
-          <div>
-            <p className="eyebrow">Dados puxados automaticamente</p>
-            <h3>{loadingAuto ? 'Carregando...' : autoData?.has_data ? 'Base do dia encontrada' : 'Poucos dados automáticos'}</h3>
-            <p className="muted-text">Esses dados vêm dos registros do app, JSONs importados e Health Connect quando disponível.</p>
-          </div>
-          <button className="ghost-btn" type="button" onClick={applyAutomaticData} disabled={!hasAutoBasics}>
-            <Sparkles size={16} /> Usar valores do relógio
-          </button>
-        </div>
-
-        <div className="smart-checkin-grid-v372">
-          <AutoMetric icon={Moon} label="Sono" value={autoData?.sleep_hours ? `${autoData.sleep_hours}h` : '--'} sub={autoData?.sleep_source ? `${autoData.sleep_source} · valor exato` : 'sem dado'} ok={Boolean(autoData?.sleep_hours)} />
-          <AutoMetric icon={Footprints} label="Passos" value={autoData?.steps ? formatNumber(autoData.steps) : '--'} sub={autoData?.steps_source ? `${autoData.steps_source} · valor exato` : 'sem dado'} ok={Boolean(autoData?.steps)} />
-          <AutoMetric icon={Droplets} label="Água" value={autoData?.water_ml ? `${formatNumber(autoData.water_ml)} ml` : '--'} sub="registro do dia" ok={Boolean(autoData?.water_ml)} />
-          <AutoMetric icon={Salad} label="Comida" value={autoData?.kcal ? `${formatNumber(autoData.kcal)} kcal` : '--'} sub={`${autoData?.meals_count ?? 0} item(ns)`} ok={Boolean(autoData?.meals_count)} />
-          <AutoMetric icon={Dumbbell} label="Treino" value={autoData?.workout_count ? 'feito' : '--'} sub={`${autoData?.workout_count ?? 0} sessão(ões)`} ok={Boolean(autoData?.workout_count)} />
-          <AutoMetric icon={Timer} label="Cardio" value={autoData?.cardio_count ? 'feito' : '--'} sub={`${autoData?.cardio_count ?? 0} sessão(ões)`} ok={Boolean(autoData?.cardio_count)} />
-          <AutoMetric icon={Flame} label="Kcal ativas" value={autoData?.active_kcal ? `${formatNumber(autoData.active_kcal)} kcal` : '--'} sub={autoData?.wearable_source ?? 'sem dado'} ok={Boolean(autoData?.active_kcal)} />
-          <AutoMetric icon={Activity} label="Macros" value={autoData?.meals_count ? `P ${formatMacro(autoData.protein_g)}` : '--'} sub={autoData?.meals_count ? `C ${formatMacro(autoData.carbs_g)} · G ${formatMacro(autoData.fat_g)}${autoData.macros_complete ? '' : ' · parcial'}` : 'sem refeições'} ok={Boolean(autoData?.meals_count)} />
-        </div>
-      </section>
-
       <form className="panel form-grid smart-checkin-form-v372 split-checkin-v406" onSubmit={handleSubmit} noValidate>
-        <p className="eyebrow full">{isMorning ? 'Campos da manhã' : 'Campos do fechamento'}</p>
-
-        <div className="full checkin-autofill-note-v372">
-          <CheckCircle2 size={16} />
-          <span>
-            {isMorning
-              ? 'De manhã, passos ainda podem estar incompletos. Foque em sono, energia, fome, estresse e dor.'
-              : 'No fechamento, passos e observações do dia fazem mais sentido. Não precisa mudar sono se ele já veio do relógio.'}
-          </span>
-        </div>
+        <p className="muted-text full">Campos em branco ficam sem resposta. Nas escalas, 1 é baixo e 10 é alto; dor 0 significa sem dor.</p>
 
         {isMorning ? (
           <>
@@ -249,7 +209,7 @@ export default function CheckInView({ userId, onError, onCheckinSaved }) {
             </label>
             <label>Tempo disponível
               <select value={form.available_minutes} onChange={(e) => update('available_minutes', e.target.value)}>
-                <option value="">Padrão do plano · 45 min</option>
+                <option value="">Não informado · usar o plano</option>
                 <option value="30">30 min</option>
                 <option value="40">40 min</option>
                 <option value="45">45 min</option>
@@ -270,18 +230,21 @@ export default function CheckInView({ userId, onError, onCheckinSaved }) {
             </label>
             {Number(form.pain_level) > 0 && <LocationPicker label="Onde há dor articular? (opcional)" options={JOINT_LOCATIONS} value={form.joint_pain_locations} onToggle={(location) => toggleLocation('joint_pain_locations', location)} />}
             {Number(form.soreness_level) >= 4 && <LocationPicker label="Onde há dor muscular? (opcional)" options={MUSCLE_LOCATIONS} value={form.muscle_soreness_locations} onToggle={(location) => toggleLocation('muscle_soreness_locations', location)} />}
+            <details className="full disclosure-panel">
+              <summary>Sintomas e notas (opcional)</summary>
             <label className="check-row">
               <input type="checkbox" checked={form.lactose_symptoms} onChange={(e) => update('lactose_symptoms', e.target.checked)} /> sintomas alimentares hoje
             </label>
             <label className="full">Notas da manhã
-              <textarea value={form.notes} onChange={(e) => update('notes', e.target.value)} placeholder="Sono ruim, dor, treino pesado ontem, recuperação..." />
+              <textarea value={form.notes} onChange={(e) => update('notes', e.target.value)} placeholder="Algo que afete seu treino hoje" rows={3} />
             </label>
+            </details>
           </>
         ) : (
           <>
             <label>Passos
               <input type="text" inputMode="numeric" value={form.steps} onChange={(e) => update('steps', e.target.value)} />
-              <span className="field-hint-v401">Não arredonde. Se o relógio marcou 8437, salve 8437.</span>
+              <span className="field-hint-v401">Total mostrado pelo relógio.</span>
             </label>
             <label>Fome 1-10
               <input type="number" min="1" max="10" value={form.hunger_score} onChange={(e) => update('hunger_score', e.target.value)} />
@@ -299,22 +262,50 @@ export default function CheckInView({ userId, onError, onCheckinSaved }) {
               <input type="checkbox" checked={form.lactose_symptoms} onChange={(e) => update('lactose_symptoms', e.target.checked)} /> sintomas alimentares hoje
             </label>
             <label className="full">Fome/compulsão à noite
-              <textarea value={form.cravings_notes} onChange={(e) => update('cravings_notes', e.target.value)} placeholder="Ex.: vontade forte de doce, ataque à geladeira, fome depois do treino..." />
+              <textarea value={form.cravings_notes} onChange={(e) => update('cravings_notes', e.target.value)} placeholder="Fome após o treino, vontade de doce…" rows={3} />
             </label>
             <label className="full">Fechamento do dia
-              <textarea value={form.notes} onChange={(e) => update('notes', e.target.value)} placeholder="Como foi o dia? treino, comida, sono, dor, algo fora do normal..." />
+              <textarea value={form.notes} onChange={(e) => update('notes', e.target.value)} placeholder="Algo que queira registrar" rows={3} />
             </label>
           </>
         )}
 
-        <button className="primary-btn" type="submit" disabled={saving}><Save size={16} /> {saving ? 'Salvando...' : isMorning ? 'Salvar check-in da manhã' : 'Salvar fechamento do dia'}</button>
+        <button className="primary-btn" type="submit" disabled={saving || loadingAuto}><Save size={16} /> {saving ? 'Salvando...' : isMorning ? 'Salvar check-in' : 'Salvar fechamento'}</button>
       </form>
 
-      <section className="panel warning-panel">
-        <p className="eyebrow">Regra de uso</p>
-        <p>Manhã serve para decidir o dia. Fechamento serve para registrar o que realmente aconteceu. Passos só fazem sentido completos no fim do dia.</p>
-        {saved && <p className="muted">Último salvamento: {new Date(saved.updated_at ?? saved.created_at).toLocaleString('pt-BR')}</p>}
-      </section>
+      {hasReadinessSignals && <details className={`panel disclosure-panel readiness-panel ${readiness.tone}`}>
+        <summary>Prontidão prévia · {readiness.score}/100{readiness.confidence === 'low' ? ' · poucos dados' : ''}</summary>
+        <div>
+          <h3>{readiness.score}/100 · {readiness.label}</h3>
+          <p>{readiness.advice}</p>
+        </div>
+        <ShieldAlert size={24} aria-hidden="true" />
+      </details>}
+
+      <details className="panel disclosure-panel smart-checkin-panel-v372">
+        <summary>{loadingAuto ? 'Carregando registros…' : 'Dados já registrados'}</summary>
+        <div className="section-title-row">
+          <div>
+            <p className="muted-text">Registros do app, JSON e Health Connect.</p>
+          </div>
+          <button className="ghost-btn" type="button" onClick={applyAutomaticData} disabled={!hasAutoBasics}>
+            <RefreshCw size={16} /> Atualizar sono e passos
+          </button>
+        </div>
+
+        <div className="smart-checkin-grid-v372">
+          <AutoMetric icon={Moon} label="Sono" value={autoData?.sleep_hours ? `${autoData.sleep_hours}h` : '--'} sub={autoData?.sleep_source ? `${autoData.sleep_source} · valor exato` : 'sem dado'} ok={Boolean(autoData?.sleep_hours)} />
+          <AutoMetric icon={Footprints} label="Passos" value={autoData?.steps ? formatNumber(autoData.steps) : '--'} sub={autoData?.steps_source ? `${autoData.steps_source} · valor exato` : 'sem dado'} ok={Boolean(autoData?.steps)} />
+          <AutoMetric icon={Droplets} label="Água" value={autoData?.water_ml ? `${formatNumber(autoData.water_ml)} ml` : '--'} sub="registro do dia" ok={Boolean(autoData?.water_ml)} />
+          <AutoMetric icon={Salad} label="Comida" value={autoData?.kcal ? `${formatNumber(autoData.kcal)} kcal` : '--'} sub={`${autoData?.meals_count ?? 0} item(ns)`} ok={Boolean(autoData?.meals_count)} />
+          <AutoMetric icon={Dumbbell} label="Treino" value={autoData?.workout_count ? 'feito' : '--'} sub={`${autoData?.workout_count ?? 0} sessão(ões)`} ok={Boolean(autoData?.workout_count)} />
+          <AutoMetric icon={Timer} label="Cardio" value={autoData?.cardio_count ? 'feito' : '--'} sub={`${autoData?.cardio_count ?? 0} sessão(ões)`} ok={Boolean(autoData?.cardio_count)} />
+          <AutoMetric icon={Flame} label="Kcal ativas" value={autoData?.active_kcal ? `${formatNumber(autoData.active_kcal)} kcal` : '--'} sub={autoData?.wearable_source ?? 'sem dado'} ok={Boolean(autoData?.active_kcal)} />
+          <AutoMetric icon={Activity} label="Macros" value={autoData?.meals_count ? `P ${formatMacro(autoData.protein_g)}` : '--'} sub={autoData?.meals_count ? `C ${formatMacro(autoData.carbs_g)} · G ${formatMacro(autoData.fat_g)}${autoData.macros_complete ? '' : ' · parcial'}` : 'sem refeições'} ok={Boolean(autoData?.meals_count)} />
+        </div>
+      </details>
+
+      {saved && <p className="muted">{saved.updated_at || saved.created_at ? `Salvo em ${new Date(saved.updated_at ?? saved.created_at).toLocaleString('pt-BR')}` : 'Check-in salvo.'}</p>}
     </div>
   );
 }

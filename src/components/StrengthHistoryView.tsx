@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Dumbbell, Search, Trash2, Trophy } from 'lucide-react';
 import { calculateEstimatedOneRepMax, deleteWorkoutSession, listStrengthSets } from '../services/workoutService';
 import { isProgressionRestricted } from '../utils/strengthProgression';
+import { formatSetExecution, isDurationExercise, recordedDuration, setVolumeKg } from '../domain/exerciseTracking';
 
 const RANGE_OPTIONS = [
   { id: 30, label: '30 dias' },
@@ -58,6 +59,8 @@ export default function StrengthHistoryView({ userId, onError }: any) {
   const sessions = useMemo(() => groupSetsBySession(activeSets), [activeSets]);
   const weekly = useMemo(() => buildWeeklyBuckets(activeSets), [activeSets]);
   const trend = buildTrend(weekly);
+  const timed = activeSets.some(isDurationExercise);
+  const seconds = activeSets.map(recordedDuration).filter((value) => value !== null);
 
   async function handleDeleteSession(session) {
     const sessionId = session?.workoutSessionId ?? session?.sets?.[0]?.workout_session_id;
@@ -94,12 +97,12 @@ export default function StrengthHistoryView({ userId, onError }: any) {
       <section className="simple-panel strength-history-toolbar-v38">
         <label>
           <Search size={16} />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar exercício..." />
+          <input aria-label="Buscar exercício" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar exercício..." />
         </label>
 
         <div className="strength-range-v38">
           {RANGE_OPTIONS.map((option) => (
-            <button key={option.id} type="button" className={days === option.id ? 'active' : ''} onClick={() => setDays(option.id)}>
+            <button key={option.id} type="button" aria-pressed={days === option.id} className={days === option.id ? 'active' : ''} onClick={() => setDays(option.id)}>
               {option.label}
             </button>
           ))}
@@ -131,7 +134,7 @@ export default function StrengthHistoryView({ userId, onError }: any) {
                   onClick={() => setSelectedExercise(exercise.name)}
                 >
                   <strong>{exercise.name}</strong>
-                  <span>{exercise.sets} séries · {Math.round(exercise.volume)} kg</span>
+                  <span>{exercise.sets} séries · {exercise.timed ? 'duração em segundos' : `${Math.round(exercise.volume)} kg`}</span>
                 </button>
               ))}
             </div>
@@ -151,15 +154,21 @@ export default function StrengthHistoryView({ userId, onError }: any) {
                   <div>
                     <p className="eyebrow">Exercício selecionado</p>
                     <h3>{activeExercise.name}</h3>
-                    <span>{trend.label}</span>
+                    <span>{timed ? 'Duração real por série; registros antigos não são convertidos.' : trend.label}</span>
                   </div>
                   <Trophy size={34} />
                 </div>
 
                 <div className="strength-metric-grid-v38">
-                  <Metric label="Melhor carga" value={`${formatKg(activeExercise.bestLoad)} kg`} />
-                  <Metric label="Melhor estimado" value={`${formatKg(activeExercise.bestOneRm)} kg`} sub="1RM estimado" />
-                  <Metric label="Volume total" value={`${Math.round(activeExercise.volume)} kg`} />
+                  {timed ? <>
+                    <Metric label="Maior duração" value={seconds.length ? `${Math.max(...seconds)} s` : '--'} />
+                    <Metric label="Tempo registrado" value={seconds.length ? `${seconds.reduce((a, b) => a + b, 0)} s` : '--'} />
+                    <Metric label="Séries com duração" value={seconds.length} />
+                  </> : <>
+                    <Metric label="Melhor carga" value={`${formatKg(activeExercise.bestLoad)} kg`} />
+                    <Metric label="Melhor estimado" value={`${formatKg(activeExercise.bestOneRm)} kg`} sub="1RM estimado" />
+                    <Metric label="Volume total" value={`${Math.round(activeExercise.volume)} kg`} />
+                  </>}
                   <Metric label="Última vez" value={formatDate(activeExercise.lastDate)} />
                 </div>
               </section>
@@ -172,7 +181,7 @@ export default function StrengthHistoryView({ userId, onError }: any) {
                   </div>
                 </div>
 
-                {weekly.length === 0 ? (
+                {timed ? <p className="muted-text">Compare as durações nas séries abaixo. Segundos não entram no volume de força.</p> : weekly.length === 0 ? (
                   <p className="muted-text">Sem dados suficientes para evolução semanal.</p>
                 ) : (
                   <div className="weekly-bars-v38">
@@ -203,7 +212,7 @@ export default function StrengthHistoryView({ userId, onError }: any) {
                       <div className="strength-session-head-v406">
                         <div>
                           <strong>{formatDateTime(session.performedAt)}</strong>
-                          <span>{session.sets.length} séries · volume {Math.round(session.volume)} kg · melhor {formatKg(session.bestLoad)} kg</span>
+                          <span>{session.sets.length} séries{!timed && ` · volume ${Math.round(session.volume)} kg · melhor ${formatKg(session.bestLoad)} kg`}</span>
                         </div>
                         <button
                           type="button"
@@ -217,7 +226,7 @@ export default function StrengthHistoryView({ userId, onError }: any) {
                       <div className="session-set-pills-v38">
                         {session.sets.map((set: any) => (
                           <span key={set.id ?? `${set.set_number}-${set.reps}-${set.load_kg}`}>
-                            {set.set_number}ª · {formatKg(set.load_kg)}kg x {set.reps}
+                            {set.set_number}ª · {formatSetExecution(set)}
                           </span>
                         ))}
                       </div>
@@ -248,10 +257,11 @@ function buildExerciseSummaries(sets: any[]) {
 
   sets.forEach((set: any) => {
     const name = String(set.exercise_name ?? 'Exercício').trim();
-    const volume = Number(set.load_kg || 0) * Number(set.reps || 0);
-    const oneRm = calculateEstimatedOneRepMax(set.load_kg, set.reps);
+    const volume = setVolumeKg(set);
+    const oneRm = isDurationExercise(set) ? 0 : calculateEstimatedOneRepMax(set.load_kg, set.reps);
     const current = map.get(name) ?? {
       name,
+      timed: isDurationExercise(set),
       sets: 0,
       volume: 0,
       bestLoad: 0,
@@ -261,7 +271,8 @@ function buildExerciseSummaries(sets: any[]) {
 
     current.sets += 1;
     current.volume += volume;
-    current.bestLoad = Math.max(current.bestLoad, Number(set.load_kg || 0));
+    current.timed ||= isDurationExercise(set);
+    current.bestLoad = Math.max(current.bestLoad, isDurationExercise(set) ? 0 : Number(set.load_kg || 0));
     current.bestOneRm = Math.max(current.bestOneRm, oneRm);
 
     const date = new Date(set.performed_at);
@@ -291,8 +302,8 @@ export function groupSetsBySession(sets: any[]) {
     };
 
     current.sets.push(set);
-    current.volume += Number(set.load_kg || 0) * Number(set.reps || 0);
-    current.bestLoad = Math.max(current.bestLoad, Number(set.load_kg || 0));
+    current.volume += setVolumeKg(set);
+    current.bestLoad = Math.max(current.bestLoad, isDurationExercise(set) ? 0 : Number(set.load_kg || 0));
 
     if (new Date(set.performed_at) < new Date(current.performedAt)) {
       current.performedAt = set.performed_at;
@@ -323,7 +334,7 @@ export function buildWeeklyBuckets(sets: any[]) {
       sessions: new Map(),
     };
 
-    const volume = Number(set.load_kg || 0) * Number(set.reps || 0);
+    const volume = setVolumeKg(set);
     const sessionKey = set.workout_session_id ?? dateKey(set.performed_at);
     const session = current.sessions.get(sessionKey) ?? { volume: 0, sets: 0, restricted: false };
     session.volume += volume;

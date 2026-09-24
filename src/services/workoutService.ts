@@ -1,4 +1,5 @@
 import { requireSupabase } from '../lib/supabaseClient';
+import { hasSetExecution, isDurationExercise, setExecutionPayload, setVolumeKg } from '../domain/exerciseTracking';
 import { localDateKey, startOfWeekLocal } from '../utils/dates';
 import { buildCardioPlanSnapshot, buildStrengthPlanSnapshot, canFinalizeGymSessionState, normalizeCardioPlanSnapshot } from '../domain/gymSession';
 
@@ -16,6 +17,16 @@ export async function completeWorkoutWithSets(userId, payload) {
 
 export async function completeStrengthForGymSession(userId, payload) {
   const client = requireSupabase();
+  // Preflight before creating a parent session; missing migration must not leave an orphan.
+  if ((payload.sets ?? []).some(isDurationExercise)) {
+    const schema = await client.from('workout_exercise_sets').select('duration_seconds').eq('user_id', userId).limit(0);
+    if (schema.error) {
+      if (['42703', 'PGRST204'].includes(schema.error.code) || String(schema.error.message).includes('duration_seconds')) {
+        throw new Error('O registro por duração precisa da migration workout_set_duration no Supabase. Nada desta sessão foi salvo; seu rascunho foi preservado.');
+      }
+      throw schema.error;
+    }
+  }
   const performedAt = payload.performed_at ?? new Date().toISOString();
   const cardioPlan = normalizeCardioPlanSnapshot(payload.cardio_plan ?? buildCardioPlanSnapshot({
     selectedDay: payload.selected_day,
@@ -59,7 +70,7 @@ export async function completeStrengthForGymSession(userId, payload) {
   }
 
   const validSets = (payload.sets ?? [])
-    .filter((set) => Number(set.reps) > 0)
+    .filter(hasSetExecution)
     .map((set) => ({
       user_id: userId,
       workout_session_id: session.id,
@@ -68,8 +79,7 @@ export async function completeStrengthForGymSession(userId, payload) {
       exercise_name: set.exercise_name,
       set_number: Number(set.set_number),
       planned_reps: set.planned_reps ?? null,
-      reps: Number(set.reps),
-      load_kg: Number(set.load_kg || 0),
+      ...setExecutionPayload(set),
       perceived_effort: set.perceived_effort === '' || set.perceived_effort == null ? null : Number(set.perceived_effort),
       performed_at: performedAt,
       notes: set.notes ?? null,
@@ -273,11 +283,11 @@ export function calculateEstimatedOneRepMax(loadKg, reps) {
 }
 
 export function calculateVolumeKg(sets) {
-  return (sets ?? []).reduce((sum, set) => sum + Number(set.load_kg || 0) * Number(set.reps || 0), 0);
+  return (sets ?? []).reduce((sum, set) => sum + setVolumeKg(set), 0);
 }
 
 export function buildWeeklyStrengthProgress(sets, exerciseName) {
-  const filtered = (sets ?? []).filter((set) => !exerciseName || set.exercise_name === exerciseName);
+  const filtered = (sets ?? []).filter((set) => !isDurationExercise(set) && (!exerciseName || set.exercise_name === exerciseName));
   const buckets = new Map();
 
   filtered.forEach((set) => {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BarChart3, Dumbbell, HeartPulse, LineChart, Moon, Watch } from 'lucide-react';
 import ProgressView from './ProgressView';
 import SleepView from './SleepView';
@@ -12,22 +12,26 @@ const TABS = [
   { id: 'progress', label: 'Peso', icon: LineChart },
   { id: 'sleep', label: 'Sono', icon: Moon },
   { id: 'strength', label: 'Força', icon: Dumbbell },
-  { id: 'strength-watch', label: 'Relógio força', icon: Watch },
-  { id: 'cardio-data', label: 'Dados cardio', icon: HeartPulse },
+  { id: 'strength-watch', label: 'Relógio', icon: Watch },
+  { id: 'cardio-data', label: 'Cardio', icon: HeartPulse },
   { id: 'week', label: 'Semana', icon: BarChart3 },
 ];
 
 export default function ProgressHubView(props) {
-  const [tab, setTab] = useState('progress');
+  const [tab, setTab] = useState(props.navigationIntent?.progressTab ?? 'progress');
+  useEffect(() => {
+    const next = props.navigationIntent?.progressTab;
+    if (TABS.some((item) => item.id === next)) setTab(next);
+  }, [props.navigationIntent]);
 
   return (
-    <div className="simple-page">
-      <PageHeader eyebrow="Progresso" title="Evolução e análise" description="Compare tendências sem transformar ausência de dados em zero." />
+    <div className="simple-page progress-hub">
+      <PageHeader title="Progresso" />
 
       <div className="simple-tabs">
         {TABS.map((item) => {
           const Icon = item.icon;
-          return <button key={item.id} type="button" className={tab === item.id ? 'active' : ''} onClick={() => setTab(item.id)}><Icon size={16} /> {item.label}</button>;
+          return <button key={item.id} type="button" aria-pressed={tab === item.id} className={tab === item.id ? 'active' : ''} onClick={() => setTab(item.id)}><Icon size={16} aria-hidden /> {item.label}</button>;
         })}
       </div>
 

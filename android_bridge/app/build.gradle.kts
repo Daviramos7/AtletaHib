@@ -13,8 +13,8 @@ android {
         applicationId = "com.daviramos.atletabridge"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "4.1.2"
+        versionCode = 3
+        versionName = "4.1.3"
 
         val supabaseUrl = providers.gradleProperty("SUPABASE_URL").orNull ?: ""
         val supabaseKey = providers.gradleProperty("SUPABASE_PUBLISHABLE_KEY").orNull
@@ -28,6 +28,8 @@ android {
         compose = true
         buildConfig = true
     }
+
+    testOptions { unitTests.isIncludeAndroidResources = true }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -56,4 +58,10 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json:3.0.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    testImplementation("io.ktor:ktor-client-mock:3.0.3")
+    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }

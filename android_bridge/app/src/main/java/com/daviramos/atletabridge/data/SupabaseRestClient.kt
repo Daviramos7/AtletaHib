@@ -3,115 +3,109 @@ package com.daviramos.atletabridge.data
 import com.daviramos.atletabridge.BuildConfig
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.request.header
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.client.statement.HttpResponse
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
-import io.ktor.http.contentType
-import io.ktor.serialization.kotlinx.json.json
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import kotlinx.serialization.json.*
+import kotlinx.serialization.encodeToString
+import java.time.LocalDate
 
-class SupabaseRestClient {
+class SupabaseRestClient(
+    private val client: HttpClient = HttpClient(Android) {
+        install(HttpTimeout) { requestTimeoutMillis = 30_000; connectTimeoutMillis = 15_000; socketTimeoutMillis = 30_000 }
+        followRedirects = false
+    },
+    url: String = BuildConfig.SUPABASE_URL,
+    private val key: String = BuildConfig.SUPABASE_KEY
+) : BridgeBackend, AutoCloseable {
+    private val baseUrl = url.trim().trimEnd('/')
     private val json = Json { ignoreUnknownKeys = true; explicitNulls = false }
-    private val client = HttpClient(Android) {
-        install(ContentNegotiation) { json(json) }
+    fun isConfigured() = baseUrl.startsWith("https://") && isPublicClientKey(key)
+    private fun configured() = check(isConfigured()) { "Configuração do servidor indisponível" }
+
+    override suspend fun signOutGlobal(accessToken: String) {
+        configured()
+        client.post("$baseUrl/auth/v1/logout") {
+            parameter("scope", "global"); header("apikey", key); bearerAuth(accessToken)
+        }.ensureSuccess()
     }
 
-    private val baseUrl = BuildConfig.SUPABASE_URL.trim().trimEnd('/')
-    private val key = BuildConfig.SUPABASE_KEY.trim()
+    override suspend fun signIn(email: String, password: String): AuthResponse =
+        authenticate("password", json.encodeToString(AuthRequest(email, password)))
 
-    fun isConfigured(): Boolean = baseUrl.startsWith("https://") && key.isNotBlank()
+    override suspend fun refreshSession(refreshToken: String): AuthResponse =
+        authenticate("refresh_token", json.encodeToString(RefreshTokenRequest(refreshToken)))
 
-    suspend fun signIn(email: String, password: String): AuthResponse {
-        require(isConfigured()) { "Configure SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY no gradle.properties." }
-
-        val response = client.post("$baseUrl/auth/v1/token?grant_type=password") {
-            contentType(ContentType.Application.Json)
-            header("apikey", key)
-            setBody(AuthRequest(email = email, password = password))
+    private suspend fun authenticate(grant: String, body: String): AuthResponse {
+        configured()
+        val response = client.post("$baseUrl/auth/v1/token") {
+            parameter("grant_type", grant); header("apikey", key)
+            contentType(ContentType.Application.Json); setBody(body)
         }
-
-        val raw = response.bodyAsText()
-        if (response.status.value !in 200..299) {
-            throw IllegalStateException(formatSupabaseError(response.status.value, raw))
-        }
-
-        return decodeAuthResponse(response.status.value, raw)
+        response.ensureSuccess()
+        // Never include raw responses in exceptions: auth responses contain tokens.
+        return try { json.decodeFromString<AuthResponse>(response.bodyAsText()) }
+        catch (_: kotlinx.serialization.SerializationException) { throw IllegalStateException("Resposta de autenticação inválida") }
     }
 
-    suspend fun refreshSession(refreshToken: String): AuthResponse {
-        require(isConfigured()) { "Configure SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY no gradle.properties." }
-        require(refreshToken.isNotBlank()) { "Refresh token vazio. Entre novamente." }
-
-        val response = client.post("$baseUrl/auth/v1/token?grant_type=refresh_token") {
-            contentType(ContentType.Application.Json)
-            header("apikey", key)
-            setBody(RefreshTokenRequest(refreshToken = refreshToken))
+    override suspend fun syncDaily(accessToken: String, userId: String, day: LocalDate, values: Map<String, Double>): Boolean {
+        configured()
+        require(values.isNotEmpty())
+        val allowed = com.daviramos.atletabridge.health.Metric.entries.map { it.column }.toSet()
+        require(values.keys.all { it in allowed } && values.values.all { it.isFinite() && it >= 0 })
+        val endpoint = "$baseUrl/rest/v1/wearable_daily_metrics"
+        fun HttpRequestBuilder.auth() {
+            header("apikey", key); bearerAuth(accessToken); contentType(ContentType.Application.Json)
         }
-
-        val raw = response.bodyAsText()
-        if (response.status.value !in 200..299) {
-            throw IllegalStateException(formatSupabaseError(response.status.value, raw))
+        fun HttpRequestBuilder.rowFilter() {
+            parameter("user_id", "eq.$userId"); parameter("metric_date", "eq.$day")
+            parameter("source", "eq.health_connect_android_bridge")
         }
-
-        return decodeAuthResponse(response.status.value, raw)
+        val read = client.get(endpoint) {
+            auth(); rowFilter(); parameter("select", allowed.joinToString(",")); parameter("limit", 2)
+        }
+        read.ensureSuccess()
+        val existing = json.decodeFromString<List<JsonObject>>(read.bodyAsText())
+        check(existing.size <= 1) { "Resumo diário ambíguo" }
+        val row = existing.singleOrNull()
+        if (row != null && values.all { (name, value) -> row[name]?.jsonPrimitive?.doubleOrNull == value }) return false
+        val fields = buildJsonObject {
+            values.forEach { (name, value) ->
+                if (name == "distance_km") put(name, value) else put(name, value.toInt())
+            }
+        }
+        val response = if (row != null) client.patch(endpoint) {
+            auth(); rowFilter(); header("Prefer", "return=representation")
+            setBody(fields.toString())
+        } else client.post(endpoint) {
+            auth(); parameter("on_conflict", "user_id,metric_date,source")
+            header("Prefer", "resolution=merge-duplicates,return=representation")
+            setBody(buildJsonObject {
+                put("user_id", userId); put("metric_date", day.toString())
+                put("source", "health_connect_android_bridge"); put("provider", "health_connect")
+                fields.forEach { (name, value) -> put(name, value) }
+            }.toString())
+        }
+        response.ensureSuccess()
+        val saved = json.decodeFromString<List<JsonObject>>(response.bodyAsText()).singleOrNull()
+        check(saved != null && values.all { (name, value) -> saved[name]?.jsonPrimitive?.doubleOrNull == value }) {
+            "Servidor não confirmou a gravação"
+        }
+        return true
     }
 
-    private fun decodeAuthResponse(status: Int, raw: String): AuthResponse {
-        return try {
-            json.decodeFromString<AuthResponse>(raw)
-        } catch (e: SerializationException) {
-            throw IllegalStateException(
-                "Login retornou resposta inesperada do Supabase. Verifique SUPABASE_URL, chave pública e se o e-mail foi confirmado. HTTP $status: ${raw.take(250)}"
-            )
-        }
+    private fun HttpResponse.ensureSuccess() {
+        if (status.value !in 200..299) throw BackendFailure(status.value)
     }
+    override fun close() = client.close()
+}
 
-    private fun formatSupabaseError(status: Int, raw: String): String {
-        val parsed = try {
-            json.decodeFromString<SupabaseErrorResponse>(raw)
-        } catch (_: Exception) {
-            null
-        }
-
-        val detail = parsed?.msg
-            ?: parsed?.message
-            ?: parsed?.error
-            ?: parsed?.errorCode
-            ?: raw.take(250)
-
-        return when {
-            detail.contains("Invalid login credentials", ignoreCase = true) ->
-                "Credenciais inválidas. Use o mesmo e-mail e senha do app web. Também confira se a conta foi confirmada no e-mail."
-            detail.contains("Email not confirmed", ignoreCase = true) ->
-                "E-mail ainda não confirmado. Abra seu e-mail e confirme a conta no Supabase."
-            detail.contains("Invalid Refresh Token", ignoreCase = true) ||
-                detail.contains("refresh token", ignoreCase = true) ->
-                "Sua sessão salva expirou ou foi revogada. Entre novamente."
-            detail.contains("Invalid API key", ignoreCase = true) || detail.contains("API key", ignoreCase = true) ->
-                "Chave pública do Supabase inválida. Revise SUPABASE_PUBLISHABLE_KEY no gradle.properties. Não use service_role."
-            else -> "Erro do Supabase. HTTP $status: $detail"
-        }
-    }
-
-    suspend fun upsertDailyMetric(accessToken: String, metric: WearableDailyMetricUpsert): HttpResponse {
-        require(isConfigured()) { "Configure SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY no gradle.properties." }
-        val response = client.post("$baseUrl/rest/v1/wearable_daily_metrics?on_conflict=user_id,metric_date,source") {
-            contentType(ContentType.Application.Json)
-            header("apikey", key)
-            header(HttpHeaders.Authorization, "Bearer $accessToken")
-            header("Prefer", "resolution=merge-duplicates,return=minimal")
-            setBody(metric)
-        }
-        if (response.status.value !in 200..299) {
-            val raw = response.bodyAsText()
-            throw IllegalStateException("Supabase não gravou wearable_daily_metrics. HTTP ${response.status.value}: ${raw.take(500)}")
-        }
-        return response
-    }
+internal fun isPublicClientKey(key: String): Boolean {
+    if (key.startsWith("sb_publishable_")) return true
+    if (key.startsWith("sb_secret_") || key.isBlank()) return false
+    return try {
+        val payload = String(java.util.Base64.getUrlDecoder().decode(key.split('.')[1]), Charsets.UTF_8)
+        Json.parseToJsonElement(payload).jsonObject["role"]?.jsonPrimitive?.content == "anon"
+    } catch (_: Exception) { false }
 }

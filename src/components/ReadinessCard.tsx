@@ -85,40 +85,40 @@ export default function ReadinessCard(props: any) {
       <div className="readiness-main-v36">
         <div>
           <p className="eyebrow">Prontidão do dia</p>
-          <h3>{loading ? '...' : readiness.score}</h3>
-          <span>{readiness.label} · {readiness.headline}</span>
+          <h3>{loading ? 'Carregando…' : checkin ? readiness.label : 'Como você está?'}</h3>
+          <span>{checkin ? readiness.headline : 'Faça o check-in da manhã para ajustar o treino.'}</span>
         </div>
 
-        <div className="readiness-ring-v36" aria-label={`Prontidão ${readiness.score} de 100`}>
-          <strong>{readiness.score}</strong>
+        {checkin && <div className="readiness-ring-v36" aria-label={`Prontidão ${readiness.score} de 100`}>
+          <strong>{loading ? '…' : readiness.score}</strong>
           <small>/100</small>
-        </div>
+        </div>}
       </div>
 
-      <div className="readiness-flags-v36">
+      {checkin && !compact && <div className="readiness-flags-v36">
         {readiness.flags.map((flag) => <span key={flag}>{flag}</span>)}
-      </div>
+      </div>}
 
-      <div className="readiness-actions-v36">
+      {checkin && !compact && <div className="readiness-actions-v36">
         <Advice icon={Dumbbell} label="Treino" text={readiness.trainingAdvice} />
         <Advice icon={Timer} label="Cardio" text={readiness.cardioAdvice} />
         {!compact && <Advice icon={Salad} label="Comida" text={readiness.foodAdvice} />}
-      </div>
+      </div>}
 
-      {!compact && readiness.reasons.length > 0 && (
-        <div className="readiness-reasons-v36">
+      {checkin && readiness.reasons.length > 0 && (
+        <details className="readiness-reasons-v36 gym-secondary-details"><summary>O que influenciou</summary>
           {readiness.reasons.map((reason) => <p key={reason}>{reason}</p>)}
-        </div>
+        </details>
       )}
 
       {!checkin && (
-        <button className="ghost-btn readiness-checkin-v36" type="button" onClick={() => onNavigate?.('register')}>
+        <button className="primary-btn readiness-checkin-v36" type="button" onClick={() => onNavigate?.('register', { registerTab: 'checkin' })}>
           <Activity size={16} /> Fazer check-in
         </button>
       )}
 
-      {!readiness.sleep && (
-        <button className="ghost-btn readiness-checkin-v36" type="button" onClick={() => onNavigate?.('progressHub')}>
+      {!compact && !readiness.sleep && (
+        <button className="ghost-btn readiness-checkin-v36" type="button" onClick={() => onNavigate?.('register', { registerTab: 'json' })}>
           <Moon size={16} /> Importar sono
         </button>
       )}

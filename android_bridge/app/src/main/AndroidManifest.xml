@@ -5,7 +5,6 @@
     <uses-permission android:name="android.permission.health.READ_STEPS" />
     <uses-permission android:name="android.permission.health.READ_DISTANCE" />
     <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />
-    <uses-permission android:name="android.permission.health.READ_TOTAL_CALORIES_BURNED" />
     <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
     <uses-permission android:name="android.permission.health.READ_RESTING_HEART_RATE" />
     <uses-permission android:name="android.permission.health.READ_SLEEP" />
@@ -17,9 +16,12 @@
 
     <application
         android:allowBackup="false"
-        android:icon="@drawable/atleta_hib_symbol"
-        android:roundIcon="@drawable/atleta_hib_symbol"
-        android:label="Atleta Hib"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:usesCleartextTraffic="false"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.AtletaBridge">
         <activity

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Activity, Bluetooth, CheckCircle2, FileUp, Link2, RefreshCcw, Save, Smartphone, Trash2, Watch } from 'lucide-react';
 import { todayKey } from '../services/dailyService';
 import {
@@ -38,7 +38,7 @@ const EMPTY_METRIC = {
   notes: '',
 };
 
-export default function IntegrationsView({ userId, profile, onError }) {
+export default function IntegrationsView({ userId, profile, onError, onNavigate }) {
   const [integrations, setIntegrations] = useState([]);
   const [metrics, setMetrics] = useState([]);
   const [integrationForm, setIntegrationForm] = useState(EMPTY_INTEGRATION);
@@ -67,7 +67,6 @@ export default function IntegrationsView({ userId, profile, onError }) {
 
   const lastMetric = metrics[0];
   const todayMetric = metrics.find((metric) => metric.metric_date === todayKey()) ?? lastMetric;
-  const weekly = useMemo(() => buildWeeklySummary(metrics), [metrics]);
   const derivedStatus = buildIntegrationStatus(integrations[0], lastMetric);
 
   async function handleConfigureRedmi() {
@@ -160,16 +159,14 @@ export default function IntegrationsView({ userId, profile, onError }) {
   return (
     <div>
       <PageHeader
-        eyebrow="Integrações"
-        title="Relógio e dados de saúde"
-        description="Acompanhe a origem e a última sincronização sem interpretar métricas do wearable como diagnóstico."
+        title="Saúde"
+        description="Dados recebidos do relógio e conexão com o celular."
         action={<span className="pill"><Watch size={16} /> {WEARABLE_OPTIONS[profile?.wearable_provider] ?? 'Manual'}</span>}
       />
 
-      <section className="panel highlight-panel">
-        <p className="eyebrow">Caminho recomendado para você</p>
-        <h3>Redmi Watch 5 Active → Mi Fitness → Health Connect → Atleta Híbrido</h3>
-        <p>O site/PWA não lê o relógio diretamente. O aplicativo Android Atleta Hib conecta o Health Connect ao Supabase e mantém o painel web atualizado.</p>
+      <details className="panel disclosure-panel">
+        <summary>Conectar relógio</summary>
+        <p>Sincronize o Mi Fitness com o Health Connect e envie os dados pelo aplicativo Android Atleta Hib.</p>
         <div className="integration-flow">
           <span><Watch size={18} /> Relógio</span>
           <span><Smartphone size={18} /> Mi Fitness</span>
@@ -177,45 +174,20 @@ export default function IntegrationsView({ userId, profile, onError }) {
           <span><Link2 size={18} /> Supabase</span>
         </div>
         <button className="primary-btn" onClick={handleConfigureRedmi} disabled={busy}><Bluetooth size={16} /> Preparar Redmi + Mi Fitness</button>
-      </section>
+      </details>
 
       <div className="metric-grid">
         <Metric icon={CheckCircle2} label="Status" value={derivedStatus.value} sub={derivedStatus.sub} />
         <Metric icon={Activity} label="FC média" value={todayMetric?.avg_heart_rate ? `${todayMetric.avg_heart_rate} bpm` : '--'} sub={todayMetric?.metric_date ? `registro ${formatDate(todayMetric.metric_date)}` : 'sem registro'} />
         <Metric icon={RefreshCcw} label="Kcal ativas" value={todayMetric?.active_kcal ?? '--'} sub={formatWearableSource(todayMetric?.source, todayMetric?.provider)} />
-        <Metric icon={Watch} label="Passos hoje" value={todayMetric?.metric_date === todayKey() ? `${todayMetric.steps ?? 0}` : '0'} sub={todayMetric?.metric_date ? 'último registro recebido' : 'sem registro'} />
+        <Metric icon={Watch} label="Passos hoje" value={todayMetric?.metric_date === todayKey() ? `${todayMetric.steps ?? '--'}` : '--'} sub={todayMetric?.metric_date === todayKey() ? 'último registro recebido' : 'sem registro hoje'} />
       </div>
 
-      {lastMetric && (
-        <section className="panel compact-panel last-sync-panel">
-          <div className="section-title-row">
-            <div>
-              <p className="eyebrow">Última sincronização recebida</p>
-              <h3>Registro mais recente do Health Connect</h3>
-            </div>
-            <span className="pill">{formatWearableSource(lastMetric.source, lastMetric.provider)}</span>
-          </div>
-          <div className="last-sync-grid">
-            <SyncItem label="Data" value={formatDate(lastMetric.metric_date)} helper="última data recebida" />
-            <SyncItem label="Fonte" value={formatWearableSource(lastMetric.source, lastMetric.provider)} helper={lastMetric.provider ?? 'wearable'} />
-            <SyncItem label="FC média" value={lastMetric.avg_heart_rate ? `${lastMetric.avg_heart_rate} bpm` : '--'} helper="registro do dia" />
-            <SyncItem label="Kcal ativas" value={lastMetric.active_kcal ?? '--'} helper="não somar com cardio importado" />
-          </div>
-        </section>
-      )}
+      {lastMetric && <p className="muted-text">Últimos dados: {formatDate(lastMetric.metric_date)} · {formatWearableSource(lastMetric.source, lastMetric.provider)}</p>}
+      <button className="ghost-btn" type="button" onClick={() => onNavigate?.('progressHub', { progressTab: 'week' })}>Ver tendências em Progresso</button>
 
-      <section className="panel compact-panel">
-        <p className="eyebrow">Resumo de saúde 7 dias</p>
-        <div className="dashboard-review-grid">
-          <div><strong>{weekly.avgSleep ? `${weekly.avgSleep.toFixed(1)}h` : '--'}</strong><span>sono médio registrado</span></div>
-          <div><strong>{weekly.workoutMinutes} min</strong><span>atividade/treino sincronizado</span></div>
-          <div><strong>{metrics.length}</strong><span>registros disponíveis</span></div>
-          <div><strong>{lastMetric ? formatWearableSource(lastMetric.source, lastMetric.provider) : '--'}</strong><span>última fonte</span></div>
-        </div>
-      </section>
-
-      <section className="panel">
-        <p className="eyebrow">Configuração da integração</p>
+      <details className="panel disclosure-panel">
+        <summary>Configuração da integração</summary>
         <form className="form-grid" onSubmit={handleSaveIntegration}>
           <label>Dispositivo
             <input value={integrationForm.device_name ?? ''} onChange={(e) => setIntegrationForm({ ...integrationForm, device_name: e.target.value })} />
@@ -255,10 +227,9 @@ export default function IntegrationsView({ userId, profile, onError }) {
           </label>
           <button className="primary-btn" disabled={busy}><Save size={16} /> Salvar integração</button>
         </form>
-      </section>
-      <section className="panel">
-        <p className="eyebrow">Registro manual / Mi Fitness</p>
-        <h3>Registro manual e importação de contingência</h3>
+      </details>
+      <details className="panel disclosure-panel">
+        <summary>Registrar métricas manualmente</summary>
         <form className="form-grid" onSubmit={handleSaveMetric}>
           <label>Data
             <input type="date" value={metricForm.metric_date} onChange={(e) => setMetricForm({ ...metricForm, metric_date: e.target.value })} />
@@ -297,17 +268,16 @@ export default function IntegrationsView({ userId, profile, onError }) {
           </label>
           <button className="primary-btn" disabled={busy}><Save size={16} /> Salvar métricas</button>
         </form>
-      </section>
+      </details>
 
-      <section className="panel">
-        <p className="eyebrow">Importação experimental</p>
-        <h3>CSV/JSON exportado</h3>
+      <details className="panel disclosure-panel">
+        <summary>Importar arquivo de métricas</summary>
         <p className="muted-text">Aceita arquivos com campos parecidos com: date, steps, sleep_minutes, avg_heart_rate, resting_heart_rate, active_kcal, workout_minutes, distance_km. Como exportações variam, confira os registros importados.</p>
         <label className="file-drop">
           <FileUp size={18} /> Importar CSV/JSON
           <input type="file" accept=".csv,.json,.txt" onChange={handleFileImport} />
         </label>
-      </section>
+      </details>
 
       <section className="panel">
         <p className="eyebrow">Histórico importado/manual</p>
@@ -316,11 +286,11 @@ export default function IntegrationsView({ userId, profile, onError }) {
             {metrics.map((item) => (
               <div className="table-row" key={item.id}>
                 <div>
-                  <strong>{formatDate(item.metric_date)} · {item.source}</strong>
+                  <strong>{formatDate(item.metric_date)} · {formatWearableSource(item.source, item.provider)}</strong>
                   <span>{item.readiness_hint ?? 'Sem alerta.'}</span>
                 </div>
                 <div className="metric-inline">
-                  <span>{item.steps ?? 0} passos</span>
+                  <span>{item.steps ?? '--'} passos</span>
                   <span>{item.avg_heart_rate ? `${item.avg_heart_rate} bpm` : '-- bpm'}</span>
                   <span>{item.active_kcal ?? '--'} kcal</span>
                   <span>{minutesToHours(item.sleep_minutes)}</span>
@@ -367,25 +337,6 @@ function Metric({ icon: Icon, label, value, sub }) {
       <p>{sub}</p>
     </div>
   );
-}
-
-function SyncItem({ label, value, helper }) {
-  return (
-    <div className="last-sync-item">
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <small>{helper}</small>
-    </div>
-  );
-}
-
-function buildWeeklySummary(metrics) {
-  const recent = metrics.slice(0, 7);
-  const sleepValues = recent.map((m) => Number(m.sleep_minutes || 0) / 60).filter(Boolean);
-  return {
-    avgSleep: sleepValues.length ? sleepValues.reduce((sum, value) => sum + value, 0) / sleepValues.length : 0,
-    workoutMinutes: recent.reduce((sum, item) => sum + Number(item.workout_minutes || 0), 0),
-  };
 }
 
 function hoursToMinutes(hours) {

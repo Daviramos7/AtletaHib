@@ -1,19 +1,21 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { Activity, ArrowLeft, BarChart3, Dumbbell, Home, LogOut, Menu, Salad, Settings, User, Watch, X } from 'lucide-react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import type { ComponentType } from 'react';
+import { Activity, BarChart3, Dumbbell, LogOut, Salad, Settings, User, Watch, X } from 'lucide-react';
 import { isSupabaseConfigured } from './lib/supabaseClient';
 import { getSession, onAuthStateChange, signOut } from './services/authService';
 import { ensureUserBootstrap } from './services/bootstrapService';
 import LoginView from './components/LoginView';
 import TodayView from './components/TodayView';
-import GymModeView from './components/GymModeView';
-import RegisterHubView from './components/RegisterHubView';
-import ProgressHubView from './components/ProgressHubView';
-import ProfileView from './components/ProfileView';
-import IntegrationsView from './components/IntegrationsView';
+import { classifyNotice, noticeText } from './utils/notices';
 import OnboardingView from './components/OnboardingView';
 import OfflineBanner from './components/OfflineBanner';
 import { BrandLogo, ConfirmDialog, ErrorState, LoadingState } from './components/ui';
+
+const GymModeView = lazy(() => import('./components/GymModeView'));
+const RegisterHubView = lazy(() => import('./components/RegisterHubView'));
+const ProgressHubView = lazy(() => import('./components/ProgressHubView'));
+const ProfileView = lazy(() => import('./components/ProfileView'));
+const IntegrationsView = lazy(() => import('./components/IntegrationsView'));
 
 const NAV = [
   { id: 'dashboard', label: 'Hoje', icon: Activity },
@@ -29,9 +31,7 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [boot, setBoot] = useState(null);
   const [active, setActive] = useState('dashboard');
-  const [quickOpen, setQuickOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
-  const tabHistoryRef = useRef([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [navigationIntent, setNavigationIntent] = useState(null);
@@ -101,7 +101,7 @@ export default function App() {
       <div className="center-screen">
         <div className="loading-card-v35">
           <BrandLogo className="loading-brand" />
-          <LoadingState title="Preparando seu dia" description="Organizando treino, alimentação e recuperação." />
+          <LoadingState title="Carregando Atleta Hib" />
         </div>
       </div>
     );
@@ -115,7 +115,7 @@ export default function App() {
     return (
       <div className="app-shell">
         <OfflineBanner />
-        {error && <div className={`alert ${classifyNotice(error)}`} onClick={() => setError('')} role="status" aria-live="polite">{error}</div>}
+        {error && <Notice message={error} onClose={() => setError('')} />}
         <OnboardingView userId={userId} profile={boot.profile} onReady={setBoot} onError={setError} />
       </div>
     );
@@ -125,37 +125,15 @@ export default function App() {
     if (!NAV.some((item) => item.id === tabId)) return;
 
     if (tabId !== active) {
-      tabHistoryRef.current = [...tabHistoryRef.current, active].slice(-12);
       setActive(tabId);
     }
 
     setNavigationIntent(intent);
 
-    setQuickOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
-  function goBack() {
-    const previous = tabHistoryRef.current.pop();
-    if (previous) {
-      setActive(previous);
-      setQuickOpen(false);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
-    if (active !== 'dashboard') {
-      setActive('dashboard');
-      setQuickOpen(false);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }
-
-  function goHome() {
-    navigateTo('dashboard');
-  }
-
-  const Current = {
+  const Current: ComponentType<any> = {
     dashboard: TodayView,
     register: RegisterHubView,
     gym: GymModeView,
@@ -168,12 +146,12 @@ export default function App() {
 
   return (
     <div className="app-shell app-shell-v2">
+      <a className="skip-link" href="#main-content">Ir para o conteúdo</a>
       <OfflineBanner />
       <header className="topbar topbar-v2">
         <div className="topbar-identity">
           <BrandLogo className="topbar-brand" />
           <div className="topbar-current">
-            <p className="eyebrow">Área atual</p>
             <h1>{activeNavItem.label}</h1>
           </div>
         </div>
@@ -183,7 +161,7 @@ export default function App() {
         </div>
       </header>
 
-      {error && <div className={`alert ${classifyNotice(error)}`} onClick={() => setError('')} role="status" aria-live="polite">{error}</div>}
+      {error && <Notice message={error} onClose={() => setError('')} />}
 
       <main className="main-grid main-grid-v2">
         <aside className="sidebar sidebar-v2">
@@ -194,11 +172,11 @@ export default function App() {
               <span>{boot?.profile?.objective ?? 'Perfil personalizado'}</span>
             </div>
           </div>
-          <nav>
+          <nav aria-label="Navegação principal">
             {NAV.map((item) => {
               const Icon = item.icon;
               return (
-                <button key={item.id} type="button" className={active === item.id ? 'active' : ''} onClick={() => navigateTo(item.id)}>
+                <button key={item.id} type="button" aria-current={active === item.id ? 'page' : undefined} className={active === item.id ? 'active' : ''} onClick={() => navigateTo(item.id)}>
                   <Icon size={18} /> {item.label}
                 </button>
               );
@@ -206,7 +184,8 @@ export default function App() {
           </nav>
         </aside>
 
-        <section className="content-card content-card-v2">
+        <section id="main-content" tabIndex={-1} aria-label={activeNavItem.label} className="content-card content-card-v2">
+          <Suspense fallback={<LoadingState title="Carregando" />}>
           <Current
             {...pageProps}
             navigationIntent={navigationIntent}
@@ -216,113 +195,37 @@ export default function App() {
               if (mode === 'morning' && navigationIntent?.returnTo === 'gym') navigateTo('gym');
             }}
           />
+          </Suspense>
         </section>
       </main>
 
-      <QuickAccessDock
-        active={active}
-        isOpen={quickOpen}
-        onToggle={() => setQuickOpen((value) => !value)}
-        onClose={() => setQuickOpen(false)}
-        onNavigate={navigateTo}
-        onBack={goBack}
-        onHome={goHome}
-      />
+      <nav className="mobile-nav" aria-label="Navegação principal no celular">
+        {NAV.map(({ id, label, icon: Icon }) => (
+          <button key={id} type="button" aria-current={active === id ? 'page' : undefined} onClick={() => navigateTo(id)}>
+            <Icon size={20} aria-hidden /><span>{label}</span>
+          </button>
+        ))}
+      </nav>
       <ConfirmDialog
         open={logoutOpen}
         title="Sair da sua conta?"
-        description="Os dados já sincronizados permanecem salvos. Será necessário entrar novamente neste dispositivo."
+        description="Sair em todos os dispositivos. Os dados permanecem salvos; outras sessões serão encerradas ao renovar o acesso."
         confirmLabel="Sair agora"
         danger
         onCancel={() => setLogoutOpen(false)}
-        onConfirm={() => { setLogoutOpen(false); signOut(); }}
+        onConfirm={() => { setLogoutOpen(false); signOut().catch((err) => setError(err.message)); }}
       />
     </div>
   );
 }
 
 
-function QuickAccessDock({ active, isOpen, onToggle, onClose, onNavigate, onBack, onHome }) {
-  const dock = (
-    <div className={`quick-access-dock ${isOpen ? 'open' : ''}`}>
-      <button
-        className="quick-access-backdrop"
-        type="button"
-        aria-label="Fechar acesso rápido"
-        onClick={onClose}
-      />
-
-      <nav className="quick-access-panel" aria-label="Acesso rápido">
-        <div className="quick-access-head">
-          <div>
-            <p className="eyebrow">Navegação</p>
-            <strong>Acesso rápido</strong>
-          </div>
-          <button className="quick-access-close" type="button" onClick={onClose} aria-label="Fechar menu">
-            <X size={18} />
-          </button>
-        </div>
-
-        <div className="quick-access-grid">
-          {NAV.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className={active === item.id ? 'active' : ''}
-                onClick={() => onNavigate(item.id)}
-              >
-                <Icon size={18} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
-
-      <div className="quick-access-bar" role="group" aria-label="Controles rápidos">
-        <button className="quick-side-btn" type="button" onClick={onBack} aria-label="Voltar para a aba anterior">
-          <ArrowLeft size={20} />
-        </button>
-
-        <button
-          className="quick-access-main"
-          type="button"
-          aria-label={isOpen ? 'Fechar acesso rápido' : 'Abrir acesso rápido'}
-          aria-expanded={isOpen}
-          onClick={onToggle}
-        >
-          {isOpen ? <X size={21} /> : <Menu size={21} />}
-          <span>Acesso rápido</span>
-        </button>
-
-        <button className="quick-side-btn home" type="button" onClick={onHome} aria-label="Ir para a tela inicial">
-          <Home size={20} />
-        </button>
-      </div>
-    </div>
-  );
-
-  return createPortal(dock, document.body);
-}
-
-
-function classifyNotice(message) {
-  const text = String(message ?? '').toLowerCase();
-
-  if (
-    text.includes('salv') ||
-    text.includes('importad') ||
-    text.includes('iniciad') ||
-    text.includes('copiad') ||
-    text.includes('atualizad') ||
-    text.includes('conclu')
-  ) {
-    return 'success';
-  }
-
-  return 'error';
+function Notice({ message, onClose }) {
+  const tone = classifyNotice(message);
+  return <div className={`app-notice ${tone}`} role={tone === 'error' ? 'alert' : 'status'}>
+    <span>{noticeText(message)}</span>
+    <button type="button" onClick={onClose} aria-label="Fechar mensagem"><X size={18} /></button>
+  </div>;
 }
 
 function SetupWarning() {

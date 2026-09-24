@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Clock3, RotateCcw, Save, Square } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CheckCircle2, Circle, Clock3, Plus, RotateCcw, Save, Square } from 'lucide-react';
 import { calculateVolumeKg, completeStrengthForGymSession, finalizeGymSession, listGymSessionHistory, listStrengthSets, updateGymSessionCardioStatus } from '../services/workoutService';
 import { listCardioSessions, saveManualCardioSession } from '../services/cardioService';
-import { listWearableWorkoutSessions } from '../services/strengthWearableService';
 import { getCheckin } from '../services/checkinService';
 import { listSleepSessions } from '../services/sleepService';
 import { getCardioOptions, getDayKindLabel, getStrengthEntries, getWeekdayLabel, isCardioDay, isRestDay, isStrengthDay, normalizeTrainingDays, resolveDayKind } from '../utils/trainingPlanUtils';
 import CardioPlanCard from './CardioPlanCard';
+import { getCardioProgression } from '../utils/cardioProgression';
 import AdaptiveWorkoutCard from './AdaptiveWorkoutCard';
 import ExerciseReplacementPanel from './ExerciseReplacementPanel';
 import { ExerciseProgressMini, WorkoutProgressSummary } from './StrengthProgressCards';
 import PlanEditorView from './PlanEditorView';
 import { localDateKey } from '../utils/dates';
+import { exerciseTracking, formatSetExecution, hasSetExecution, initialTrackingValues, isDurationExercise } from '../domain/exerciseTracking';
 import { buildAdaptiveWorkoutRecommendation, selectWorkoutVariant } from '../domain/adaptiveWorkout';
 import { buildWeeklyGymQueue, selectionKindFor } from '../domain/weeklyGym';
 import { buildCardioPlanSnapshot, buildStrengthPlanSnapshot, deriveGymSessionLifecycle, plannedVsRealized } from '../domain/gymSession';
@@ -44,7 +45,6 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
   const [history, setHistory] = useState([]);
   const [strengthSets, setStrengthSets] = useState([]);
   const [cardios, setCardios] = useState([]);
-  const [wearableSessions, setWearableSessions] = useState([]);
   const [selectedCardioChoice, setSelectedCardioChoice] = useState('');
   const [replacementOpenId, setReplacementOpenId] = useState(null);
   const [replacementReason, setReplacementReason] = useState('');
@@ -100,17 +100,15 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
   const load = useCallback(async () => {
     try {
       setRecommendationLoading(true);
-      const [workoutData, cardioData, watchData, strengthSetData, checkinData, sleepData] = await Promise.all([
+      const [workoutData, cardioData, strengthSetData, checkinData, sleepData] = await Promise.all([
         listGymSessionHistory(userId, 80),
         listCardioSessions(userId, 20),
-        listWearableWorkoutSessions(userId, 12),
         listStrengthSets(userId, 180),
         getCheckin(userId, todayKeyValue),
         listSleepSessions(userId, 7),
       ]);
       setHistory(workoutData);
       setCardios(cardioData);
-      setWearableSessions(watchData);
       setStrengthSets(strengthSetData);
       setCheckin(checkinData);
       setSleepSessions(sleepData);
@@ -240,11 +238,9 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
     }));
   }, [cardioPlan, cardioStatus, draftHydrated, duration, effort, persistedWorkoutSessionId, selectedCardioChoice, selectedDay?.weekdayNumber, selectionKind, sessionId, sessionLocalDate, sessionPlanDayId, sessionRecommendation, sessionStrengthPlan, sessionVariant, setRows, startedAt, strengthStatus, userId]);
 
-  const todayCardios = useMemo(() => cardios.filter((item) => localDateKey(new Date(item.performed_at)) === todayKeyValue), [cardios, todayKeyValue]);
-  const todayWearableStrength = useMemo(() => wearableSessions.filter((item) => localDateKey(new Date(item.performed_at)) === todayKeyValue), [wearableSessions, todayKeyValue]);
   const completedSets = setRows.filter((row) => row.done).length;
   const totalSets = setRows.length;
-  const totalVolume = calculateVolumeKg(setRows.filter((row) => row.done && Number(row.reps) > 0));
+  const totalVolume = calculateVolumeKg(setRows.filter((row) => row.done && hasSetExecution(row)));
   const canConcludeStrength = strengthStatus === 'active' && Boolean(startedAt || duration || (isStrengthDay(selectedDay) && setRows.some((row) => row.done)));
 
   function selectDay(day) {
@@ -306,7 +302,8 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
     const planDayId = String(selectedDay?.id ?? '');
     const queueRequestedKind = String(weeklyQueue.recommended?.day.id) === planDayId ? 'recommended' : 'manual';
     const nextSelectionKind = selectionKindFor(weeklyQueue, planDayId, queueRequestedKind);
-    const nextCardioPlan = buildCardioPlanSnapshot({ selectedDay, selectedChoice: selectedCardioChoice, recommendedMinutes: recommendationSummary?.cardioMinutes });
+    const cardioProgression = getCardioProgression(cardios, null, { workoutSessions: history, recommendation });
+    const nextCardioPlan = buildCardioPlanSnapshot({ selectedDay, selectedChoice: selectedCardioChoice, recommendedMinutes: cardioProgression.targetMinutes });
     const nextStrengthPlan = buildStrengthPlanSnapshot(rows);
     const draft = createActiveWorkoutDraft({
       sessionId: stableSessionId,
@@ -382,9 +379,16 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
       const reasonLabel = meta.reasonLabel ? `Motivo: ${meta.reasonLabel}` : null;
       const focus = meta.focus ? `Foco: ${meta.focus}` : null;
       const detail = meta.detail ?? null;
+      const trackingChanged = meta.tracking_type && meta.tracking_type !== exerciseTracking(row);
+      const originalTracking = row.original_tracking_values ?? {
+        tracking_type: exerciseTracking(row), planned_reps: row.planned_reps, reps: row.reps,
+        load_kg: row.load_kg, duration_seconds: row.duration_seconds, done: row.done, completed_at: row.completed_at,
+      };
 
       return {
         ...row,
+        ...(trackingChanged ? { ...initialTrackingValues(meta), planned_reps: meta.reps, done: false, completed_at: null } : {}),
+        original_tracking_values: originalTracking,
         original_exercise_name: original,
         exercise_name: replacementName,
         substitution_reason: meta.reasonLabel ?? null,
@@ -408,6 +412,8 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
 
       return {
         ...row,
+        ...(row.original_tracking_values ?? {}),
+        original_tracking_values: null,
         exercise_name: row.original_exercise_name,
         original_exercise_name: null,
         substitution_reason: null,
@@ -476,7 +482,7 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
 
   async function concludeStrength() {
     if (!selectedDay || saving) return;
-    const validSets = setRows.filter((row) => row.done && Number(row.reps) > 0);
+    const validSets = setRows.filter((row) => row.done && hasSetExecution(row));
     const sessionStartedAt = resolveSessionPerformedAt(startedAt);
 
     if (isStrengthDay(selectedDay) && !validSets.length) {
@@ -485,7 +491,7 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
     }
 
     if (isStrengthDay(selectedDay) && validSets.length < setRows.length) {
-      const shouldContinue = window.confirm(`Você marcou ${validSets.length}/${setRows.length} séries. Finalizar mesmo assim?`);
+      const shouldContinue = window.confirm(`Você marcou ${validSets.length}/${setRows.length} séries. Concluir a força mesmo assim?`);
       if (!shouldContinue) return;
     }
 
@@ -557,7 +563,7 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
       await load();
       onError(nextStatus === 'awaiting_import'
         ? 'Sessão marcada para aguardar o JSON do relógio. Ela pode ser finalizada agora.'
-        : 'Cardio pulado sem criar execução fictícia. A sessão pode ser finalizada.');
+        : 'Cardio pulado. Você já pode finalizar a sessão.');
     } catch (err) {
       onError(err.message);
     } finally {
@@ -625,7 +631,7 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
         });
         setSelectedDayId(nextQueue.recommended?.day.id ?? selectedDay?.id ?? null);
       }
-      onError('Sessão finalizada. Força, cardio e dados do relógio permanecem separados no histórico.');
+      onError('Sessão finalizada e salva no histórico.');
     } catch (err) {
       onError(err.message);
     } finally {
@@ -634,7 +640,8 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
   }
 
 
-  if (!trainingPlan) return <p>Plano ainda carregando.</p>;
+  const SessionPanel = startedAt ? 'section' : 'details';
+  if (!trainingPlan) return <p role="status">Carregando plano…</p>;
 
   if (mode === 'editor') {
     return (
@@ -643,7 +650,7 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
           <div>
             <p className="eyebrow">Editor de plano</p>
             <h2>{selectedDay?.title ?? 'Plano semanal'}</h2>
-            <p>Altere dias, exercícios, séries, reps e cardio sem apagar histórico.</p>
+            <p>Exercícios, séries e cardio do seu plano.</p>
           </div>
           <div className="gym-hero-actions-v37">
             <button className="ghost-btn" type="button" onClick={() => setMode('session')}>Voltar ao treino</button>
@@ -655,7 +662,7 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
             <div>
               <p className="eyebrow">Plano semanal</p>
               <h3>Gerar novo plano</h3>
-              <p className="muted-text">O plano atual será arquivado e todo o histórico de treinos, séries, cargas e repetições será preservado.</p>
+              <p className="muted-text">O plano atual será arquivado. Seu histórico de treinos e séries será preservado.</p>
             </div>
             <button className="primary-btn" type="button" onClick={regeneratePlan} disabled={regeneratingPlan}>
               <RotateCcw size={16} /> {regeneratingPlan ? 'Gerando...' : 'Gerar novo plano'}
@@ -666,7 +673,7 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
         <section className="simple-panel gym-day-picker">
           <p className="eyebrow">Escolha o dia</p>
           <div className="gym-day-cards">
-            {days.map((day) => <button key={day.id} type="button" className={selectedDay?.id === day.id ? 'active' : ''} onClick={() => selectDay(day)}><strong>{getWeekdayLabel(day.weekdayNumber)}</strong><span>{getDayKindLabel(resolveDayKind(day))}</span></button>)}
+            {days.map((day) => <button key={day.id} type="button" aria-pressed={selectedDay?.id === day.id} className={selectedDay?.id === day.id ? 'active' : ''} onClick={() => selectDay(day)}><strong>{getWeekdayLabel(day.weekdayNumber)}</strong><span>{getDayKindLabel(resolveDayKind(day))}</span></button>)}
           </div>
         </section>
 
@@ -685,48 +692,30 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
     <div className="simple-page gym-v32-page">
       <div className="simple-hero gym-v32-hero">
         <div>
-          <p className="eyebrow">{persistedWorkoutSessionId ? 'Sessão em andamento' : selectedDay ? `Preferência: ${getWeekdayLabel(selectedDay.weekdayNumber)}` : 'Treino'}</p>
+          <p className="eyebrow">{startedAt || persistedWorkoutSessionId ? 'Sessão em andamento' : 'Academia'}</p>
           <h2>{selectedDay?.title ?? 'Sem treino'}</h2>
-          <p>{strengthStatus === 'completed' ? 'Força concluída · escolha o destino do cardio' : `${getDayKindLabel(dayKind)} · o dia da semana é apenas uma preferência`}</p>
+          <p>{strengthStatus === 'completed' ? 'Força concluída · próximo passo: cardio' : getDayKindLabel(dayKind)}{selectionKind === 'extra' && startedAt ? ' · Treino extra' : ''}</p>
         </div>
         <div className="gym-hero-actions-v37">
           <button className="ghost-btn" type="button" onClick={() => setMode('editor')}>Editar plano</button>
           {startedAt && strengthStatus === 'active' ? (
             <>
               <button className="ghost-btn" type="button" onClick={() => document.querySelector('.gym-log-panel-v32')?.scrollIntoView({ behavior: 'smooth' })}>Continuar treino</button>
-              <button className="primary-btn" type="button" disabled><Clock3 size={16} /> {timerRunning ? elapsedMinutes(startedAt) : Number(duration || 0)} min</button>
+              <span className="gym-session-timer"><Clock3 size={16} aria-hidden="true" /> {timerRunning ? elapsedMinutes(startedAt) : Number(duration || 0)} min</span>
               {timerRunning ? (
                 <button className="ghost-btn timer-stop-v393" type="button" onClick={stopSessionTimer}><Square size={15} /> Parar timer</button>
               ) : (
                 <span className="session-frozen-v40">timer parado</span>
               )}
             </>
-          ) : !persistedWorkoutSessionId ? (
+          ) : !persistedWorkoutSessionId && !isStrengthDay(selectedDay) && !isRestDay(selectedDay) ? (
             <button className="primary-btn" type="button" onClick={requestStartSession}><Clock3 size={16} /> Iniciar</button>
           ) : null}
-          {canConcludeStrength && (
-            <button className="primary-btn finish-session-v394" type="button" onClick={concludeStrength} disabled={saving}>
-              <Save size={16} /> Concluir força
-            </button>
-          )}
-          {persistedWorkoutSessionId && lifecycle.canFinish && (
-            <button className="primary-btn finish-session-v394" type="button" onClick={finishGymSession} disabled={saving}>
-              <CheckCircle2 size={16} /> Finalizar sessão
-            </button>
-          )}
+          {canConcludeStrength && !isStrengthDay(selectedDay) && <button className="primary-btn" type="button" onClick={concludeStrength} disabled={saving}><Save size={16} /> Continuar para o cardio</button>}
         </div>
       </div>
 
-      <WeeklyGymQueueCard queue={weeklyQueue} selectedDayId={selectedDay?.id} activePlanDayId={sessionPlanDayId} onSelect={selectDay} />
-
-      <section className="simple-panel gym-plan-summary">
-        <div className="today-binary-grid">
-          <StatusMini label="Força" active={isStrengthDay(selectedDay)} />
-          <StatusMini label="Cardio" active={isCardioDay(selectedDay)} />
-        </div>
-      </section>
-
-      {strengthStatus === 'active' && <AdaptiveWorkoutCard
+      {isStrengthDay(selectedDay) && strengthStatus === 'active' && <AdaptiveWorkoutCard
         recommendation={recommendation}
         loading={recommendationLoading}
         started={Boolean(startedAt)}
@@ -741,31 +730,31 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
         onCheckin={() => onNavigate?.('register', { registerTab: 'checkin', returnTo: 'gym' })}
       />}
 
-      {isStrengthDay(selectedDay) && strengthStatus === 'active' && (
-        <WorkoutProgressSummary
-          currentRows={setRows}
-          strengthSets={strengthSets}
-          currentSession={{ workout_variant: sessionVariant, adaptation_summary: sessionRecommendation }}
-        />
+      {!startedAt && !persistedWorkoutSessionId && (
+        <WeeklyGymQueueCard queue={weeklyQueue} selectedDayId={selectedDay?.id} activePlanDayId={sessionPlanDayId} onSelect={selectDay} />
       )}
 
       {isRestDay(selectedDay) && <section className="simple-panel"><h3>Descanso</h3><p className="muted-text">Hoje é recuperação. Caminhada leve é opcional.</p></section>}
 
-      {isCardioDay(selectedDay) && (
+      {isCardioDay(selectedDay) && !startedAt && !persistedWorkoutSessionId && (
+        <details className="gym-secondary-details"><summary>Cardio planejado</summary>
         <CardioPlanCard
           cardioSessions={cardios}
+          workoutSessions={history}
+          recommendation={recommendation}
           cardioOptions={cardioOptions}
           selectedCardioChoice={selectedCardioChoice}
           onSelectCardioChoice={setSelectedCardioChoice}
         />
+        </details>
       )}
 
       {isStrengthDay(selectedDay) && strengthStatus === 'active' && (
-        <section className="simple-panel gym-log-panel-v32">
+        <SessionPanel className="simple-panel gym-log-panel-v32">
+          {!startedAt && <summary>Exercícios e séries do plano</summary>}
           <div className="gym-log-top-v32">
-            <button className="ghost-btn" type="button" onClick={resetDraft}><RotateCcw size={16} /> Limpar</button>
-            <div><p className="eyebrow">Treino</p><h3>{completedSets}/{totalSets} séries</h3><span>{Math.round(totalVolume)} kg</span></div>
-            <button className="primary-btn" type="button" onClick={concludeStrength} disabled={!canConcludeStrength || saving}><Save size={16} /> Concluir força</button>
+            <div><p className="eyebrow">Séries</p><h3>{completedSets} de {totalSets} concluídas</h3><span>{Math.round(totalVolume)} kg de volume</span></div>
+            <button className="primary-btn" type="button" onClick={concludeStrength} disabled={!canConcludeStrength || saving}><Save size={16} /> {saving ? 'Salvando…' : 'Concluir força'}</button>
           </div>
 
           <div className="hevy-exercise-list-v32">
@@ -774,7 +763,7 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
                 <div className="hevy-card-head-v32">
                   <div>
                     <strong>{group.exerciseName}</strong>
-                    <span>{group.rows.length} sets</span>
+                    <span>{group.rows.length} séries</span>
                     {group.originalName && <small>Original: {group.originalName}</small>}
                   </div>
                   <div className="replacement-actions-v332">
@@ -786,6 +775,8 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
                     <button
                       className="replace-toggle-v32"
                       type="button"
+                      aria-expanded={replacementOpenId === group.exerciseEntryId}
+                      aria-label={`Trocar ${group.exerciseName}`}
                       onClick={() => {
                         setReplacementReason('');
                         setReplacementOpenId((current) => current === group.exerciseEntryId ? null : group.exerciseEntryId);
@@ -806,19 +797,24 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
                   />
                 )}
 
-                <ExerciseProgressMini exerciseName={group.exerciseName} strengthSets={strengthSets} />
+                <ExerciseProgressMini exerciseName={group.exerciseName} exercise={group.rows[0]} strengthSets={strengthSets} />
 
-                <div className="hevy-rest-v32">Descanso: {formatRest(group.rows[0]?.exercise?.rest_seconds)} · <button type="button" onClick={() => copyLoadToExercise(group.exerciseEntryId, group.rows[0]?.load_kg ?? 0)}>copiar kg</button></div>
+                <div className="hevy-rest-v32"><span>Descanso: {formatRest(group.rows[0]?.exercise?.rest_seconds)}</span>{!isDurationExercise(group.rows[0]) && <button type="button" onClick={() => copyLoadToExercise(group.exerciseEntryId, group.rows[0]?.load_kg ?? '')}>Copiar carga</button>}</div>
 
                 <div className="hevy-table-v32">
-                  <div className="hevy-header-v32"><span>Set</span><span>Kg</span><span>Reps</span><span>RPE</span><span></span></div>
+                  <div className="hevy-header-v32"><span>Série</span><span>{isDurationExercise(group.rows[0]) ? 'Segundos' : 'Kg'}</span><span>{isDurationExercise(group.rows[0]) ? 'Meta' : 'Reps'}</span><span>RPE</span><span>Feita</span></div>
                   {group.rows.map((row) => (
                     <div className={`hevy-row-v32 ${row.done ? 'done' : ''}`} key={row.rowId}>
                       <strong>{row.set_number}</strong>
-                      <input type="number" min="0" step="0.5" value={row.load_kg} onChange={(event) => updateSetRow(row.rowId, { load_kg: event.target.value })} />
-                      <input type="number" min="0" value={row.reps} onChange={(event) => updateSetRow(row.rowId, { reps: event.target.value })} />
-                      <input type="number" min="1" max="10" value={row.perceived_effort} onChange={(event) => updateSetRow(row.rowId, { perceived_effort: event.target.value })} />
-                      <button className="check-v32" type="button" onClick={() => toggleSet(row)}>{row.done ? <CheckCircle2 size={19} /> : <span />}</button>
+                      {isDurationExercise(row) ? <>
+                        <input type="number" inputMode="numeric" aria-label={`${group.exerciseName}, série ${row.set_number}: duração em segundos`} min="1" max="86400" step="1" value={row.duration_seconds ?? ''} onChange={(event) => updateSetRow(row.rowId, { duration_seconds: event.target.value })} />
+                        <span>{row.planned_reps}</span>
+                      </> : <>
+                        <input type="number" inputMode="decimal" aria-label={`${group.exerciseName}, série ${row.set_number}: carga em kg`} min="0" step="0.5" value={row.load_kg} onChange={(event) => updateSetRow(row.rowId, { load_kg: event.target.value })} />
+                        <input type="number" inputMode="numeric" aria-label={`${group.exerciseName}, série ${row.set_number}: repetições`} min="0" value={row.reps} onChange={(event) => updateSetRow(row.rowId, { reps: event.target.value })} />
+                      </>}
+                      <input type="number" inputMode="numeric" aria-label={`${group.exerciseName}, série ${row.set_number}: esforço RPE de 1 a 10`} min="1" max="10" value={row.perceived_effort} onChange={(event) => updateSetRow(row.rowId, { perceived_effort: event.target.value })} />
+                      <button className="check-v32" type="button" aria-pressed={row.done} aria-label={`${group.exerciseName}, série ${row.set_number}: ${row.done ? 'desmarcar' : 'marcar como feita'}`} onClick={() => toggleSet(row)}>{row.done ? <CheckCircle2 size={19} aria-hidden="true" /> : <Circle size={19} aria-hidden="true" />}</button>
                     </div>
                   ))}
                 </div>
@@ -827,10 +823,12 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
           </div>
 
           <div className="session-fields-v32">
-            <label>Duração<input type="number" min="1" value={duration || (startedAt && timerRunning ? elapsedMinutes(startedAt) : '')} onChange={(event) => setDuration(event.target.value)} /></label>
-            <label>Esforço<input type="number" min="1" max="10" value={effort} onChange={(event) => setEffort(event.target.value)} /></label>
+            <label>Duração (min)<input type="number" inputMode="numeric" min="1" value={duration || (startedAt && timerRunning ? elapsedMinutes(startedAt) : '')} onChange={(event) => setDuration(event.target.value)} /></label>
+            <label>Esforço (1–10)<input type="number" inputMode="numeric" min="1" max="10" value={effort} onChange={(event) => setEffort(event.target.value)} /></label>
           </div>
-        </section>
+          <div className="gym-inline-actions"><button className="ghost-btn" type="button" onClick={resetDraft}><RotateCcw size={16} /> Limpar sessão</button></div>
+          <details className="gym-secondary-details"><summary>Comparar com o último treino</summary><WorkoutProgressSummary currentRows={setRows} strengthSets={strengthSets} currentSession={{ workout_variant: sessionVariant, adaptation_summary: sessionRecommendation }} /></details>
+        </SessionPanel>
       )}
 
       {persistedWorkoutSessionId && strengthStatus === 'completed' && (
@@ -843,10 +841,6 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
           onMinutes={setManualCardioMinutes}
           onDistance={setManualCardioDistance}
           onSaveManual={saveManualCardio}
-          onBegin={() => {
-            if (!manualCardioMinutes) setManualCardioMinutes(String(cardioPlan?.target_minutes ?? 10));
-            onError?.('Cardio iniciado. Ao terminar, registre o valor real ou escolha anexar o relógio depois.');
-          }}
           onAwaitImport={() => chooseCardioStatus('awaiting_import')}
           onSkip={() => chooseCardioStatus('skipped')}
           onFinish={finishGymSession}
@@ -855,25 +849,14 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
         />
       )}
 
-      <section className="simple-panel centralized-json-note-v364">
-        <div>
-          <p className="eyebrow">Importação por JSON</p>
-          <h3>Treino do relógio agora fica em Registrar &gt; JSON</h3>
-          <p>A Academia fica focada no treino, séries, carga e progressão. O JSON do Mi Fitness/relógio entra pela central única.</p>
-        </div>
-        <span className="pill">centralizado</span>
-      </section>
-
-      <section className="simple-panel history-simple">
-        <div><p className="eyebrow">Hoje</p><h3>Resumo</h3></div>
-        <div className="today-binary-grid">
-          <StatusMini label="Cardios registrados" value={todayCardios.length} />
-          <StatusMini label="Prints relógio" value={todayWearableStrength.length} />
-          <StatusMini label="Treinos salvos" value={history.length} />
-        </div>
-      </section>
-
-      <GymSessionHistory sessions={history.filter((item) => item.completed).slice(0, 8)} />
+      {startedAt || persistedWorkoutSessionId ? (
+        <details className="simple-panel gym-secondary-details"><summary>Esta semana · {weeklyQueue.completedBaseCount} de {weeklyQueue.targetCount} concluídos</summary><WeeklyGymQueueCard queue={weeklyQueue} selectedDayId={selectedDay?.id} activePlanDayId={sessionPlanDayId} onSelect={selectDay} /></details>
+      ) : (
+        <>
+          <div className="gym-inline-actions"><button className="ghost-btn" type="button" onClick={() => onNavigate?.('register', { registerTab: 'json', returnTo: 'gym' })}>Importar treino do relógio</button></div>
+          <GymSessionHistory sessions={history.filter((item) => item.completed).slice(0, 8)} />
+        </>
+      )}
     </div>
   );
 }
@@ -883,11 +866,11 @@ function WeeklyGymQueueCard({ queue, selectedDayId, activePlanDayId, onSelect })
     <section className="simple-panel weekly-gym-queue-v42">
       <div className="simple-section-head">
         <div>
-          <p className="eyebrow">Fila semanal flexível</p>
-          <h3>{queue.completedBaseCount}/{queue.targetCount} sessões-base concluídas</h3>
-          <p className="muted-text">Segunda a domingo. O dia do plano é preferência; sequência, recuperação e disponibilidade definem a recomendação.</p>
+          <p className="eyebrow">Esta semana</p>
+          <h3>{queue.completedBaseCount} de {queue.targetCount} treinos concluídos</h3>
+          <p className="muted-text">Dias flexíveis, de segunda a domingo.</p>
         </div>
-        {queue.extraCount > 0 && <span className="pill">{queue.extraCount} extra(s)</span>}
+        {queue.extraCount > 0 && <span className="pill"><Plus size={14} aria-hidden="true" /> {queue.extraCount} {queue.extraCount === 1 ? 'extra' : 'extras'}</span>}
       </div>
       <div className="weekly-days-strip-v42">
         {queue.week.days.map((dateKey, index) => <span key={dateKey}><strong>{['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'][index]}</strong><small>{dateKey.slice(8, 10)}</small></span>)}
@@ -896,53 +879,60 @@ function WeeklyGymQueueCard({ queue, selectedDayId, activePlanDayId, onSelect })
         {queue.items.map((item) => {
           const active = String(activePlanDayId ?? selectedDayId) === String(item.day.id);
           const label = item.status === 'completed' ? 'Concluído' : item.status === 'recommended' ? 'Recomendado' : item.status === 'not_ideal' ? 'Não ideal hoje' : 'Pendente';
+          const StatusIcon = item.status === 'completed' ? CheckCircle2 : item.status === 'recommended' ? ArrowRight : item.status === 'not_ideal' ? AlertTriangle : Circle;
           return (
-            <button key={item.day.id} type="button" className={`${active ? 'active' : ''} status-${item.status}`} onClick={() => onSelect(item.day)}>
-              <span>{item.sequenceOrder} · preferência {getWeekdayLabel(item.preferredWeekday)}</span>
+            <button key={item.day.id} type="button" aria-pressed={active} disabled={Boolean(activePlanDayId) && String(activePlanDayId) !== String(item.day.id)} className={`${active ? 'active' : ''} status-${item.status}`} onClick={() => onSelect(item.day)}>
+              <span className="weekly-queue-status"><StatusIcon size={15} aria-hidden="true" /> {label}</span>
               <strong>{item.day.title}</strong>
-              <small>{label} · ~{item.estimatedMinutes} min</small>
+              <small>~{item.estimatedMinutes} min · preferência {getWeekdayLabel(item.preferredWeekday)}</small>
+              {active && <small className="weekly-queue-selection">{activePlanDayId ? 'Em andamento' : 'Selecionado'}</small>}
             </button>
           );
         })}
       </div>
       {queue.recommended && (
-        <div className="weekly-reason-v42">
-          <strong>Por que {queue.recommended.day.title}?</strong>
-          <span>{queue.recommended.reasons.slice(0, 3).join(' ')}</span>
-        </div>
+        <details className="gym-secondary-details">
+          <summary>{queue.recommended.completionCount ? 'Por que repetir este treino?' : `Por que ${queue.recommended.day.title}?`}</summary>
+          <p className="muted-text">{queue.recommended.reasons.slice(0, 3).join(' ')}</p>
+          {queue.recommended.completionCount > 0 && <p className="muted-text">Repetir uma sessão concluída conta como treino extra.</p>}
+        </details>
       )}
     </section>
   );
 }
 
-function GymCardioTransition({ cardioPlan, cardioStatus, manualMinutes, manualDistance, saving, onMinutes, onDistance, onSaveManual, onBegin, onAwaitImport, onSkip, onFinish, canFinish, onOpenImport }) {
+function GymCardioTransition({ cardioPlan, cardioStatus, manualMinutes, manualDistance, saving, onMinutes, onDistance, onSaveManual, onAwaitImport, onSkip, onFinish, canFinish, onOpenImport }) {
+  const [manualOpen, setManualOpen] = useState(false);
   const planned = Boolean(cardioPlan?.planned);
   return (
     <section className="simple-panel gym-cardio-transition-v42">
       <div>
-        <p className="eyebrow">Força concluída</p>
+        <p className="eyebrow"><CheckCircle2 size={15} aria-hidden="true" /> Força concluída</p>
         <h3>{planned ? cardioPlan.activity_label || 'Cardio pós-treino' : 'Sem cardio planejado'}</h3>
-        <p className="muted-text">{planned ? `${cardioPlan.target_minutes ?? '--'} min · ${cardioPlan.intensity ?? 'leve'} · RPE ${cardioPlan.target_rpe ?? '5–6'}` : 'Você pode finalizar a sessão sem criar um cardio fictício.'}</p>
+        <p className="muted-text">{planned ? `${cardioPlan.target_minutes ?? '--'} min · ${cardioPlan.intensity ?? 'leve'} · RPE ${cardioPlan.target_rpe ?? '5–6'}` : 'Você já pode finalizar a sessão.'}</p>
       </div>
       {planned && cardioStatus === 'pending' && (
         <>
-          <div className="cardio-manual-fields-v42">
-            <label>Minutos reais<input type="number" min="1" value={manualMinutes} onChange={(event) => onMinutes(event.target.value)} /></label>
-            <label>Distância real (km, opcional)<input type="number" min="0" step="0.01" value={manualDistance} onChange={(event) => onDistance(event.target.value)} /></label>
-          </div>
           <div className="form-actions gym-cardio-actions-v42">
-            <button className="primary-btn" type="button" onClick={onBegin} disabled={saving}>Fazer cardio</button>
-            <button className="primary-btn" type="button" onClick={onSaveManual} disabled={saving}>Salvar cardio feito</button>
-            <button className="ghost-btn" type="button" onClick={onAwaitImport} disabled={saving}>Fiz cardio — anexar relógio depois</button>
-            <button className="ghost-btn" type="button" onClick={onSkip} disabled={saving}>Pular cardio</button>
+            <button className="primary-btn" type="button" onClick={() => setManualOpen(true)} disabled={saving}>Fazer cardio</button>
+            <button className="ghost-btn" type="button" onClick={onAwaitImport} disabled={saving}>Fiz — anexar relógio depois</button>
+            <button className="ghost-btn" type="button" aria-expanded={manualOpen} onClick={() => setManualOpen((open) => !open)} disabled={saving}>Registrar manualmente</button>
+            <button className="ghost-btn" type="button" onClick={onSkip} disabled={saving}>Pular hoje</button>
           </div>
+          {manualOpen && <div>
+            <div className="cardio-manual-fields-v42">
+              <label>Duração realizada (min)<input type="number" inputMode="decimal" min="1" value={manualMinutes} onChange={(event) => onMinutes(event.target.value)} /></label>
+              <label>Distância (km, opcional)<input type="number" inputMode="decimal" min="0" step="0.01" value={manualDistance} onChange={(event) => onDistance(event.target.value)} /></label>
+            </div>
+            <button className="primary-btn" type="button" onClick={onSaveManual} disabled={saving}>{saving ? 'Salvando…' : 'Salvar cardio realizado'}</button>
+          </div>}
         </>
       )}
       {cardioStatus === 'awaiting_import' && (
-        <div className="weekly-reason-v42"><strong>Aguardando importação</strong><span>O relógio será a verdade fisiológica. Vincule explicitamente o JSON ou mantenha a sessão finalizada enquanto aguarda.</span><button className="ghost-btn" type="button" onClick={onOpenImport}>Abrir importação JSON</button></div>
+        <div className="weekly-reason-v42"><strong>Aguardando relógio</strong><span>Você já pode finalizar a sessão. Importe e vincule os dados do relógio depois.</span><button className="ghost-btn" type="button" onClick={onOpenImport}>Importar agora</button></div>
       )}
-      {cardioStatus === 'completed' && <p className="success-text-v42">Cardio real vinculado. Distância e métricas vieram da execução registrada.</p>}
-      {cardioStatus === 'skipped' && <p className="muted-text">Cardio pulado. Nenhuma linha com duração ou distância zero foi criada.</p>}
+      {cardioStatus === 'completed' && <p className="success-text-v42" role="status">Cardio registrado.</p>}
+      {cardioStatus === 'skipped' && <p className="muted-text" role="status">Cardio pulado hoje.</p>}
       {canFinish && <button className="primary-btn gym-finalize-v42" type="button" onClick={onFinish} disabled={saving}><CheckCircle2 size={16} /> Finalizar sessão</button>}
     </section>
   );
@@ -962,8 +952,9 @@ function GymSessionHistory({ sessions }) {
               <div className="gym-history-facts-v42">
                 <span>Força planejada: {detail.strength.planned.length} exercícios</span>
                 <span>Força realizada: {detail.strength.realized.length} séries</span>
+                {detail.strength.realized.filter(isDurationExercise).map((set, index) => <span key={set.id ?? index}>{set.exercise_name} · série {set.set_number}: {formatSetExecution(set)}</span>)}
                 <span>Cardio planejado: {detail.cardio.planned ? `${detail.cardio.planned.target_minutes ?? '--'} min · RPE ${detail.cardio.planned.target_rpe ?? '--'}` : 'não'}</span>
-                <span>Cardio realizado: {detail.cardio.realized ? `${Math.round(Number(detail.cardio.realized.duration_seconds || 0) / 60)} min · ${detail.cardio.realized.distance_km ?? '--'} km · FC ${detail.cardio.realized.avg_heart_rate ?? '--'}` : detail.cardio.status}</span>
+                <span>Cardio realizado: {detail.cardio.realized ? `${Math.round(Number(detail.cardio.realized.duration_seconds || 0) / 60)} min · ${detail.cardio.realized.distance_km ?? '--'} km · FC ${detail.cardio.realized.avg_heart_rate ?? '--'}` : ({ pending: 'pendente', awaiting_import: 'aguardando relógio', skipped: 'pulado', completed: 'concluído', not_planned: 'não planejado' })[detail.cardio.status] ?? 'não informado'}</span>
                 <span>Relógio força: {detail.wearable ? `${detail.wearable.duration_seconds ? Math.round(detail.wearable.duration_seconds / 60) : '--'} min · FC ${detail.wearable.avg_heart_rate ?? '--'}` : 'não vinculado'}</span>
                 <span>Prontidão: {session.readiness_score ?? '--'} · duração total {detail.timing.durationMinutes ?? '--'} min</span>
               </div>
@@ -997,16 +988,10 @@ function resetSessionState(selectedDay, strengthEntries, todayKeyValue, setters)
   setters.setManualCardioDistance('');
 }
 
-function StatusMini({ label, active = false, value = undefined }) {
-  const display = value !== undefined ? value : active ? 'Sim' : 'Não';
-  return <div className={`status-tile ${active || Number(value) > 0 ? 'active' : ''}`}><span>{label}</span><strong>{display}</strong></div>;
-}
-
 function buildInitialSetRows(exercises) {
   return (exercises ?? []).flatMap((exercise) => {
     const setCount = Math.max(parseFirstNumber(exercise.sets) || 3, 1);
-    const defaultReps = parseFirstNumber(exercise.reps) || 10;
-    return Array.from({ length: setCount }, (_, index) => ({ rowId: `${exercise.id}-${index + 1}`, exercise_entry_id: exercise.id, exercise_name: exercise.exercise_name, original_exercise_name: null, set_number: index + 1, planned_reps: exercise.reps, reps: defaultReps, load_kg: exercise.load_kg ?? '', perceived_effort: 7, done: false, completed_at: null, notes: '', exercise }));
+    return Array.from({ length: setCount }, (_, index) => ({ rowId: `${exercise.id}-${index + 1}`, exercise_entry_id: exercise.id, exercise_name: exercise.exercise_name, original_exercise_name: null, set_number: index + 1, planned_reps: exercise.reps, ...initialTrackingValues(exercise), perceived_effort: 7, done: false, completed_at: null, notes: '', exercise }));
   });
 }
 
@@ -1014,7 +999,6 @@ function buildSetRowsFromVariant(items) {
   return (items ?? []).flatMap((item) => {
     if (item.targetSets <= 0) return [];
     const exercise = item.exercise;
-    const defaultReps = parseFirstNumber(exercise.reps) || 10;
     return Array.from({ length: item.targetSets }, (_, index) => ({
       rowId: `${exercise.id}-${index + 1}`,
       exercise_entry_id: exercise.id,
@@ -1022,8 +1006,7 @@ function buildSetRowsFromVariant(items) {
       original_exercise_name: null,
       set_number: index + 1,
       planned_reps: exercise.reps,
-      reps: defaultReps,
-      load_kg: exercise.load_kg ?? '',
+      ...initialTrackingValues(exercise),
       perceived_effort: 7,
       done: false,
       completed_at: null,

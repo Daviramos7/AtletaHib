@@ -1,6 +1,7 @@
 import { calculateEstimatedOneRepMax, calculateVolumeKg } from '../services/workoutService';
+import { hasSetExecution, isDurationExercise, recordedDuration, setVolumeKg } from '../domain/exerciseTracking';
 
-export function buildExerciseProgress(exerciseName, strengthSets = []) {
+export function buildExerciseProgress(exerciseName, strengthSets = [], exercise: any = null) {
   const normalized = normalizeExerciseName(exerciseName);
   const sets = (strengthSets ?? [])
     .filter((set) => normalizeExerciseName(set.exercise_name) === normalized)
@@ -10,7 +11,7 @@ export function buildExerciseProgress(exerciseName, strengthSets = []) {
     return {
       hasHistory: false,
       exerciseName,
-      suggestion: 'Primeiro registro: use carga confortável e deixe 2-3 reps na reserva.',
+      suggestion: isDurationExercise(exercise) ? 'Registre a duração real em segundos, mantendo a postura.' : 'Primeiro registro: use carga confortável e deixe 2-3 reps na reserva.',
       trendLabel: 'Sem histórico',
       lastSession: null,
       bestLoad: 0,
@@ -22,6 +23,11 @@ export function buildExerciseProgress(exerciseName, strengthSets = []) {
 
   const sessions = groupSetsBySession(sets);
   const lastSession = sessions[0];
+  if (isDurationExercise(exercise ?? sets[0])) return {
+    hasHistory: true, exerciseName, suggestion: 'Repita a duração tolerada dentro da faixa do plano, com postura controlada.',
+    trendLabel: 'Exercício por duração — sem volume em kg ou estimativa de 1RM', lastSession,
+    bestLoad: 0, bestVolume: 0, bestOneRm: 0, recentSessions: sessions.slice(0, 4),
+  };
   const previousSession = sessions.slice(1).find((session) => !isProgressionRestricted(session)) ?? null;
   const bestLoad = Math.max(...sets.map((set) => Number(set.load_kg || 0)));
   const bestOneRm = Math.max(...sets.map((set) => calculateEstimatedOneRepMax(set.load_kg, set.reps)));
@@ -44,7 +50,7 @@ export function buildExerciseProgress(exerciseName, strengthSets = []) {
 }
 
 export function buildWorkoutProgressSummary(currentRows = [], strengthSets = [], currentSession = null) {
-  const doneRows = (currentRows ?? []).filter((row) => row.done && Number(row.reps) > 0);
+  const doneRows = (currentRows ?? []).filter((row) => row.done && hasSetExecution(row));
   const currentVolume = calculateVolumeKg(doneRows);
   const completedExercises = new Set(doneRows.map((row) => row.exercise_name)).size;
   const totalExercises = new Set((currentRows ?? []).map((row) => row.exercise_name)).size;
@@ -83,7 +89,7 @@ function groupSetsBySession(sets) {
       adaptationSummary: normalizeAdaptationSummary(set.adaptation_summary),
     };
 
-    const volume = Number(set.load_kg || 0) * Number(set.reps || 0);
+    const volume = setVolumeKg(set);
     current.sets.push(set);
     current.volume += volume;
     current.totalReps += Number(set.reps || 0);
@@ -92,8 +98,8 @@ function groupSetsBySession(sets) {
     current.readinessScore = set.readiness_score ?? current.readinessScore;
     current.adaptationSummary = normalizeAdaptationSummary(set.adaptation_summary) ?? current.adaptationSummary;
 
-    const bestSetScore = Number(current.bestSet?.load_kg || 0) * 100 + Number(current.bestSet?.reps || 0);
-    const setScore = Number(set.load_kg || 0) * 100 + Number(set.reps || 0);
+    const bestSetScore = isDurationExercise(current.bestSet) ? recordedDuration(current.bestSet) ?? 0 : Number(current.bestSet?.load_kg || 0) * 100 + Number(current.bestSet?.reps || 0);
+    const setScore = isDurationExercise(set) ? recordedDuration(set) ?? 0 : Number(set.load_kg || 0) * 100 + Number(set.reps || 0);
     if (!current.bestSet || setScore > bestSetScore) current.bestSet = set;
 
     map.set(key, current);

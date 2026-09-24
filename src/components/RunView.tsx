@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, ShieldCheck, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { RUN_PLAN } from '../data/defaultPlan';
 import { deleteCardioSession, listCardioSessions, saveManualCardioSession } from '../services/cardioService';
-import { ConfirmDialog, DataSourceBadge, EmptyState, FormField, PageHeader, TimelineItem, WarningBanner } from './ui';
+import { ConfirmDialog, DataSourceBadge, EmptyState, FormField, PageHeader, TimelineItem } from './ui';
 import { formatDurationClock } from '../utils/durations';
 
 
 export default function RunView({ userId, onError }) {
   const [cardios, setCardios] = useState([]);
-  const [form, setForm] = useState({ distance_km: '1', minutes: '', seconds: '', run_walk_protocol: RUN_PLAN[0].protocol, notes: '' });
+  const [form, setForm] = useState({ distance_km: '', minutes: '', seconds: '', run_walk_protocol: RUN_PLAN[0].protocol, notes: '' });
   const [deletingCardioId, setDeletingCardioId] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -31,19 +32,24 @@ export default function RunView({ userId, onError }) {
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if (saving) return;
+    setSaving(true);
     try {
       const duration = Number(form.minutes || 0) * 60 + Number(form.seconds || 0);
       await saveManualCardioSession(userId, {
         activity_type: 'outdoor_run',
         activity_label: 'Corrida',
-        distance_km: Number(form.distance_km),
+        distance_km: form.distance_km === '' ? null : Number(form.distance_km),
         duration_seconds: duration,
         notes: [form.run_walk_protocol, form.notes].filter(Boolean).join(' · '),
       });
-      setForm({ distance_km: '1', minutes: '', seconds: '', run_walk_protocol: form.run_walk_protocol, notes: '' });
+      setForm({ distance_km: '', minutes: '', seconds: '', run_walk_protocol: form.run_walk_protocol, notes: '' });
       await load();
+      onError('Cardio registrado.');
     } catch (err) {
       onError(err.message);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -71,31 +77,39 @@ export default function RunView({ userId, onError }) {
     <div className="cardio-page">
       <PageHeader
         eyebrow="Cardio"
-        title="Corrida, esteira e escada"
-        description="Use Health Connect para os totais diários. Sessões manuais e importadas ficam em um único histórico."
+        title="Registrar corrida"
+        description="Registro manual. Para dados do relógio, use a aba JSON."
         action={<span className="pill">Melhor ritmo médio: {best1k ? `${formatTime(Number(best1k.duration_seconds) / Number(best1k.distance_km))}/km` : 'sem marca'}</span>}
       />
 
-      <WarningBanner title="Sessão registrada não soma de novo nos totais" className="cardio-dedupe-panel">
-        <p>Passos, FC, kcal e distância diária continuam vindo do Health Connect. O registro cria o histórico da sessão sem duplicar o total diário.</p>
-        <span className="pill"><ShieldCheck size={16} /> não entra no total diário</span>
-      </WarningBanner>
-
-      <section className="panel centralized-json-note-v364">
-        <div>
-          <p className="eyebrow">Importação por JSON</p>
-          <h3>Agora fica em Registrar &gt; JSON</h3>
-          <p>Esta aba fica só para histórico e registro manual de cardio. Para colar JSON de print, use a central única de importação.</p>
-        </div>
-        <span className="pill">centralizado</span>
-      </section>
+      <form className="panel form-grid" onSubmit={handleSubmit}>
+        <p className="eyebrow full">Registro manual simples</p>
+        <FormField label="Distância km (opcional)">
+          <input type="number" inputMode="decimal" min="0" step="0.01" value={form.distance_km} onChange={(e) => setForm({ ...form, distance_km: e.target.value })} />
+        </FormField>
+        <FormField label="Minutos">
+          <input type="number" min="0" value={form.minutes} onChange={(e) => setForm({ ...form, minutes: e.target.value })} />
+        </FormField>
+        <FormField label="Segundos">
+          <input type="number" min="0" max="59" value={form.seconds} onChange={(e) => setForm({ ...form, seconds: e.target.value })} />
+        </FormField>
+        <FormField label="Protocolo">
+          <select value={form.run_walk_protocol} onChange={(e) => setForm({ ...form, run_walk_protocol: e.target.value })}>
+            {RUN_PLAN.map((week) => <option key={week.week} value={week.protocol}>S{week.week} — {week.protocol}</option>)}
+          </select>
+        </FormField>
+        <FormField label="Notas" className="full">
+          <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="dor, cansaço, local, sensação..." />
+        </FormField>
+        <button className="primary-btn" disabled={saving}><Plus size={16} /> {saving ? 'Salvando…' : 'Salvar corrida'}</button>
+      </form>
 
       <section className="panel cardio-history-panel-v408">
         <div className="section-title-row">
           <div>
-            <p className="eyebrow">Histórico de cardio registrado</p>
-            <h3>{cardios.length ? `${cardios.length} sessão(ões)` : 'sem sessões'}</h3>
-            <p className="muted-text">Mostra cardios manuais, da Academia e importados por JSON. “Sem distância” não significa erro no JSON; normalmente é cardio manual/planejado.</p>
+            <p className="eyebrow">Histórico de cardio</p>
+            <h3>{cardios.length ? `${cardios.length} ${cardios.length === 1 ? 'sessão' : 'sessões'}` : 'sem sessões'}</h3>
+            <p className="muted-text">Manual, Academia e relógio. Não soma novamente aos totais do Health Connect.</p>
           </div>
         </div>
 
@@ -125,36 +139,14 @@ export default function RunView({ userId, onError }) {
         ))}
       </section>
 
-      <section className="panel">
-        <p className="eyebrow">Progressão de 6 semanas</p>
+      <details className="panel subtle-disclosure">
+        <summary>Plano de corrida · 6 semanas</summary>
         <div className="timeline">
           {RUN_PLAN.map((week) => (
             <TimelineItem key={week.week} marker={`S${week.week}`} title={week.title} description={week.protocol} detail={week.goal} />
           ))}
         </div>
-      </section>
-
-      <form className="panel form-grid" onSubmit={handleSubmit}>
-        <p className="eyebrow full">Registro manual simples</p>
-        <FormField label="Distância km">
-          <input type="number" min="0" step="0.01" value={form.distance_km} onChange={(e) => setForm({ ...form, distance_km: e.target.value })} />
-        </FormField>
-        <FormField label="Minutos">
-          <input type="number" min="0" value={form.minutes} onChange={(e) => setForm({ ...form, minutes: e.target.value })} />
-        </FormField>
-        <FormField label="Segundos">
-          <input type="number" min="0" max="59" value={form.seconds} onChange={(e) => setForm({ ...form, seconds: e.target.value })} />
-        </FormField>
-        <FormField label="Protocolo">
-          <select value={form.run_walk_protocol} onChange={(e) => setForm({ ...form, run_walk_protocol: e.target.value })}>
-            {RUN_PLAN.map((week) => <option key={week.week} value={week.protocol}>S{week.week} — {week.protocol}</option>)}
-          </select>
-        </FormField>
-        <FormField label="Notas" className="full">
-          <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="dor, cansaço, local, sensação..." />
-        </FormField>
-        <button className="primary-btn"><Plus size={16} /> Salvar registro manual</button>
-      </form>
+      </details>
 
       <ConfirmDialog
         open={Boolean(pendingDelete)}

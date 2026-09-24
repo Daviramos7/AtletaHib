@@ -1,127 +1,51 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Activity, Dumbbell, Moon, Salad, Timer, Watch } from 'lucide-react';
-import { buildTodayPlan, getDayKindLabel, getWeekdayLabel } from '../utils/trainingPlanUtils';
-import { listCardioSessions } from '../services/cardioService';
-import CardioPlanCard from './CardioPlanCard';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowRight, Dumbbell } from 'lucide-react';
+import { buildTodayPlan } from '../utils/trainingPlanUtils';
 import ReadinessCard from './ReadinessCard';
 import { WaterQuickCard } from './WaterView';
 import DailyStatusCard from './DailyStatusCard';
 import DataQualityCard from './DataQualityCard';
 import { buildDailyTruth } from '../domain/buildDailyTruth';
+import type { DailyTruth } from '../domain/dailyTypes';
 import { todayKey } from '../services/dailyService';
-import { cardioCountsForProgression } from '../domain/cardioRules';
-import { PageHeader } from './ui';
+import { ErrorState, LoadingState, PageHeader } from './ui';
 
-export default function TodayView(props: any) {
-  const { userId, trainingPlan, onNavigate, onError } = props;
-  const [cardioSessions, setCardioSessions] = useState([]);
-  const [selectedCardioChoice, setSelectedCardioChoice] = useState('');
-  const [dailyTruth, setDailyTruth] = useState<any>(undefined);
+export default function TodayView({ userId, trainingPlan, profile, onNavigate, onError }: any) {
+  const [dailyTruth, setDailyTruth] = useState<DailyTruth | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [reload, setReload] = useState(0);
   const todayPlan = useMemo(() => buildTodayPlan(trainingPlan), [trainingPlan]);
-  const weekday = new Date().getDay();
-
-  useEffect(() => {
-    async function loadCardio() {
-      if (!userId) return;
-
-      try {
-        setCardioSessions(await listCardioSessions(userId, 24));
-      } catch (err) {
-        onError?.(err.message);
-      }
-    }
-
-    loadCardio();
-  }, [onError, userId]);
+  const refresh = useCallback(() => setReload((value) => value + 1), []);
 
   useEffect(() => {
     let alive = true;
     if (!userId) return undefined;
+    setFailed(false);
     buildDailyTruth(userId, todayKey())
       .then((truth) => { if (alive) setDailyTruth(truth); })
-      .catch((err) => { setDailyTruth(null); onError?.(err.message); });
+      .catch(() => { if (alive) setFailed(true); })
+      .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [onError, userId]);
-
-  useEffect(() => {
-    setSelectedCardioChoice(todayPlan.cardioOptions[0]?.label ?? '');
-  }, [todayPlan.cardioOptions]);
+  }, [userId, reload]);
 
   return (
     <div className="simple-page today-simple-page">
-      <PageHeader
-        className="simple-hero"
-        eyebrow={`${getWeekdayLabel(weekday)} · Hoje`}
-        title={todayPlan.title}
-        description={todayPlan.description}
-        action={<span className={`day-kind-badge ${todayPlan.dayKind}`}>{getDayKindLabel(todayPlan.dayKind)}</span>}
-      />
-
-      <section className="simple-panel today-plan-card">
-        <p className="eyebrow">Plano de hoje</p>
-        <div className="today-binary-grid">
-          <StatusTile icon={Dumbbell} label="Força" active={todayPlan.strength} />
-          <StatusTile icon={Timer} label="Cardio" active={todayPlan.cardio} />
+      <PageHeader eyebrow={new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })} title="Hoje" />
+      {failed && <ErrorState title="Não foi possível atualizar seu dia" action={<button className="ghost-btn" type="button" onClick={refresh}>Tentar novamente</button>} />}
+      {loading ? <LoadingState title="Carregando seu dia" /> : dailyTruth && <>
+        <ReadinessCard userId={userId} todayPlan={todayPlan} dailyTruth={dailyTruth} onError={onError} onNavigate={onNavigate} compact />
+        <div className="today-overview-grid">
+          <DailyStatusCard dailyTruth={dailyTruth} onNavigate={onNavigate} />
+          <WaterQuickCard userId={userId} profile={profile} onError={onError} onNavigate={onNavigate} />
         </div>
-        <button className="primary-btn big-action-btn" type="button" onClick={() => onNavigate('gym')}>
-          {todayPlan.action}
-        </button>
-      </section>
-
-      <ReadinessCard userId={userId} todayPlan={todayPlan} dailyTruth={dailyTruth} dailyTruthLoading={dailyTruth === undefined} onError={onError} onNavigate={onNavigate} />
-
-      <WaterQuickCard userId={userId} profile={props.profile} onError={onError} onNavigate={onNavigate} />
-
-      <DailyStatusCard userId={userId} profile={props.profile} todayPlan={todayPlan} dailyTruth={dailyTruth} dailyTruthLoading={dailyTruth === undefined} onError={onError} onNavigate={onNavigate} />
-
-      <DataQualityCard userId={userId} todayPlan={todayPlan} dailyTruth={dailyTruth} dailyTruthLoading={dailyTruth === undefined} onNavigate={onNavigate} />
-
-      {todayPlan.strength && (
-        <section className="simple-panel">
-          <div className="simple-section-head">
-            <div>
-              <p className="eyebrow">Força</p>
-              <h3>{todayPlan.strengthEntries.length} exercício(s)</h3>
-            </div>
-            <button className="ghost-btn" type="button" onClick={() => onNavigate('gym')}>Abrir</button>
-          </div>
-
-          <div className="compact-list">
-            {todayPlan.strengthEntries.slice(0, 4).map((entry) => (
-              <div className="compact-item" key={entry.id ?? entry.position}>
-                <strong>{entry.exercise_name}</strong>
-                <span>{entry.sets} · {entry.reps}</span>
-              </div>
-            ))}
-          </div>
+        <section className="today-gym-link">
+          <Dumbbell size={22} aria-hidden />
+          <div><h3>Treino da semana</h3><p>{dailyTruth.strengthApp.length ? 'Treino registrado hoje.' : 'Veja a sessão recomendada na Academia.'}</p></div>
+          <button className="ghost-btn" type="button" onClick={() => onNavigate('gym')}>Ver treino <ArrowRight size={16} aria-hidden /></button>
         </section>
-      )}
-
-      {todayPlan.cardio && (
-        <CardioPlanCard
-          cardioSessions={cardioSessions.filter((session) => cardioCountsForProgression(session, todayKey()))}
-          cardioOptions={todayPlan.cardioOptions}
-          selectedCardioChoice={selectedCardioChoice}
-          onSelectCardioChoice={setSelectedCardioChoice}
-        />
-      )}
-
-      <section className="simple-panel quick-tiles">
-        <button type="button" onClick={() => onNavigate('register')}><Salad size={18} /> Registrar</button>
-        <button type="button" onClick={() => onNavigate('progressHub')}><Moon size={18} /> Progresso</button>
-        <button type="button" onClick={() => onNavigate('integrations')}><Watch size={18} /> Saúde</button>
-        <button type="button" onClick={() => onNavigate('profile')}><Activity size={18} /> Perfil</button>
-      </section>
-    </div>
-  );
-}
-
-function StatusTile({ icon: Icon, label, active }) {
-  return (
-    <div className={`status-tile ${active ? 'active' : ''}`}>
-      <Icon size={20} />
-      <span>{label}</span>
-      <strong>{active ? 'Sim' : 'Não'}</strong>
+        <DataQualityCard dailyTruth={dailyTruth} onNavigate={onNavigate} />
+      </>}
     </div>
   );
 }

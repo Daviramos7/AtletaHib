@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle2, Copy, FileJson, Plus, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Copy, FileJson, Plus } from 'lucide-react';
 import { findCardioGymCandidates, isCardioImportShape, normalizeCardioImportPayload, saveCardioSessionFromJson } from '../services/cardioService';
 import { normalizeMealImportPayload, saveMealEntriesFromJson } from '../services/mealService';
 import { normalizeSleepImportPayload, saveSleepSessionFromJson } from '../services/sleepService';
@@ -219,24 +219,15 @@ export default function ImportJsonView({ userId, onError }) {
     <div className="json-hub-page-v364">
       <div className="page-title compact-title">
         <div>
-          <p className="eyebrow">Importar JSON</p>
-          <h2>Central de atualizações</h2>
-          <p className="muted-text">Todos os JSONs do projeto ficam aqui: comida, sono, cardio e treino do relógio.</p>
+          <h2>Central JSON</h2>
+          <p className="muted-text">Cole o JSON e confira os dados antes de importar.</p>
         </div>
       </div>
-
-      <section className="simple-panel json-hub-help-v364">
-        <ShieldCheck size={22} />
-        <div>
-          <strong>Regra anti-bagunça</strong>
-          <span>As outras abas mostram histórico e uso diário. Importação por JSON agora fica centralizada só aqui.</span>
-        </div>
-      </section>
 
       <section className="simple-panel json-importer-v364">
         <div className="json-type-tabs-v364">
           {IMPORT_TYPES.map((item) => (
-            <button key={item.id} type="button" className={kind === item.id ? 'active' : ''} onClick={() => {
+            <button key={item.id} type="button" aria-pressed={kind === item.id} className={kind === item.id ? 'active' : ''} onClick={() => {
               setKind(item.id);
               setPreview(null);
               setResolvedKind(null);
@@ -259,6 +250,7 @@ export default function ImportJsonView({ userId, onError }) {
           </div>
         </div>
 
+        <details className="gym-secondary-details"><summary>Instruções e exemplos</summary>
         {config.promptHint && (
           <div className="json-prompt-hint-v367">
             <strong>Leitor recomendado</strong>
@@ -275,9 +267,13 @@ export default function ImportJsonView({ userId, onError }) {
             ))}
           </div>
         )}
+        </details>
 
         <textarea
           className="json-import-box json-hub-textarea-v364"
+          aria-label="JSON para importar"
+          spellCheck={false}
+          autoCapitalize="off"
           value={jsonText}
           onChange={(event) => {
             setJsonText(event.target.value);
@@ -285,12 +281,12 @@ export default function ImportJsonView({ userId, onError }) {
             setResolvedKind(null);
             setLinkCandidates([]);
           }}
-          placeholder="Cole aqui o JSON puro retornado pelo leitor."
+          placeholder="Cole o JSON aqui"
         />
 
         <div className="form-actions">
-          <button className="ghost-btn" type="button" onClick={handlePreview} disabled={!jsonText.trim()}>Validar JSON</button>
-          {!linkCandidates.length && <button className="primary-btn" type="button" onClick={handleImport} disabled={!jsonText.trim() || busy}><Plus size={16} /> Importar</button>}
+          <button className="ghost-btn" type="button" onClick={handlePreview} disabled={!jsonText.trim()}>Conferir dados</button>
+          {!linkCandidates.length && <button className="primary-btn" type="button" onClick={handleImport} disabled={!preview || busy}><Plus size={16} /> Importar</button>}
         </div>
 
         {preview && (
@@ -310,7 +306,7 @@ export default function ImportJsonView({ userId, onError }) {
               {linkCandidates.length > 0 && (
                 <div className="json-link-choice-v42">
                   <strong>Possível sessão da Academia</strong>
-                  <span>A correspondência usa data e proximidade de horário, mas o vínculo nunca é automático.</span>
+                  <span>Confira a sessão sugerida pela data e pelo horário.</span>
                   {linkCandidates.slice(0, 3).map((candidate) => (
                     <div key={candidate.id} className="json-link-candidate-v42">
                       <span>{candidate.training_day?.title ?? candidate.notes ?? 'Sessão da Academia'} · {new Date(candidate.performed_at).toLocaleDateString('pt-BR')}</span>
@@ -328,15 +324,15 @@ export default function ImportJsonView({ userId, onError }) {
         )}
       </section>
 
-      <section className="simple-panel json-rules-v364">
-        <p className="eyebrow">Onde cada coisa entra</p>
+      <details className="disclosure-panel json-rules-v364">
+        <summary>Onde encontrar os dados importados</summary>
         <div>
           <span><strong>Comida</strong> aparece em Registrar &gt; Comida e entra nas kcal do dia.</span>
           <span><strong>Sono</strong> aparece em Progresso &gt; Sono e influencia prontidão/semana.</span>
           <span><strong>Cardio</strong> aparece em Registrar &gt; Cardio e no histórico de cardio.</span>
           <span><strong>Força relógio</strong> aparece na Academia como dado fisiológico do treino.</span>
         </div>
-      </section>
+      </details>
     </div>
   );
 }
@@ -349,7 +345,7 @@ function MealPreviewItems({ items }) {
       {items.slice(0, 5).map((item, index) => (
         <div key={`${item.food_name}-${index}`}>
           <strong>{item.food_name}</strong>
-          <span>{item.grams}g · {item.kcal} kcal · P {formatMacro(item.protein_g)} · C {formatMacro(item.carbs_g)} · G {formatMacro(item.fat_g)}</span>
+          <span>{item.grams == null ? 'Peso não informado' : `${item.grams}g`} · {item.kcal ?? '--'} kcal · P {formatMacro(item.protein_g)} · C {formatMacro(item.carbs_g)} · G {formatMacro(item.fat_g)}</span>
         </div>
       ))}
     </div>

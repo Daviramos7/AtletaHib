@@ -1,21 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Save, TrendingDown } from 'lucide-react';
 import { todayKey } from '../services/dailyService';
-import { listCardioSessions } from '../services/cardioService';
 import { listWeightLogs, saveWeightLog } from '../services/weightService';
 import { localDateKey } from '../utils/dates';
 import { MetricCard, PageHeader } from './ui';
 
 export default function ProgressView({ userId, profile, refreshBoot, onError }) {
   const [weights, setWeights] = useState([]);
-  const [cardios, setCardios] = useState([]);
-  const [form, setForm] = useState({ log_date: todayKey(), weight_kg: profile?.current_weight_kg ?? '', waist_cm: '', notes: '' });
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ log_date: todayKey(), weight_kg: '', waist_cm: '', notes: '' });
 
   const load = useCallback(async () => {
     try {
-      const [weightData, cardioData] = await Promise.all([listWeightLogs(userId), listCardioSessions(userId, 100)]);
-      setWeights(weightData);
-      setCardios(cardioData);
+      setWeights(await listWeightLogs(userId));
     } catch (err) {
       onError(err.message);
     }
@@ -23,9 +20,6 @@ export default function ProgressView({ userId, profile, refreshBoot, onError }) 
 
   useEffect(() => { load(); }, [load]);
 
-  useEffect(() => {
-    setForm((old) => ({ ...old, weight_kg: profile?.current_weight_kg ?? old.weight_kg ?? '' }));
-  }, [profile?.current_weight_kg]);
 
   const weeklyWeights = useMemo(() => buildWeeklyWeights(weights), [weights]);
 
@@ -33,17 +27,18 @@ export default function ProgressView({ userId, profile, refreshBoot, onError }) 
     const chronological = [...weights].sort((a, b) => a.log_date.localeCompare(b.log_date));
     const latest = chronological[chronological.length - 1];
     const oldest = chronological[0];
-    const lost = latest && oldest ? Number(oldest.weight_kg) - Number(latest.weight_kg) : 0;
-    const targetLeft = latest ? Number(latest.weight_kg) - Number(profile?.target_weight_kg ?? 0) : null;
-    const totalKm = cardios.reduce((sum, session) => sum + Number(session.distance_km || 0), 0);
+    const lost = latest && oldest ? Number(oldest.weight_kg) - Number(latest.weight_kg) : null;
+    const targetLeft = latest && Number(profile?.target_weight_kg) > 0 ? Number(latest.weight_kg) - Number(profile.target_weight_kg) : null;
     const lastWeek = weeklyWeights[weeklyWeights.length - 1];
     const previousWeek = weeklyWeights[weeklyWeights.length - 2];
     const weeklyChange = lastWeek && previousWeek ? Number(previousWeek.avgWeight) - Number(lastWeek.avgWeight) : null;
-    return { latest, oldest, lost, targetLeft, totalKm, weeklyChange };
-  }, [weights, cardios, profile, weeklyWeights]);
+    return { latest, oldest, lost, targetLeft, weeklyChange };
+  }, [weights, profile, weeklyWeights]);
 
   async function handleSave(event) {
     event.preventDefault();
+    if (saving) return;
+    setSaving(true);
     try {
       await saveWeightLog(userId, {
         log_date: form.log_date,
@@ -52,21 +47,23 @@ export default function ProgressView({ userId, profile, refreshBoot, onError }) 
         notes: form.notes,
       });
       await Promise.all([load(), refreshBoot()]);
-      setForm((old) => ({ ...old, waist_cm: '', notes: '' }));
+      setForm((old) => ({ ...old, weight_kg: '', waist_cm: '', notes: '' }));
+      onError('Peso salvo.');
     } catch (err) {
       onError(err.message);
+    } finally {
+      setSaving(false);
     }
   }
 
   return (
     <div className="progress-page">
-      <PageHeader eyebrow="Tendências" title="Peso e consistência" description="A média semanal reduz o ruído das oscilações diárias. Distâncias vêm do histórico unificado de cardio." />
+      <PageHeader eyebrow="Tendências" title="Peso" description="Médias semanais para comparar a tendência." />
 
-      <div className="metric-grid four">
+      <div className="metric-grid three">
         <MetricCard label="Peso atual" value={stats.latest ? `${Number(stats.latest.weight_kg).toFixed(1)} kg` : '--'} detail="último registro" />
-        <MetricCard label="Perdido" value={`${stats.lost.toFixed(1)} kg`} detail="desde o primeiro log" />
+        <MetricCard label="Perdido" value={stats.lost === null ? '--' : `${stats.lost.toFixed(1)} kg`} detail="desde o primeiro registro" />
         <MetricCard label="Falta" value={stats.targetLeft !== null ? `${stats.targetLeft.toFixed(1)} kg` : '--'} detail="até a meta" />
-        <MetricCard label="Cardio" value={`${stats.totalKm.toFixed(2)} km`} detail="distância registrada" />
       </div>
 
       <section className="panel highlight-panel">
@@ -75,7 +72,7 @@ export default function ProgressView({ userId, profile, refreshBoot, onError }) 
           <h3>Média semanal do peso</h3>
           <span className="pill"><TrendingDown size={16} /> {stats.weeklyChange === null ? 'sem comparação' : `${stats.weeklyChange >= 0 ? '-' : '+'}${Math.abs(stats.weeklyChange).toFixed(1)} kg vs semana anterior`}</span>
         </div>
-        <WeightChart data={weeklyWeights} target={profile?.target_weight_kg ?? 0} />
+        <WeightChart data={weeklyWeights} target={profile?.target_weight_kg} />
         <p className="muted">Use o peso de manhã, após ir ao banheiro, e compare a média semanal. Peso diário oscila por água, sal, treino e sono.</p>
       </section>
 
@@ -85,7 +82,7 @@ export default function ProgressView({ userId, profile, refreshBoot, onError }) 
           <input type="date" value={form.log_date} onChange={(e) => setForm({ ...form, log_date: e.target.value })} />
         </label>
         <label>Peso kg
-          <input type="number" min="1" step="0.1" value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: e.target.value })} />
+          <input type="number" required inputMode="decimal" min="1" step="0.1" value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: e.target.value })} />
         </label>
         <label>Cintura cm
           <input type="number" min="1" step="0.1" value={form.waist_cm} onChange={(e) => setForm({ ...form, waist_cm: e.target.value })} />
@@ -93,7 +90,7 @@ export default function ProgressView({ userId, profile, refreshBoot, onError }) 
         <label className="full">Notas
           <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="sono, fome, treino, dor, compulsão..." />
         </label>
-        <button className="primary-btn"><Save size={16} /> Salvar peso</button>
+        <button className="primary-btn" disabled={saving}><Save size={16} /> {saving ? 'Salvando…' : 'Salvar peso'}</button>
       </form>
 
       <section className="panel">
@@ -116,7 +113,8 @@ function WeightChart({ data, target }) {
   const width = 760;
   const height = 260;
   const pad = { top: 22, right: 28, bottom: 44, left: 54 };
-  const values = [...data.map((item) => Number(item.avgWeight)), Number(target)].filter((v) => Number.isFinite(v));
+  const hasTarget = target != null && Number(target) > 0;
+  const values = [...data.map((item) => Number(item.avgWeight)), ...(hasTarget ? [Number(target)] : [])].filter(Number.isFinite);
   const min = Math.floor(Math.min(...values) - 1);
   const max = Math.ceil(Math.max(...values) + 1);
   const range = Math.max(max - min, 1);
@@ -137,8 +135,8 @@ function WeightChart({ data, target }) {
             <text x={pad.left - 10} y={yOf(tick) + 4} textAnchor="end" className="chart-axis-text">{tick} kg</text>
           </g>
         ))}
-        <line x1={pad.left} x2={width - pad.right} y1={targetY} y2={targetY} className="chart-target-line" />
-        <text x={width - pad.right} y={targetY - 7} textAnchor="end" className="chart-target-text">meta {target} kg</text>
+        {hasTarget && <><line x1={pad.left} x2={width - pad.right} y1={targetY} y2={targetY} className="chart-target-line" />
+        <text x={width - pad.right} y={targetY - 7} textAnchor="end" className="chart-target-text">meta {target} kg</text></>}
         <polyline points={points} className="chart-line" />
         {data.map((item, idx) => (
           <g key={item.weekKey}>

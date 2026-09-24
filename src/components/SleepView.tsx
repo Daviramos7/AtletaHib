@@ -4,7 +4,7 @@ import { listSleepSessions } from '../services/sleepService';
 import { DataSourceBadge, EmptyState, MetricCard, PageHeader } from './ui';
 
 
-export default function SleepView({ userId, onError }) {
+export default function SleepView({ userId, onError, onNavigate }) {
   const [sessions, setSessions] = useState([]);
 
   const load = useCallback(async () => {
@@ -25,17 +25,17 @@ export default function SleepView({ userId, onError }) {
     <div className="sleep-page">
       <PageHeader
         eyebrow="Sono"
-        title="Sono corrigido e recuperação"
-        description="O sono consolidado corrige registros duplicados, incompletos ou com horários divergentes."
-        action={<span className="pill"><Moon size={16} /> Prioridade sobre Health Connect</span>}
+        title="Sono"
+        description="Duração e recuperação nos últimos registros."
+        action={<button className="ghost-btn" onClick={() => onNavigate?.('register', { registerTab: 'json', importKind: 'sleep' })}><Moon size={16} /> Importar sono</button>}
       />
 
       <section className="panel sleep-hero-panel">
         <div className="sleep-hero-main">
           <div>
-            <p className="eyebrow">Último sono confiável</p>
+            <p className="eyebrow">Último registro</p>
             <h3>{last ? `${minutesToHours(last.duration_minutes)} · ${formatDate(last.sleep_date)}` : 'Nenhum sono corrigido ainda'}</h3>
-            <p>{last ? `${last.sleep_start_time} → ${last.sleep_end_time} · ${last.source_app || last.source} · ${last.confidence}` : 'Use Registrar > JSON para importar sono corrigido.'}</p>
+            <p>{last ? `${last.sleep_start_time ?? '--'} → ${last.sleep_end_time ?? '--'} · ${last.source_app || last.source || 'Origem não informada'}` : 'Use Registrar > JSON para importar sono corrigido.'}</p>
           </div>
           <div className="sleep-score-orb">
             <span>{last?.sleep_score ?? '--'}</span>
@@ -47,7 +47,7 @@ export default function SleepView({ userId, onError }) {
           <SleepStage label="Profundo" value={minutesToHours(last?.deep_sleep_minutes)} percent={last?.deep_sleep_percent} tone="deep" />
           <SleepStage label="Leve" value={minutesToHours(last?.light_sleep_minutes)} percent={last?.light_sleep_percent} tone="light" />
           <SleepStage label="REM" value={minutesToHours(last?.rem_sleep_minutes)} percent={last?.rem_sleep_percent} tone="rem" />
-          <SleepStage label="Acordado" value={minutesToHours(last?.awake_minutes)} percent={last?.awake_count ? `${last.awake_count}x` : null} tone="awake" />
+          <SleepStage label="Acordado" value={minutesToHours(last?.awake_minutes)} percent={last?.awake_count != null ? `${last.awake_count}x` : null} tone="awake" />
         </div>
       </section>
 
@@ -57,15 +57,6 @@ export default function SleepView({ userId, onError }) {
         <MetricCard icon={Sparkles} label="Score médio" value={stats.avgScore || '--'} detail="pontuação Mi Fitness" />
         <MetricCard icon={ShieldCheck} label="SpO₂ médio" value={stats.avgSpo2 ? `${stats.avgSpo2}%` : '--'} detail="quando visível no print" />
       </div>
-
-      <section className="panel centralized-json-note-v364">
-        <div>
-          <p className="eyebrow">Importação por JSON</p>
-          <h3>Agora fica em Registrar &gt; JSON</h3>
-          <p>Esta aba mostra histórico e métricas de sono. Para colar JSON do leitor de sono, use a central única de importação.</p>
-        </div>
-        <span className="pill">centralizado</span>
-      </section>
 
       <section className="panel">
         <div className="section-title-row">
@@ -112,14 +103,14 @@ export default function SleepView({ userId, onError }) {
         )}
       </section>
 
-      <section className="panel compact-panel">
-        <p className="eyebrow">Como o app usa este dado</p>
+      <details className="panel subtle-disclosure">
+        <summary>Como o sono é consolidado</summary>
         <div className="rules-explainer">
           <span><CheckCircle2 size={16} /> Se existir sono importado para o dia, ele tem prioridade no Dashboard e na aba Semana.</span>
           <span><Brain size={16} /> O relatório semanal usa o sono corrigido para cruzar recuperação, fome, treino e progresso.</span>
           <span><Watch size={16} /> O Health Connect continua sendo fonte automática, mas o print corrige quando houver divergência.</span>
         </div>
-      </section>
+      </details>
     </div>
   );
 }
@@ -129,7 +120,7 @@ function SleepStage({ label, value, percent, tone }) {
     <div className={`sleep-stage-card ${tone}`}>
       <span>{label}</span>
       <strong>{value}</strong>
-      <small>{percent ? `${percent}${typeof percent === 'number' ? '%' : ''}` : '--'}</small>
+      <small>{percent != null ? `${percent}${typeof percent === 'number' ? '%' : ''}` : '--'}</small>
     </div>
   );
 }
@@ -151,7 +142,7 @@ function buildSleepStats(sessions) {
 function minutesToHours(minutes) {
   if (minutes === null || minutes === undefined || minutes === '') return '--';
   const total = Number(minutes || 0);
-  if (!total) return '--';
+  if (!Number.isFinite(total) || total < 0) return '--';
   const h = Math.floor(total / 60);
   const m = Math.round(total % 60);
   return h ? `${h}h${m ? ` ${m}min` : ''}` : `${m}min`;

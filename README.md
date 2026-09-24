@@ -1,171 +1,105 @@
-<p align="center">
-  <img src="logos/atleta-hib-logo-horizontal.png" alt="Atleta Hib" width="460" />
-</p>
+<p align="center"><img src="logos/atleta-hib-logo-horizontal.png" alt="Atleta Hib" width="420" /></p>
 
-<p align="center">
-  <strong>Atleta Hib v4.1.2</strong><br />
-  Treino, alimentação, recuperação e progresso com uma única fonte de verdade.
-</p>
+# Atleta Hib
 
-## Visão geral
+Aplicação pessoal para registrar alimentação, hidratação, recuperação e treino de força com cardio. O objetivo é reunir registros manuais e dados do relógio sem misturar suas origens ou contar a mesma atividade duas vezes.
 
-O Atleta Hib é uma aplicação web responsiva/PWA acompanhada por um aplicativo Android nativo que conecta o Health Connect ao Supabase. Cada usuário possui autenticação e dados isolados por RLS.
+[Aplicação publicada](https://atleta-hib.vercel.app) · Versão do pacote: 4.1.2
 
-A versão 4.1.2 consolida a identidade visual, padroniza os componentes de interface e encerra a divisão entre `run_sessions` e `cardio_sessions` no produto.
+## Organização do produto
 
-## O que está disponível
+- **Hoje:** estado do dia, prontidão, registros que faltam e atalhos.
+- **Registrar:** comida, água, check-in, cardio manual e importação JSON.
+- **Academia:** fila Upper/Lower flexível, recomendação, execução por série, cardio e histórico.
+- **Progresso:** peso, sono, força, wearable, cardio e revisão semanal.
+- **Saúde:** estado das integrações e indicadores atuais.
+- **Perfil:** dados pessoais, metas e configurações.
 
-- Painel diário orientado por treino, prontidão e qualidade dos dados.
-- Registro de refeições com kcal e macros opcionais sem converter ausência em zero.
-- Hidratação com atualização atômica no banco.
-- Cardio manual, planejado ou importado em um único histórico.
-- Treino de força por série, com carga, repetições, RPE, volume e estimativa de 1RM.
-- Academia adaptativa: o treino-base é ajustado de forma determinística por check-in, sono, carga muscular real, dor, pausa e tempo disponível.
-- Sono corrigido e dados de wearable com origem explícita.
-- Check-in separado entre manhã e fechamento do dia.
-- Peso, tendências semanais e revisão com janela temporal limitada.
-- Central de importação JSON com validação de data, confiança e deduplicação.
-- Android Health Connect Bridge para Mi Fitness e outras fontes compatíveis.
+## Arquitetura e stack
 
-## Princípios de integridade
+O cliente web usa React 19, TypeScript e Vite. Componentes consomem serviços Supabase; regras determinísticas ficam em `src/domain`, e os serviços preservam origem, data local e identificadores dos registros. PostgreSQL armazena os dados, Supabase Auth identifica o usuário e RLS controla o acesso. Não há servidor Node separado para iniciar localmente.
 
-- Data de negócio usa o calendário local do usuário.
-- Dado ausente permanece ausente; não vira `0` automaticamente.
-- Sessões importadas de cardio não somam novamente nos totais diários.
-- Calorias de uma sessão são detalhe e podem já existir no Health Connect.
-- Recomendações de cardio respeitam o limite de 20 minutos, sem alterar o valor real registrado.
-- Wearables apoiam o acompanhamento, mas não produzem diagnóstico.
-- Painel, check-in e relatório semanal consomem a mesma camada de verdade diária.
+O Android Bridge usa Kotlin, Jetpack Compose, Health Connect e Ktor. O fluxo de dados é:
 
-## Stack
-
-### Web
-
-- React 19, TypeScript e Vite.
-- Supabase Auth, PostgreSQL e Row Level Security.
-- Vitest e ESLint.
-- PWA com manifest e service worker.
-
-### Android
-
-- Kotlin e Jetpack Compose.
-- Health Connect.
-- Ktor e Kotlin Serialization.
-- Supabase REST com sessão persistida localmente.
-
-## Como executar o site
-
-Requisitos: Node.js 20+ e um projeto Supabase.
-
-```bash
-npm install
-cp .env.example .env.local
-npm run dev
+```text
+Redmi Watch → Mi Fitness → Health Connect → Android Bridge → Supabase → Web
 ```
 
-Configure:
+A sincronização depende das permissões e dos dados disponibilizados pelas fontes no Android. Importações JSON complementam esse fluxo, inclusive para corrigir sono divergente.
+
+## Decisões técnicas
+
+- **Prontidão determinística:** Hoje, check-in e Academia usam a camada canônica de dados; não há LLM tomando decisões de treino.
+- **Fila semanal flexível:** Superior A, Inferior A, Superior B e Inferior B são acompanhados na semana de segunda a domingo. Sessões extras não aumentam a aderência-base.
+- **Sessão persistente:** concluir força não significa finalizar a sessão. Cardio pode ser executado, registrado manualmente, pulado ou ficar aguardando importação. Sessões preservam início e data ao atravessar a meia-noite.
+- **Planejado × realizado:** recomendação e execução permanecem separadas; séries, cargas e repetições do app não são substituídas pela fisiologia do relógio.
+- **Ausência explícita:** dado ausente não vira zero, macro desconhecido continua desconhecido e alimento sem peso não ganha 100 g automaticamente.
+- **Deduplicação:** sessões importadas mantêm flags de participação nos totais diários; calorias e passos já presentes no Health Connect não devem ser somados de novo.
+- **Prescrição não é execução:** cardio recomendado tem teto de 20 minutos; um registro real pode ultrapassá-lo.
+- **Isolamento:** consultas usam `user_id`, políticas usam `auth.uid()` e vínculos de sessões têm proteção contra referências entre usuários.
+
+## Execução local
+
+Requisitos: Node.js 22 LTS, pnpm e um projeto Supabase com banco compatível.
+
+```powershell
+pnpm install
+Copy-Item .env.example .env.local
+pnpm run dev
+```
+
+Preencha `.env.local` com a URL e a chave **pública** do seu projeto:
 
 ```env
 VITE_SUPABASE_URL=https://seu-projeto.supabase.co
-VITE_SUPABASE_ANON_KEY=sua-chave-anon-publica
+VITE_SUPABASE_ANON_KEY=sua-chave-publica
 ```
 
-Comandos de validação:
+Variáveis `VITE_*` são incorporadas ao cliente. Nunca coloque chave `service_role`, chave secreta ou senha nessas variáveis.
 
-```bash
-npm test
-npm run lint
-npm run typecheck
-npm run build
-```
+## Banco e migrations
 
-Para executar tudo exceto os testes unitários:
+`database/schema.sql` e `database/policies.sql` descrevem a base consolidada. `database/migrations/` contém a evolução histórica, incluindo a Academia adaptativa (`2026_08_16_adaptive_workout.sql`) e as sessões flexíveis (`2026_08_30_flexible_gym_sessions.sql`).
 
-```bash
-npm run prod:check
-```
+Não execute todas as migrations indiscriminadamente sobre o schema consolidado: há scripts destinados a instalações antigas, inclusive à antiga tabela `run_sessions`. Confirme o histórico aplicado no projeto antes de qualquer atualização; teste o caminho escolhido em um banco descartável e mantenha backup. O replay completo em banco vazio não foi validado nesta rodada de interface. A migration histórica `2026_07_10_daily_truth_foundation.sql` contém um caractere isolado após a função e requer revisão antes de eventual replay; não foi alterada nem reaplicada.
 
-## Banco de dados
+**O polimento de interface não exige migration.** Nenhum SQL é aplicado automaticamente pelo frontend.
 
-Em uma instalação nova, execute primeiro:
-
-```text
-database/schema.sql
-database/policies.sql
-```
-
-Depois aplique as migrations de `database/migrations` em ordem cronológica. Em uma instalação existente que já está na v4.1.1, a migration nova obrigatória é:
-
-```text
-database/migrations/2026_07_13_unify_cardio_sessions.sql
-```
-
-Ela copia de forma idempotente os registros antigos de `run_sessions` para `cardio_sessions`. A tabela antiga é preservada como reserva histórica, mas o aplicativo deixa de ler e gravar nela.
-
-Para habilitar o treino adaptativo, aplique também:
-
-```text
-database/migrations/2026_08_16_adaptive_workout.sql
-```
-
-Essa migration adiciona campos opcionais de recuperação, tempo e localização de dor ao check-in, o papel explícito de cada exercício (`main`, `secondary` ou `accessory`) e um resumo compacto da recomendação na sessão executada. Registros antigos continuam válidos; nenhuma tabela ou policy RLS nova é criada.
-
-## Academia adaptativa
-
-- O check-in da manhã é exigido somente para gerar ou iniciar a recomendação de hoje; plano, histórico e editor continuam acessíveis.
-- O usuário pode escolher explicitamente o treino-base.
-- Painel e modo academia usam o mesmo cálculo canônico de prontidão, inclusive para sono corrigido, dor e carga recente.
-- O motor usa apenas séries realmente concluídas nas últimas 48–72 horas e o contexto independente dos últimos 7 dias.
-- Sono corrigido do dia de despertar tem prioridade e métrica ausente não vira zero.
-- O tempo recomendado considera séries, descansos, preparação, transições e cardio; a sessão adaptada cabe no tempo informado, com teto operacional de 50 minutos e no máximo 20 minutos de cardio.
-- A redução por tempo remove primeiro o cardio e depois volume/acessórios, preservando os exercícios principais enquanto houver espaço.
-- O papel de cada exercício é persistido no plano; planos antigos usam uma compatibilidade determinística sem depender da posição na lista.
-- A rotina padrão de quatro dias usa `Superior A`, `Inferior A`, `Superior B` e `Inferior B` na segunda, terça, quinta e sexta, sem repetir o mesmo grupo principal em dias consecutivos.
-- Uma sessão iniciada mantém o mesmo identificador, data, recomendação e rascunho mesmo após recarregar a página ou atravessar a meia-noite.
-- Sessões com volume restringido não são tratadas como regressão e não liberam progressão agressiva; a comparação volta à última sessão normal comparável.
-
-## Aplicativo Android
-
-O projeto nativo fica em `android_bridge`.
+## Android
 
 1. Copie `android_bridge/gradle.properties.example` para `android_bridge/gradle.properties`.
-2. Preencha `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY`.
-3. Abra `android_bridge` no Android Studio ou compile pelo terminal:
+2. Configure `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY`.
+3. Abra `android_bridge` no Android Studio ou execute:
 
 ```powershell
 cd android_bridge
 .\gradlew.bat :app:assembleDebug
 ```
 
-O aplicativo usa a mesma conta do site. A senha não é armazenada; a sessão é renovada por refresh token. As permissões do Health Connect podem ser concedidas de forma completa ou básica.
+Use a mesma conta do site e conceda as permissões necessárias do Health Connect. Não versione configurações locais ou credenciais.
 
-## Identidade visual e design system
+O companion Android está na versão 4.1.3 (o pacote Web permanece 4.1.2). Ele apresenta resultado por métrica, sincronização parcial, média diária de HR paginada e logout global. [Detalhes do Android](android_bridge/README.md).
 
-Os arquivos oficiais estão em `logos/`. As cópias usadas pelo site ficam em `public/branding` e pelo Android em `android_bridge/app/src/main/res/drawable-nodpi`.
+Registro de séries por tempo exige a migration isolada `database/migrations/20260924204020_workout_set_duration.sql`, ainda não aplicada nesta rodada. Ela adiciona duração em segundos, sem converter ou apagar histórico. Antes de aplicá-la, sessões com duração são bloqueadas com aviso e preservação do rascunho. HR, logout e recência de cardio não exigem migration adicional. [Relatório e validações](docs/audits/2026-09-24-android-and-training-final.md).
 
-A base compartilhada da interface web está em:
+## Validação
 
-- `src/components/ui/index.tsx`
-- `src/styles/design-system.css`
+```powershell
+pnpm run lint
+pnpm run typecheck
+pnpm run build
+pnpm test
+git diff --check
+```
 
-Ela contém padrões para cards, métricas, origem e qualidade do dado, alertas, estados vazios/carregamento/erro, confirmações, cabeçalhos, formulários, linhas estatísticas e timelines.
+Vitest cobre regras de domínio e contratos de persistência. `scripts/smoke-polish.mjs` verifica navegação e fluxos no navegador com dados sintéticos: intercepta as chamadas Supabase e não grava no banco real. Requer Playwright disponível (ou `PLAYWRIGHT_MODULE_PATH` apontando para uma instalação), servidor local iniciado e, opcionalmente, `SMOKE_BROWSER_PATH` para o executável do navegador. Capturas e resultados ficam no diretório temporário do sistema; `SMOKE_OUTPUT` permite escolher outro destino.
 
-## Prompts de importação e análise
+## Interface e documentação
 
-Os contratos usados para extrair ou interpretar dados ficam em `docs/`:
+O design system está em `src/styles/design-system.css` e `src/components/ui/index.tsx`: tokens, formulários, confirmações, estados e navegação responsiva. A identidade visual está em `logos/`, com cópias de uso em `public/branding` e no Android.
 
-- `FOOD_IMAGE_READER_PROMPT.md`
-- `CARDIO_IMAGE_READER_PROMPT.md`
-- `SLEEP_IMAGE_READER_PROMPT.md`
-- `STRENGTH_WEARABLE_IMAGE_READER_PROMPT.md`
-- `WEEKLY_REPORT_ANALYST_PROMPT.md`
+Os contratos de extração de comida, sono, cardio e força wearable ficam nos arquivos `*_IMAGE_READER_PROMPT.md` em `docs/`. Relatórios técnicos estão em `docs/audits/`. Para screenshots públicos, use dados sintéticos; evite e-mail, identificadores, notas pessoais e dados de saúde reais.
 
 ## Segurança
 
-A chave pública/anon do Supabase pode estar no cliente. A proteção real depende das políticas RLS e do uso de `auth.uid()` em todas as tabelas do usuário. Não inclua a service role no site ou no aplicativo Android e não desative RLS em produção.
-
-## Versão
-
-Versão atual: **4.1.2**.
-
-Consulte `docs/audits/` para os relatórios de implementação, testes e smoke tests de cada evolução.
+Consulte [SECURITY.md](SECURITY.md). A chave pública não substitui RLS. A revisão estática do repositório não certifica as políticas instaladas no projeto remoto; valide o isolamento com duas contas de teste antes de disponibilizar um novo banco.

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ClipboardCheck, Droplets, FileJson, Salad, Timer } from 'lucide-react';
 import DietView from './DietView';
 import CheckInView from './CheckInView';
@@ -17,15 +17,19 @@ const TABS = [
 
 export default function RegisterHubView(props) {
   const [tab, setTab] = useState(() => props.navigationIntent?.registerTab ?? 'water');
+  useEffect(() => {
+    const next = props.navigationIntent?.registerTab;
+    if (TABS.some((item) => item.id === next)) setTab(next);
+  }, [props.navigationIntent]);
 
   return (
     <div className="simple-page">
-      <PageHeader eyebrow="Registrar" title="Entradas do dia" description="Adicione apenas o que aconteceu. Origem, confiança e totais permanecem visíveis em cada fluxo." />
+      <PageHeader title="Registrar" />
 
-      <div className="simple-tabs">
+      <div className="simple-tabs" aria-label="Tipo de registro">
         {TABS.map((item) => {
           const Icon = item.icon;
-          return <button key={item.id} type="button" className={tab === item.id ? 'active' : ''} onClick={() => setTab(item.id)}><Icon size={16} /> {item.label}</button>;
+          return <button key={item.id} type="button" aria-pressed={tab === item.id} className={tab === item.id ? 'active' : ''} onClick={() => setTab(item.id)}><Icon size={16} aria-hidden="true" /> {item.label}</button>;
         })}
       </div>
 

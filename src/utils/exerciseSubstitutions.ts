@@ -99,10 +99,10 @@ const LIBRARY = [
     match: ['abdominal', 'prancha', 'core'],
     focus: 'core',
     options: [
-      { name: 'Prancha', tag: 'Core', reason: 'Simples e segura.' },
-      { name: 'Abdominal máquina', tag: 'Controlado', reason: 'Mais fácil de dosar carga.' },
-      { name: 'Dead bug', tag: 'Controle', reason: 'Boa opção se lombar estiver sensível.' },
-      { name: 'Pallof press', tag: 'Cabo', reason: 'Trabalha estabilidade sem flexionar muito a coluna.' },
+      { name: 'Prancha', tracking_type: 'duration', reps: '20-45s', tag: 'Core', reason: 'Simples e segura.' },
+      { name: 'Abdominal máquina', tracking_type: 'reps', reps: '10-15', tag: 'Controlado', reason: 'Mais fácil de dosar carga.' },
+      { name: 'Dead bug', tracking_type: 'reps', reps: '8-12', tag: 'Controle', reason: 'Boa opção se lombar estiver sensível.' },
+      { name: 'Pallof press', tracking_type: 'reps', reps: '10-15', tag: 'Cabo', reason: 'Trabalha estabilidade sem flexionar muito a coluna.' },
     ],
   },
 ];

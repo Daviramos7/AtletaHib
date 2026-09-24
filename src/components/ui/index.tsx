@@ -1,4 +1,6 @@
 import type { ComponentType, HTMLAttributes, ReactNode } from 'react';
+import { useEffect, useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertCircle, AlertTriangle, CheckCircle2, Database, Info, LoaderCircle, X } from 'lucide-react';
 
 type IconType = ComponentType<{ size?: number; 'aria-hidden'?: boolean }>;
@@ -45,7 +47,7 @@ export function DataSourceBadge({ source, label, className = '' }: { source?: st
 }
 
 export function DataQualityBadge({ score, label }: { score?: number | null; label?: string }) {
-  const safeScore = Number.isFinite(Number(score)) ? Math.max(0, Math.min(100, Number(score))) : null;
+  const safeScore = score != null && Number.isFinite(Number(score)) ? Math.max(0, Math.min(100, Number(score))) : null;
   const tone = safeScore === null ? 'unknown' : safeScore >= 80 ? 'good' : safeScore >= 55 ? 'warning' : 'danger';
   return <span className={`ds-badge ds-quality-badge ds-quality-badge--${tone}`}>{safeScore === null ? '--' : `${safeScore}%`}<span>{label ?? 'qualidade'}</span></span>;
 }
@@ -64,8 +66,8 @@ export function EmptyState({ title, description, action, icon: Icon = Info, clas
   return <div className={`ds-state ds-empty-state ${className}`.trim()}><Icon size={23} aria-hidden /><strong>{title}</strong>{description && <p>{description}</p>}{action}</div>;
 }
 
-export function LoadingState({ title = 'Carregando', description = 'Preparando seus dados.' }: { title?: string; description?: string }) {
-  return <div className="ds-state ds-loading-state" role="status"><LoaderCircle className="ds-spin" size={28} aria-hidden /><strong>{title}</strong><p>{description}</p></div>;
+export function LoadingState({ title = 'Carregando', description }: { title?: string; description?: string }) {
+  return <div className="ds-state ds-loading-state" role="status"><LoaderCircle className="ds-spin" size={24} aria-hidden /><strong>{title}</strong>{description && <p>{description}</p>}</div>;
 }
 
 export function ErrorState({ title = 'Não foi possível carregar', description, action }: { title?: string; description?: string; action?: ReactNode }) {
@@ -73,20 +75,41 @@ export function ErrorState({ title = 'Não foi possível carregar', description,
 }
 
 export function ConfirmDialog({ open, title, description, confirmLabel = 'Confirmar', cancelLabel = 'Cancelar', danger = false, busy = false, onConfirm, onCancel }: { open: boolean; title: string; description?: ReactNode; confirmLabel?: string; cancelLabel?: string; danger?: boolean; busy?: boolean; onConfirm: () => void; onCancel: () => void }) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const descriptionId = useId();
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!open || !dialog) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    dialog.showModal();
+    document.body.style.overflow = 'hidden';
+    return () => {
+      dialog.close();
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus();
+    };
+  }, [open]);
   if (!open) return null;
-  return (
-    <div className="ds-dialog-layer" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onCancel()}>
-      <div className="ds-dialog" role="alertdialog" aria-modal="true" aria-labelledby="ds-dialog-title">
-        <button className="ds-dialog__close" type="button" onClick={onCancel} aria-label="Fechar"><X size={18} /></button>
-        <p className="eyebrow">Confirmação</p>
-        <h2 id="ds-dialog-title">{title}</h2>
-        {description && <div className="ds-dialog__description">{description}</div>}
+  return createPortal(
+      <dialog ref={dialogRef} className="ds-dialog" role="alertdialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined} onCancel={(event) => { event.preventDefault(); if (!busy) onCancel(); }} onKeyDown={(event) => {
+        if (event.key !== 'Tab') return;
+        const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]'));
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (!first) { event.preventDefault(); return; }
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }}>
+        <button className="ds-dialog__close" type="button" onClick={onCancel} disabled={busy} aria-label="Fechar"><X size={18} /></button>
+        <h2 id={titleId}>{title}</h2>
+        {description && <div id={descriptionId} className="ds-dialog__description">{description}</div>}
         <div className="ds-dialog__actions">
           <button className="ghost-btn" type="button" onClick={onCancel} disabled={busy}>{cancelLabel}</button>
           <button className={danger ? 'danger-btn' : 'primary-btn'} type="button" onClick={onConfirm} disabled={busy}>{busy ? 'Processando...' : confirmLabel}</button>
         </div>
-      </div>
-    </div>
+      </dialog>, document.body
   );
 }
 

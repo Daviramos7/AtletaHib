@@ -29,6 +29,6 @@ export async function signUp(email, password) {
 
 export async function signOut() {
   const client = requireSupabase();
-  const { error } = await client.auth.signOut();
-  if (error) throw error;
+  const { error } = await client.auth.signOut({ scope: 'global' });
+  if (error) throw new Error('Não foi possível revogar as sessões. Você continua conectado; confira a conexão e tente sair novamente.');
 }
