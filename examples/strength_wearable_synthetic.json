@@ -1,0 +1,29 @@
+{
+  "type": "strength_wearable_session",
+  "activity_type": "strength_training",
+  "activity_label": "Força sintética",
+  "date": "2025-03-15",
+  "start_time": "16:30",
+  "duration_seconds": 2400,
+  "active_kcal": 165,
+  "total_kcal": 205,
+  "avg_heart_rate": 101,
+  "max_heart_rate": 139,
+  "heart_rate_zones": {
+    "light_seconds": 900,
+    "intensive_seconds": 1050,
+    "aerobic_seconds": 450,
+    "anaerobic_seconds": 0,
+    "vo2max_seconds": 0
+  },
+  "training_effect": 1.8,
+  "vitality_score": null,
+  "source": "wearable_screenshot",
+  "source_app": "Aplicativo de teste",
+  "device_name": "Relógio sintético",
+  "import_method": "screenshot_json",
+  "counts_toward_daily_totals": false,
+  "metrics_may_already_exist_in_health_connect": true,
+  "confidence": "high",
+  "notes": "Exemplo sintético; complementa a execução sem substituir séries, repetições ou cargas."
+}

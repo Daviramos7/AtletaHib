@@ -6,20 +6,191 @@ import { normalizeSleepImportPayload, saveSleepSessionFromJson } from '../servic
 import { findStrengthGymCandidates, isStrengthWearableImportShape, normalizeWearableWorkoutPayload, saveWearableWorkoutSessionFromJson } from '../services/strengthWearableService';
 import { formatDatePtBr, localDateKeyFromInstant, normalizeDateKey, todayLocalKey } from '../utils/dates';
 import { formatDurationClock } from '../utils/durations';
+import { parseImportJson } from '../utils/importSecurity';
 
-const CARDIO_EXAMPLE = `{"synthetic":true}`;
+const CARDIO_EXAMPLE = `{
+  "type": "cardio_session",
+  "activity_type": "treadmill",
+  "activity_label": "Esteira",
+  "date": "2025-03-15",
+  "start_time": "10:20",
+  "duration_seconds": 1500,
+  "distance_km": 2.4,
+  "active_kcal": 190,
+  "total_kcal": 225,
+  "avg_heart_rate": 128,
+  "max_heart_rate": 151,
+  "steps": 2850,
+  "source": "wearable_screenshot",
+  "source_app": "Aplicativo de teste",
+  "device_name": "Relógio sintético",
+  "counts_toward_daily_totals": false,
+  "metrics_may_already_exist_in_health_connect": true,
+  "confidence": "high"
+}`;
 
-const SLEEP_EXAMPLE = `{"synthetic":true}`;
+const SLEEP_EXAMPLE = `{
+  "type": "sleep_session",
+  "date": "2025-03-15",
+  "sleep_start": "23:10",
+  "sleep_end": "06:40",
+  "duration_minutes": 440,
+  "duration_text": "7h20min",
+  "sleep_score": 78,
+  "sleep_quality_label": "Boa",
+  "deep_sleep_minutes": 92,
+  "deep_sleep_percent": 21,
+  "light_sleep_minutes": 260,
+  "light_sleep_percent": 59,
+  "rem_sleep_minutes": 88,
+  "rem_sleep_percent": 20,
+  "awake_minutes": 10,
+  "awake_count": 2,
+  "avg_heart_rate": 61,
+  "avg_spo2": 97,
+  "breathing_score": null,
+  "source": "wearable_screenshot",
+  "source_app": "Aplicativo de teste",
+  "device_name": "Relógio sintético",
+  "replaces_health_connect_sleep": true,
+  "counts_toward_daily_totals": true,
+  "metrics_may_already_exist_in_health_connect": true,
+  "confidence": "high"
+}`;
 
-const FOOD_TEXT_EXAMPLE = `{"synthetic":true}`;
+const FOOD_TEXT_EXAMPLE = `{
+  "type": "meal_import",
+  "date": "2025-03-15",
+  "meal_type": "almoco",
+  "items": [
+    {
+      "food_name": "Arroz branco cozido",
+      "grams": 150,
+      "kcal": 192,
+      "protein_g": 3.8,
+      "carbs_g": 42,
+      "fat_g": 0.3
+    },
+    {
+      "food_name": "Patinho moído cozido",
+      "grams": 125,
+      "kcal": 274,
+      "protein_g": 33.8,
+      "carbs_g": 0,
+      "fat_g": 15
+    },
+    {
+      "food_name": "Salada com alface, tomate, maçã e manga",
+      "grams": 100,
+      "kcal": 55,
+      "protein_g": 1,
+      "carbs_g": 13,
+      "fat_g": 0.2
+    }
+  ],
+  "source": "food_text_ai",
+  "confidence": "medium",
+  "warnings": []
+}`;
 
-const FOOD_PHOTO_EXAMPLE = `{"synthetic":true}`;
+const FOOD_PHOTO_EXAMPLE = `{
+  "type": "meal_import",
+  "date": "2025-03-15",
+  "meal_type": "jantar",
+  "items": [
+    {
+      "food_name": "Hambúrguer artesanal estimado",
+      "grams": 280,
+      "kcal": 720,
+      "protein_g": 36,
+      "carbs_g": 58,
+      "fat_g": 38
+    },
+    {
+      "food_name": "Batata frita estimada",
+      "grams": 120,
+      "kcal": 375,
+      "protein_g": 4,
+      "carbs_g": 49,
+      "fat_g": 18
+    }
+  ],
+  "source": "food_photo_ai",
+  "confidence": "low",
+  "warnings": [
+    "Valores estimados por foto. Confirme peso/ingredientes se possível."
+  ]
+}`;
 
-const FOOD_SNACK_EXAMPLE = `{"synthetic":true}`;
+const FOOD_SNACK_EXAMPLE = `{
+  "type": "meal_import",
+  "date": "2025-03-15",
+  "meal_type": "lanche2",
+  "items": [
+    {
+      "food_name": "Shake de morango com leite e whey",
+      "grams": 450,
+      "kcal": 360,
+      "protein_g": 36,
+      "carbs_g": 42,
+      "fat_g": 6
+    }
+  ],
+  "source": "food_text_ai",
+  "confidence": "medium",
+  "warnings": []
+}`;
 
-const FOOD_OUT_EXAMPLE = `{"synthetic":true}`;
+const FOOD_OUT_EXAMPLE = `{
+  "type": "meal_import",
+  "date": "2025-03-15",
+  "meal_type": "extra",
+  "items": [
+    {
+      "food_name": "Salgado de feira de presunto e queijo estimado",
+      "grams": 180,
+      "kcal": 520,
+      "protein_g": 18,
+      "carbs_g": 55,
+      "fat_g": 26
+    },
+    {
+      "food_name": "Suco de maracujá adoçado estimado",
+      "grams": 500,
+      "kcal": 220,
+      "protein_g": 1,
+      "carbs_g": 54,
+      "fat_g": 0
+    }
+  ],
+  "source": "food_text_ai",
+  "confidence": "low",
+  "warnings": [
+    "Refeição fora de casa estimada; pode variar bastante."
+  ]
+}`;
 
-const STRENGTH_EXAMPLE = `{"synthetic":true}`;
+const STRENGTH_EXAMPLE = `{
+  "type": "strength_wearable_session",
+  "activity_type": "strength_training",
+  "activity_label": "Força",
+  "date": "2025-03-15",
+  "start_time": "16:30",
+  "duration_seconds": 2400,
+  "duration_text": "00:40:00",
+  "active_kcal": 165,
+  "total_kcal": 205,
+  "avg_heart_rate": 101,
+  "max_heart_rate": 139,
+  "training_effect": 1.8,
+  "source": "wearable_screenshot",
+  "source_app": "Aplicativo de teste",
+  "device_name": "Relógio sintético",
+  "import_method": "screenshot_json",
+  "counts_toward_daily_totals": false,
+  "metrics_may_already_exist_in_health_connect": true,
+  "confidence": "high"
+}`;
 
 const IMPORT_TYPES = [
   {
@@ -111,11 +282,7 @@ export default function ImportJsonView({ userId, onError }) {
   }
 
   function parseJson() {
-    try {
-      return JSON.parse(jsonText);
-    } catch {
-      throw new Error('JSON inválido. Verifique vírgulas, aspas e chaves. Dica: cole exatamente o JSON puro retornado pelo leitor.');
-    }
+    return parseImportJson(jsonText);
   }
 
   async function handlePreview() {
@@ -303,6 +470,12 @@ export default function ImportJsonView({ userId, onError }) {
                 </div>
               )}
               {resolvedKind === 'meal' && <MealPreviewItems items={preview.items ?? []} />}
+              {Array.isArray(preview.warnings) && preview.warnings.length > 0 && (
+                <div className="json-date-warning-v409">
+                  <strong>Avisos do leitor</strong>
+                  {preview.warnings.slice(0, 5).map((warning, index) => <span key={`${index}-${warning}`}>{warning}</span>)}
+                </div>
+              )}
               {linkCandidates.length > 0 && (
                 <div className="json-link-choice-v42">
                   <strong>Possível sessão da Academia</strong>

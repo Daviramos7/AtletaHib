@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:security:live": "node scripts/security-rls-live.mjs",
     "typecheck": "tsc -b --pretty false",
     "prod:check": "npm run lint && npm run typecheck && npm run build"
   },

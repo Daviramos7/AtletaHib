@@ -12,8 +12,11 @@
 - Preserve RLS e políticas de proprietário baseadas em `auth.uid() = user_id`.
 - Filtros no cliente são conveniência, não fronteira de segurança.
 - Preserve as validações de propriedade dos vínculos entre força, cardio e wearable.
+- `anon` não recebe CRUD nas tabelas pessoais; `authenticated` recebe somente o CRUD necessário, sem `TRUNCATE`, `REFERENCES` ou `TRIGGER`.
 - Antes de publicar um novo banco, teste com duas contas que leitura, escrita e associação a dados de outro usuário sejam recusadas.
+- O teste remoto reproduzível é `pnpm run test:security:live`. Ele usa apenas contas e fixtures sintéticas e precisa ser executado em um projeto de teste ou com limpeza confirmada.
 - Revise confirmação de e-mail, URLs de redirecionamento e permissões do Supabase Auth no ambiente de produção.
+- Em **Authentication → Providers → Email**, use no mínimo 8 caracteres (preferencialmente mais), exija letras maiúsculas/minúsculas, números e símbolos e ative **Prevent use of leaked passwords** quando o plano permitir. [Documentação oficial](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
 - Revise o histórico aplicado antes de executar SQL; não reproduza automaticamente todas as migrations históricas sobre o schema consolidado.
 
 ## Dados pessoais

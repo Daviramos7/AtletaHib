@@ -1,5 +1,6 @@
 import { requireSupabase } from '../lib/supabaseClient';
 import { buildLocalDateTimeIso, normalizeDateKey, normalizeTimeKey, shiftDateKey, timeToMinutes } from '../utils/dates';
+import { assertImportDateValue, assertImportTimeValue, assertReasonableImportDate, assertSafeImportPayload, boundedInteger, boundedText } from '../utils/importSecurity';
 
 export async function listSleepSessions(userId, limit = 30) {
   const client = requireSupabase();
@@ -32,26 +33,34 @@ export function normalizeSleepImportPayload(raw) {
   if (!raw || typeof raw !== 'object') {
     throw new Error('JSON inválido: envie um objeto de sessão de sono.');
   }
+  assertSafeImportPayload(raw);
 
-  const sleepDate = normalizeDate(raw.date ?? raw.sleep_date ?? raw.metric_date);
-  const startTime = normalizeTime(raw.sleep_start ?? raw.start_time ?? raw.started_at_time);
-  const endTime = normalizeTime(raw.sleep_end ?? raw.end_time ?? raw.ended_at_time);
-  const durationMinutes = toInteger(raw.duration_minutes ?? raw.duration ?? raw.duration_text ?? raw.tempo_total);
-  const source = raw.source ?? 'mi_fitness_screenshot';
-  const sourceApp = raw.source_app ?? raw.sourceApp ?? 'Mi Fitness';
-  const importMethod = raw.import_method ?? raw.importMethod ?? 'screenshot_json';
+  const rawDate = raw.date ?? raw.sleep_date ?? raw.metric_date;
+  const rawStartTime = raw.sleep_start ?? raw.start_time ?? raw.started_at_time;
+  const rawEndTime = raw.sleep_end ?? raw.end_time ?? raw.ended_at_time;
+  if (rawDate !== null && rawDate !== undefined && rawDate !== '') assertImportDateValue(rawDate, 'Data do sono');
+  assertImportTimeValue(rawStartTime, 'Início do sono');
+  assertImportTimeValue(rawEndTime, 'Fim do sono');
+  const sleepDate = normalizeDate(rawDate);
+  const startTime = normalizeTime(rawStartTime);
+  const endTime = normalizeTime(rawEndTime);
+  const durationMinutes = boundedInteger(toNumber(raw.duration_minutes ?? raw.duration ?? raw.duration_text ?? raw.tempo_total), 'Duração do sono', 1, 1440);
+  const source = boundedText(raw.source, 'Origem', 80) ?? 'mi_fitness_screenshot';
+  const sourceApp = boundedText(raw.source_app ?? raw.sourceApp, 'Aplicativo de origem', 120) ?? 'Mi Fitness';
+  const importMethod = normalizeImportMethod(raw.import_method ?? raw.importMethod);
 
   if (!sleepDate) throw new Error('JSON sem data válida. Use date: YYYY-MM-DD.');
+  assertReasonableImportDate(sleepDate, 'Data do sono');
   if (!startTime || !endTime) throw new Error('JSON sem horário válido. Use sleep_start e sleep_end no formato HH:mm.');
   if (!durationMinutes || durationMinutes <= 0) throw new Error('JSON sem duração válida. Use duration_minutes ou duration_text.');
 
   const { startAt, endAt } = buildSleepDateTimes(sleepDate, startTime, endTime);
-  const dedupeKey = String(raw.dedupe_key ?? raw.dedupeKey ?? buildDedupeKey({
+  const dedupeKey = boundedText(raw.dedupe_key ?? raw.dedupeKey ?? buildDedupeKey({
     date: sleepDate,
     startTime,
     endTime,
     sourceApp,
-  }));
+  }), 'Chave de deduplicação', 500);
 
   return {
     sleep_date: sleepDate,
@@ -61,39 +70,39 @@ export function normalizeSleepImportPayload(raw) {
     sleep_end_time: endTime,
     duration_minutes: durationMinutes,
 
-    sleep_score: toInteger(raw.sleep_score ?? raw.sleepScore),
-    sleep_quality_label: raw.sleep_quality_label ?? raw.sleepQualityLabel ?? null,
-    sleep_score_delta: toInteger(raw.sleep_score_delta ?? raw.sleepScoreDelta),
-    sleep_percentile_text: raw.sleep_percentile_text ?? raw.sleepPercentileText ?? null,
+    sleep_score: boundedInteger(toNumber(raw.sleep_score ?? raw.sleepScore), 'Pontuação do sono', 0, 100),
+    sleep_quality_label: boundedText(raw.sleep_quality_label ?? raw.sleepQualityLabel, 'Qualidade do sono', 120),
+    sleep_score_delta: boundedInteger(toNumber(raw.sleep_score_delta ?? raw.sleepScoreDelta), 'Variação da pontuação', -100, 100),
+    sleep_percentile_text: boundedText(raw.sleep_percentile_text ?? raw.sleepPercentileText, 'Percentil do sono', 300),
 
-    deep_sleep_minutes: toInteger(raw.deep_sleep_minutes ?? raw.deepSleepMinutes),
-    deep_sleep_percent: toInteger(raw.deep_sleep_percent ?? raw.deepSleepPercent),
-    deep_sleep_reference: raw.deep_sleep_reference ?? raw.deepSleepReference ?? null,
+    deep_sleep_minutes: boundedInteger(toNumber(raw.deep_sleep_minutes ?? raw.deepSleepMinutes), 'Sono profundo', 0, 1440),
+    deep_sleep_percent: boundedInteger(toNumber(raw.deep_sleep_percent ?? raw.deepSleepPercent), 'Percentual de sono profundo', 0, 100),
+    deep_sleep_reference: boundedText(raw.deep_sleep_reference ?? raw.deepSleepReference, 'Referência de sono profundo', 120),
 
-    light_sleep_minutes: toInteger(raw.light_sleep_minutes ?? raw.lightSleepMinutes),
-    light_sleep_percent: toInteger(raw.light_sleep_percent ?? raw.lightSleepPercent),
-    light_sleep_reference: raw.light_sleep_reference ?? raw.lightSleepReference ?? null,
+    light_sleep_minutes: boundedInteger(toNumber(raw.light_sleep_minutes ?? raw.lightSleepMinutes), 'Sono leve', 0, 1440),
+    light_sleep_percent: boundedInteger(toNumber(raw.light_sleep_percent ?? raw.lightSleepPercent), 'Percentual de sono leve', 0, 100),
+    light_sleep_reference: boundedText(raw.light_sleep_reference ?? raw.lightSleepReference, 'Referência de sono leve', 120),
 
-    rem_sleep_minutes: toInteger(raw.rem_sleep_minutes ?? raw.remSleepMinutes),
-    rem_sleep_percent: toInteger(raw.rem_sleep_percent ?? raw.remSleepPercent),
-    rem_sleep_reference: raw.rem_sleep_reference ?? raw.remSleepReference ?? null,
+    rem_sleep_minutes: boundedInteger(toNumber(raw.rem_sleep_minutes ?? raw.remSleepMinutes), 'Sono REM', 0, 1440),
+    rem_sleep_percent: boundedInteger(toNumber(raw.rem_sleep_percent ?? raw.remSleepPercent), 'Percentual de sono REM', 0, 100),
+    rem_sleep_reference: boundedText(raw.rem_sleep_reference ?? raw.remSleepReference, 'Referência de sono REM', 120),
 
-    awake_minutes: toInteger(raw.awake_minutes ?? raw.awakeMinutes),
-    awake_count: toInteger(raw.awake_count ?? raw.awakeCount),
-    awake_reference: raw.awake_reference ?? raw.awakeReference ?? null,
-    awake_warning_label: raw.awake_warning_label ?? raw.awakeWarningLabel ?? null,
+    awake_minutes: boundedInteger(toNumber(raw.awake_minutes ?? raw.awakeMinutes), 'Tempo acordado', 0, 1440),
+    awake_count: boundedInteger(toNumber(raw.awake_count ?? raw.awakeCount), 'Despertares', 0, 200),
+    awake_reference: boundedText(raw.awake_reference ?? raw.awakeReference, 'Referência de despertares', 120),
+    awake_warning_label: boundedText(raw.awake_warning_label ?? raw.awakeWarningLabel, 'Alerta de despertares', 120),
 
-    avg_heart_rate: toInteger(raw.avg_heart_rate ?? raw.avgHeartRate),
-    min_heart_rate: toInteger(raw.min_heart_rate ?? raw.minHeartRate),
-    max_heart_rate: toInteger(raw.max_heart_rate ?? raw.maxHeartRate),
-    avg_spo2: toInteger(raw.avg_spo2 ?? raw.avgSpo2),
-    min_spo2: toInteger(raw.min_spo2 ?? raw.minSpo2),
-    breathing_score: toInteger(raw.breathing_score ?? raw.breathingScore),
+    avg_heart_rate: boundedInteger(toNumber(raw.avg_heart_rate ?? raw.avgHeartRate), 'Frequência cardíaca média', 0, 300),
+    min_heart_rate: boundedInteger(toNumber(raw.min_heart_rate ?? raw.minHeartRate), 'Frequência cardíaca mínima', 0, 300),
+    max_heart_rate: boundedInteger(toNumber(raw.max_heart_rate ?? raw.maxHeartRate), 'Frequência cardíaca máxima', 0, 300),
+    avg_spo2: boundedInteger(toNumber(raw.avg_spo2 ?? raw.avgSpo2), 'SpO2 média', 0, 100),
+    min_spo2: boundedInteger(toNumber(raw.min_spo2 ?? raw.minSpo2), 'SpO2 mínima', 0, 100),
+    breathing_score: boundedInteger(toNumber(raw.breathing_score ?? raw.breathingScore), 'Pontuação respiratória', 0, 100),
 
     source,
     import_method: importMethod,
     source_app: sourceApp,
-    device_name: raw.device_name ?? raw.deviceName ?? null,
+    device_name: boundedText(raw.device_name ?? raw.deviceName, 'Dispositivo', 120),
 
     replaces_health_connect_sleep: Boolean(raw.replaces_health_connect_sleep ?? true),
     counts_toward_daily_totals: Boolean(raw.counts_toward_daily_totals ?? true),
@@ -104,8 +113,8 @@ export function normalizeSleepImportPayload(raw) {
     raw_json: raw,
     confidence: normalizeConfidence(raw.confidence),
     dedupe_key: dedupeKey,
-    warnings: Array.isArray(raw.warnings) ? raw.warnings : [],
-    notes: raw.notes ?? 'Sono importado por JSON de print. Este registro tem prioridade sobre sono automático do Health Connect para este dia.',
+    warnings: Array.isArray(raw.warnings) ? raw.warnings.map((warning) => boundedText(warning, 'Aviso', 300)).filter(Boolean) : [],
+    notes: boundedText(raw.notes, 'Observações', 1_000) ?? 'Sono importado por JSON de print. Este registro tem prioridade sobre sono automático do Health Connect para este dia.',
   };
 }
 
@@ -134,11 +143,6 @@ function normalizeDate(value) {
 
 function normalizeTime(value) {
   return normalizeTimeKey(value);
-}
-
-function toInteger(value) {
-  const parsed = toNumber(value);
-  return parsed === null ? null : Math.round(parsed);
 }
 
 function toNumber(value) {
@@ -173,7 +177,11 @@ function normalizeConfidence(value) {
   return ['low', 'medium', 'high', 'manual_review'].includes(raw) ? raw : 'manual_review';
 }
 
+function normalizeImportMethod(value) {
+  const method = String(value ?? 'screenshot_json').toLowerCase();
+  return ['manual', 'screenshot_json', 'health_connect_corrected', 'other'].includes(method) ? method : 'other';
+}
+
 function buildDedupeKey({ date, startTime, endTime, sourceApp }) {
   return `${date}_sleep_${String(startTime).replace(':', '')}_${String(endTime).replace(':', '')}_${String(sourceApp || 'manual').toLowerCase().replace(/\s+/g, '_')}`;
 }
-

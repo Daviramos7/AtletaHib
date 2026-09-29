@@ -2,6 +2,7 @@ import { requireSupabase } from '../lib/supabaseClient';
 import { buildLocalDateTimeIso, localDateKeyFromInstant, normalizeDateKey, normalizeTimeKey, todayLocalKey } from '../utils/dates';
 import { integerOrNull, numberOrNull, parseDurationSeconds, slug } from '../utils/durations';
 import { rankGymImportCandidates, withOptionalWorkoutLink } from '../domain/gymSession';
+import { assertImportDateValue, assertImportTimeValue, assertReasonableImportDate, assertSafeImportPayload, boundedInteger, boundedNumber, boundedText } from '../utils/importSecurity';
 
 const VALID_ACTIVITY_TYPES = new Set([
   'strength_training',
@@ -86,56 +87,64 @@ export function normalizeWearableWorkoutPayload(raw) {
   if (!raw || typeof raw !== 'object') {
     throw new Error('JSON inválido: envie um objeto de sessão de treino do relógio.');
   }
+  assertSafeImportPayload(raw);
 
   const activityType = normalizeActivityType(raw.activity_type ?? raw.activityType ?? raw.type);
-  const date = normalizeDateKey(raw.date ?? raw.performed_date ?? raw.performedDate);
-  const startTime = normalizeTimeKey(raw.start_time ?? raw.startTime ?? raw.started_at_time ?? raw.startedAtTime);
+  const rawDate = raw.date ?? raw.performed_date ?? raw.performedDate;
+  const rawStartTime = raw.start_time ?? raw.startTime ?? raw.started_at_time ?? raw.startedAtTime;
+  if (rawDate !== null && rawDate !== undefined && rawDate !== '') assertImportDateValue(rawDate, 'Data do treino');
+  assertImportTimeValue(rawStartTime, 'Horário do treino');
+  const date = normalizeDateKey(rawDate);
+  const startTime = normalizeTimeKey(rawStartTime);
   const performedAt = normalizePerformedAt(raw.performed_at ?? raw.performedAt, date, startTime);
   const durationSeconds = parseDurationSeconds(raw.duration_seconds ?? raw.durationSeconds, { numericUnit: 'seconds' })
     ?? parseDurationSeconds(raw.duration_minutes ?? raw.durationMinutes, { numericUnit: 'minutes' })
     ?? parseDurationSeconds(raw.duration_text ?? raw.durationText ?? raw.time ?? raw.tempo ?? raw.duration, { numericUnit: 'reject' });
-  const source = raw.source ?? 'mi_fitness_screenshot';
-  const importMethod = raw.import_method ?? raw.importMethod ?? 'screenshot_json';
-  const sourceApp = raw.source_app ?? raw.sourceApp ?? 'Mi Fitness';
+  const source = boundedText(raw.source, 'Origem', 80) ?? 'mi_fitness_screenshot';
+  const importMethod = boundedText(raw.import_method ?? raw.importMethod, 'Método de importação', 80) ?? 'screenshot_json';
+  const sourceApp = boundedText(raw.source_app ?? raw.sourceApp, 'Aplicativo de origem', 120) ?? 'Mi Fitness';
 
   if (!performedAt) throw new Error('JSON sem data válida. Use date: YYYY-MM-DD e start_time: HH:mm ou performed_at ISO.');
   if (!durationSeconds || durationSeconds <= 0) throw new Error('JSON sem duração válida. Use duration_seconds, duration_minutes ou duration_text. Não use duration numérico sem unidade.');
+  const safeDurationSeconds = boundedInteger(durationSeconds, 'Duração do treino', 1, 86_400);
+  const localDate = localDateKeyFromInstant(performedAt) ?? date ?? todayLocalKey();
+  assertReasonableImportDate(localDate, 'Data do treino');
 
-  const dedupeKey = String(raw.dedupe_key ?? raw.dedupeKey ?? buildDedupeKey({
-    date: localDateKeyFromInstant(performedAt) ?? date ?? todayLocalKey(),
+  const dedupeKey = boundedText(raw.dedupe_key ?? raw.dedupeKey ?? buildDedupeKey({
+    date: localDate,
     activityType,
     startTime: startTime || localStartMinute(performedAt),
-    durationSeconds,
+    durationSeconds: safeDurationSeconds,
     sourceApp,
-  }));
+  }), 'Chave de deduplicação', 500);
 
   return {
     workout_session_id: raw.workout_session_id ?? raw.workoutSessionId ?? null,
     performed_at: performedAt,
     activity_type: activityType,
-    activity_label: raw.activity_label ?? raw.activityLabel ?? labelForActivity(activityType),
+    activity_label: boundedText(raw.activity_label ?? raw.activityLabel, 'Nome da atividade', 120) ?? labelForActivity(activityType),
 
     source,
     import_method: importMethod,
     source_app: sourceApp,
-    device_name: raw.device_name ?? raw.deviceName ?? null,
+    device_name: boundedText(raw.device_name ?? raw.deviceName, 'Dispositivo', 120),
 
-    duration_seconds: durationSeconds,
-    active_kcal: integerOrNull(raw.active_kcal ?? raw.activeKcal ?? raw.kcal_active ?? raw.kcalAtiva),
-    total_kcal: integerOrNull(raw.total_kcal ?? raw.totalKcal),
-    avg_heart_rate: integerOrNull(raw.avg_heart_rate ?? raw.avgHeartRate ?? raw.bpm_medio ?? raw.bpmMedio),
-    max_heart_rate: integerOrNull(raw.max_heart_rate ?? raw.maxHeartRate ?? raw.bpm_maximo ?? raw.bpmMaximo),
-    training_effect: numberOrNull(raw.training_effect ?? raw.trainingEffect),
-    vitality_score: integerOrNull(raw.vitality_score ?? raw.vitalityScore),
+    duration_seconds: safeDurationSeconds,
+    active_kcal: boundedInteger(integerOrNull(raw.active_kcal ?? raw.activeKcal ?? raw.kcal_active ?? raw.kcalAtiva), 'Kcal ativas', 0, 100_000),
+    total_kcal: boundedInteger(integerOrNull(raw.total_kcal ?? raw.totalKcal), 'Kcal totais', 0, 100_000),
+    avg_heart_rate: boundedInteger(integerOrNull(raw.avg_heart_rate ?? raw.avgHeartRate ?? raw.bpm_medio ?? raw.bpmMedio), 'Frequência cardíaca média', 0, 300),
+    max_heart_rate: boundedInteger(integerOrNull(raw.max_heart_rate ?? raw.maxHeartRate ?? raw.bpm_maximo ?? raw.bpmMaximo), 'Frequência cardíaca máxima', 0, 300),
+    training_effect: boundedNumber(numberOrNull(raw.training_effect ?? raw.trainingEffect), 'Efeito do treino', 0, 10),
+    vitality_score: boundedInteger(integerOrNull(raw.vitality_score ?? raw.vitalityScore), 'Vitalidade', 0, 100_000),
 
-    heart_rate_zones: raw.heart_rate_zones ?? raw.heartRateZones ?? null,
+    heart_rate_zones: normalizeHeartRateZones(raw.heart_rate_zones ?? raw.heartRateZones),
     raw_json: raw,
 
     counts_toward_daily_totals: Boolean(raw.counts_toward_daily_totals ?? false),
     metrics_may_already_exist_in_health_connect: Boolean(raw.metrics_may_already_exist_in_health_connect ?? true),
     confidence: normalizeConfidence(raw.confidence),
     dedupe_key: dedupeKey,
-    notes: raw.notes ?? 'Sessão de treino do relógio extraída de print. Complementa a execução do app sem duplicar totais diários.',
+    notes: boundedText(raw.notes, 'Observações', 1_000) ?? 'Sessão de treino do relógio extraída de print. Complementa a execução do app sem duplicar totais diários.',
   };
 }
 
@@ -190,6 +199,15 @@ function localStartMinute(performedAt) {
 function normalizeConfidence(value) {
   const raw = String(value || 'manual_review').toLowerCase();
   return ['low', 'medium', 'high', 'manual_review'].includes(raw) ? raw : 'manual_review';
+}
+
+function normalizeHeartRateZones(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const zones: Record<string, number | null> = {};
+  for (const key of ['light_seconds', 'intensive_seconds', 'aerobic_seconds', 'anaerobic_seconds', 'vo2max_seconds']) {
+    zones[key] = boundedInteger(value[key], `Zona ${key}`, 0, 86_400);
+  }
+  return zones;
 }
 
 function buildDedupeKey({ date, activityType, startTime, durationSeconds, sourceApp }) {

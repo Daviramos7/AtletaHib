@@ -27,6 +27,10 @@ Redmi Watch → Mi Fitness → Health Connect → Android Bridge → Supabase �
 
 A sincronização depende das permissões e dos dados disponibilizados pelas fontes no Android. Importações JSON complementam esse fluxo, inclusive para corrigir sono divergente.
 
+## Prompt-driven data extraction
+
+Os contratos públicos em [`prompts/`](prompts/README.md) transformam imagens ou descrições de alimentação, sono, cardio e força do wearable em JSON para a Central JSON. O app valida estrutura, datas, limites e campos permitidos antes de persistir no Supabase; dados desconhecidos continuam ausentes e exemplos são exclusivamente sintéticos.
+
 ## Decisões técnicas
 
 - **Prontidão determinística:** Hoje, check-in e Academia usam a camada canônica de dados; não há LLM tomando decisões de treino.
@@ -80,7 +84,7 @@ Use a mesma conta do site e conceda as permissões necessárias do Health Connec
 
 O companion Android está na versão 4.1.3 (o pacote Web permanece 4.1.2). Ele apresenta resultado por métrica, sincronização parcial, média diária de HR paginada e logout global. [Detalhes do Android](android_bridge/README.md).
 
-Registro de séries por tempo exige a migration isolada `database/migrations/20260924204020_workout_set_duration.sql`, ainda não aplicada nesta rodada. Ela adiciona duração em segundos, sem converter ou apagar histórico. Antes de aplicá-la, sessões com duração são bloqueadas com aviso e preservação do rascunho. HR, logout e recência de cardio não exigem migration adicional. [Relatório e validações](docs/audits/2026-09-24-android-and-training-final.md).
+Registro de séries por tempo usa a migration isolada `database/migrations/20260924204020_workout_set_duration.sql`, já presente no histórico remoto. Ela adiciona duração em segundos sem converter ou apagar o histórico.
 
 ## Validação
 
@@ -98,8 +102,8 @@ Vitest cobre regras de domínio e contratos de persistência. `scripts/smoke-pol
 
 O design system está em `src/styles/design-system.css` e `src/components/ui/index.tsx`: tokens, formulários, confirmações, estados e navegação responsiva. A identidade visual está em `logos/`, com cópias de uso em `public/branding` e no Android.
 
-Os contratos de extração de comida, sono, cardio e força wearable ficam nos arquivos `*_IMAGE_READER_PROMPT.md` em `docs/`. Relatórios técnicos estão em `docs/audits/`. Para screenshots públicos, use dados sintéticos; evite e-mail, identificadores, notas pessoais e dados de saúde reais.
+Os contratos de extração de comida, sono, cardio e força wearable ficam em [`prompts/`](prompts/README.md). Para screenshots públicos, use dados sintéticos; evite e-mail, identificadores, notas pessoais e dados de saúde reais.
 
 ## Segurança
 
-Consulte [SECURITY.md](SECURITY.md). A chave pública não substitui RLS. A revisão estática do repositório não certifica as políticas instaladas no projeto remoto; valide o isolamento com duas contas de teste antes de disponibilizar um novo banco.
+Consulte [SECURITY.md](SECURITY.md). A chave pública não substitui RLS. Alterações de políticas e grants devem ser versionadas em `database/migrations/` e validadas com duas contas sintéticas antes de disponibilizar um novo banco.

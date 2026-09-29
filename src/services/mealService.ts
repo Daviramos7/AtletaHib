@@ -2,6 +2,7 @@ import { requireSupabase } from '../lib/supabaseClient';
 import { DEFAULT_FOODS } from '../data/defaultPlan';
 import { normalizeDateKey } from '../utils/dates';
 import { slug } from '../utils/durations';
+import { assertImportDateValue, assertReasonableImportDate, assertSafeImportPayload, boundedInteger, boundedNumber, boundedText } from '../utils/importSecurity';
 
 export async function listMeals(userId, logDate) {
   const client = requireSupabase();
@@ -81,9 +82,9 @@ export async function saveMealEntriesFromJson(userId, rawPayload) {
     protein_g: item.protein_g,
     carbs_g: item.carbs_g,
     fat_g: item.fat_g,
-    source: rawPayload.source ?? 'json_import',
+    source: payload.source,
     import_method: 'json',
-    confidence: normalizeConfidence(rawPayload.confidence),
+    confidence: payload.confidence,
     dedupe_key: buildMealRowKey({ log_date: payload.log_date, ...item }),
   }));
 
@@ -115,11 +116,15 @@ export function normalizeMealImportPayload(rawPayload: any) {
   if (!rawPayload || typeof rawPayload !== 'object') {
     throw new Error('JSON inválido: envie um objeto de comida/refeição.');
   }
+  assertSafeImportPayload(rawPayload);
 
-  const logDate = normalizeDate(rawPayload.date ?? rawPayload.log_date ?? rawPayload.meal_date);
+  const rawDate = rawPayload.date ?? rawPayload.log_date ?? rawPayload.meal_date;
+  if (rawDate !== null && rawDate !== undefined && rawDate !== '') assertImportDateValue(rawDate, 'Data da refeição');
+  const logDate = normalizeDate(rawDate);
   if (!logDate) {
     throw new Error('JSON de comida sem data. Informe date no formato YYYY-MM-DD para não salvar no dia errado.');
   }
+  assertReasonableImportDate(logDate, 'Data da refeição');
   const defaultMealType = normalizeMealType(rawPayload.meal_type ?? rawPayload.meal ?? rawPayload.refeicao ?? rawPayload.refeição ?? 'extra');
   const rawItems = collectMealItems(rawPayload, defaultMealType);
 
@@ -136,6 +141,11 @@ export function normalizeMealImportPayload(rawPayload: any) {
     meal_type: defaultMealType,
     items,
     total_kcal: Math.round(totalKcal),
+    source: boundedText(rawPayload.source, 'Origem', 80) ?? 'json_import',
+    confidence: normalizeConfidence(rawPayload.confidence),
+    warnings: Array.isArray(rawPayload.warnings)
+      ? rawPayload.warnings.map((warning) => boundedText(warning, 'Aviso', 300)).filter(Boolean)
+      : [],
   };
 }
 
@@ -171,10 +181,11 @@ function collectMealItems(raw, defaultMealType) {
 }
 
 function normalizeMealItem(raw, defaultMealType, index) {
-  const foodName = String(raw.food_name ?? raw.name ?? raw.alimento ?? raw.description ?? `Alimento importado ${index + 1}`).trim();
+  const foodName = boundedText(raw.food_name ?? raw.name ?? raw.alimento ?? raw.description ?? `Alimento importado ${index + 1}`, 'Nome do alimento', 200);
   const mealType = normalizeMealType(raw.meal_type ?? raw.meal ?? raw.refeicao ?? raw.refeição ?? defaultMealType);
 
-  const grams = positiveNumber(raw.grams ?? raw.gramas ?? raw.quantity_g ?? raw.weight_g ?? raw.portion_grams ?? raw.peso_g);
+  const gramsValue = positiveNumber(raw.grams ?? raw.gramas ?? raw.quantity_g ?? raw.weight_g ?? raw.portion_grams ?? raw.peso_g);
+  const grams = boundedNumber(gramsValue, 'Gramas', 0.1, 10_000);
   const kcalPer100g = numberOrNull(raw.kcal_per_100g ?? raw.calories_per_100g ?? raw.calorias_por_100g);
   const proteinPer100g = numberOrNull(raw.protein_per_100g ?? raw.proteina_por_100g ?? raw.protein_100g);
   const carbsPer100g = numberOrNull(raw.carbs_per_100g ?? raw.carboidratos_por_100g ?? raw.carbs_100g);
@@ -192,18 +203,19 @@ function normalizeMealItem(raw, defaultMealType, index) {
   }
 
   const factor = grams / 100;
-  const kcal = kcalRaw ?? (kcalPer100g !== null ? Math.round(kcalPer100g * factor) : null);
+  const kcalValue = kcalRaw ?? (kcalPer100g !== null ? Math.round(kcalPer100g * factor) : null);
 
-  if (!kcal && kcal !== 0) throw new Error(`Item "${foodName}" sem kcal. Informe kcal ou kcal_per_100g.`);
+  if (kcalValue === null) throw new Error(`Item "${foodName}" sem kcal. Informe kcal ou kcal_per_100g.`);
+  const kcal = boundedInteger(kcalValue, 'Kcal', 0, 50_000);
 
   return {
     meal_type: mealType,
     food_name: foodName,
     grams: Number(grams.toFixed(1)),
     kcal: Math.max(0, Math.round(kcal)),
-    protein_g: roundMacroOrNull(proteinRaw ?? (proteinPer100g !== null ? proteinPer100g * factor : null)),
-    carbs_g: roundMacroOrNull(carbsRaw ?? (carbsPer100g !== null ? carbsPer100g * factor : null)),
-    fat_g: roundMacroOrNull(fatRaw ?? (fatPer100g !== null ? fatPer100g * factor : null)),
+    protein_g: roundMacroOrNull(boundedNumber(proteinRaw ?? (proteinPer100g !== null ? proteinPer100g * factor : null), 'Proteína', 0, 10_000)),
+    carbs_g: roundMacroOrNull(boundedNumber(carbsRaw ?? (carbsPer100g !== null ? carbsPer100g * factor : null), 'Carboidratos', 0, 10_000)),
+    fat_g: roundMacroOrNull(boundedNumber(fatRaw ?? (fatPer100g !== null ? fatPer100g * factor : null), 'Gordura', 0, 10_000)),
   };
 }
 

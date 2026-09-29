@@ -1,19 +1,45 @@
-node_modules
-dist
-.env
-.env.local
-.env.production
+node_modules/
+dist/
+.env*
+!.env.example
+!.env.production.example
 .DS_Store
 *.log
+*.tmp
+*.temp
+*.patch
+*.bundle
+*~
+results.json
+tmp/
+temp/
+coverage/
+test-results/
+playwright-report/
+screenshots-private/
+private-screenshots/
+smoke-results/
+smoke-private/
+private-smoke/
 
-# Android local config
+# Android/Gradle local files and outputs
 android_bridge/gradle.properties
 android_bridge/local.properties
+android_bridge/.idea/
 android_bridge/.gradle/
 android_bridge/.kotlin/
 android_bridge/**/build/
 android_bridge/**/*.apk
 android_bridge/**/*.aab
+*.apk
+*.aab
+*.iml
+*.jks
+*.keystore
+*.p12
+*.pfx
+local.properties
+build/
 .vercel
 
 # TypeScript build cache

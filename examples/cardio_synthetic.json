@@ -1,0 +1,31 @@
+{
+  "type": "cardio_session",
+  "activity_type": "treadmill",
+  "activity_label": "Esteira sintética",
+  "date": "2025-03-15",
+  "start_time": "10:20",
+  "duration_seconds": 1500,
+  "distance_km": 2.4,
+  "active_kcal": 190,
+  "total_kcal": 225,
+  "avg_heart_rate": 128,
+  "max_heart_rate": 151,
+  "avg_pace_min_per_km": "10:25",
+  "steps": 2850,
+  "training_effect": 2.2,
+  "heart_rate_zones": {
+    "light_seconds": 300,
+    "intensive_seconds": 720,
+    "aerobic_seconds": 480,
+    "anaerobic_seconds": 0,
+    "vo2max_seconds": 0
+  },
+  "source": "wearable_screenshot",
+  "source_app": "Aplicativo de teste",
+  "device_name": "Relógio sintético",
+  "import_method": "screenshot_json",
+  "counts_toward_daily_totals": false,
+  "metrics_may_already_exist_in_health_connect": true,
+  "confidence": "high",
+  "notes": "Exemplo sintético; não representa uma pessoa real."
+}

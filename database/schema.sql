@@ -201,12 +201,16 @@ before insert or update on public.workout_sessions
 for each row execute function public.normalize_legacy_workout_session_lifecycle();
 
 create or replace function public.set_updated_at()
-returns trigger as $$
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
 begin
   new.updated_at = now();
   return new;
 end;
-$$ language plpgsql;
+$$;
 
 drop trigger if exists set_profiles_updated_at on public.profiles;
 create trigger set_profiles_updated_at

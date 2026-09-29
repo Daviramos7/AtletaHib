@@ -2,6 +2,7 @@ import { requireSupabase } from '../lib/supabaseClient';
 import { buildLocalDateTimeIso, localDateKeyFromInstant, normalizeDateKey, normalizeTimeKey, todayLocalKey } from '../utils/dates';
 import { integerOrNull, numberOrNull, parseDurationSeconds, slug } from '../utils/durations';
 import { cardioStatusAfterDeletingLinkedExecution, rankGymImportCandidates, withOptionalWorkoutLink } from '../domain/gymSession';
+import { assertImportDateValue, assertImportTimeValue, assertReasonableImportDate, assertSafeImportPayload, boundedInteger, boundedNumber, boundedText } from '../utils/importSecurity';
 
 const VALID_ACTIVITY_TYPES = new Set(['treadmill', 'outdoor_run', 'walk', 'stairs', 'bike', 'elliptical', 'other']);
 const CARDIO_CAP_SECONDS = 20 * 60;
@@ -181,67 +182,74 @@ export function normalizeCardioImportPayload(raw) {
   if (!raw || typeof raw !== 'object') {
     throw new Error('JSON inválido: envie um objeto de sessão de cardio.');
   }
+  assertSafeImportPayload(raw);
 
   const activityType = normalizeActivityType(raw.activity_type ?? raw.activityType ?? raw.type);
-  const date = normalizeDateKey(raw.date ?? raw.performed_date ?? raw.performedDate);
-  const startTime = normalizeTimeKey(raw.start_time ?? raw.startTime ?? raw.started_at_time ?? raw.startedAtTime);
+  const rawDate = raw.date ?? raw.performed_date ?? raw.performedDate;
+  const rawStartTime = raw.start_time ?? raw.startTime ?? raw.started_at_time ?? raw.startedAtTime;
+  if (rawDate !== null && rawDate !== undefined && rawDate !== '') assertImportDateValue(rawDate, 'Data do cardio');
+  assertImportTimeValue(rawStartTime, 'Horário do cardio');
+  const date = normalizeDateKey(rawDate);
+  const startTime = normalizeTimeKey(rawStartTime);
   const performedAt = normalizePerformedAt(raw.performed_at ?? raw.performedAt, date, startTime);
   const durationSeconds = parseDurationSeconds(raw.duration_seconds ?? raw.durationSeconds, { numericUnit: 'seconds' })
     ?? parseDurationSeconds(raw.duration_minutes ?? raw.durationMinutes, { numericUnit: 'minutes' })
     ?? parseDurationSeconds(raw.duration_text ?? raw.durationText ?? raw.time ?? raw.tempo ?? raw.duration, { numericUnit: 'reject' });
-  const distanceKm = numberOrNull(raw.distance_km ?? raw.distanceKm ?? raw.distance);
-  const source = raw.source ?? 'mi_fitness_screenshot';
-  const importMethod = raw.import_method ?? raw.importMethod ?? 'screenshot_json';
-  const sourceApp = raw.source_app ?? raw.sourceApp ?? 'Mi Fitness';
-  const deviceName = raw.device_name ?? raw.deviceName ?? null;
+  const distanceKm = boundedNumber(numberOrNull(raw.distance_km ?? raw.distanceKm ?? raw.distance), 'Distância', 0, 1_000);
+  const source = boundedText(raw.source, 'Origem', 80) ?? 'mi_fitness_screenshot';
+  const importMethod = normalizeImportMethod(raw.import_method ?? raw.importMethod);
+  const sourceApp = boundedText(raw.source_app ?? raw.sourceApp, 'Aplicativo de origem', 120) ?? 'Mi Fitness';
+  const deviceName = boundedText(raw.device_name ?? raw.deviceName, 'Dispositivo', 120);
 
   if (!performedAt) throw new Error('JSON sem data válida. Use date: YYYY-MM-DD e start_time: HH:mm ou performed_at ISO.');
   if (!durationSeconds || durationSeconds <= 0) throw new Error('JSON sem duração válida. Use duration_seconds, duration_minutes ou duration_text. Não use duration numérico sem unidade.');
+  const safeDurationSeconds = boundedInteger(durationSeconds, 'Duração do cardio', 1, 86_400);
 
   const localDate = localDateKeyFromInstant(performedAt) ?? date ?? todayLocalKey();
-  const dedupeKey = String(raw.dedupe_key ?? raw.dedupeKey ?? buildDedupeKey({
+  assertReasonableImportDate(localDate, 'Data do cardio');
+  const dedupeKey = boundedText(raw.dedupe_key ?? raw.dedupeKey ?? buildDedupeKey({
     date: localDate,
     startMinute: startTime ?? localStartMinute(performedAt),
     activityType,
     distanceKm,
-    durationSeconds,
+    durationSeconds: safeDurationSeconds,
     source,
-  }));
+  }), 'Chave de deduplicação', 500);
 
   return {
     workout_session_id: null,
     performed_at: performedAt,
     activity_type: activityType,
-    activity_label: raw.activity_label ?? raw.activityLabel ?? labelForActivity(activityType),
+    activity_label: boundedText(raw.activity_label ?? raw.activityLabel, 'Nome da atividade', 120) ?? labelForActivity(activityType),
     source,
     import_method: importMethod,
     source_app: sourceApp,
     device_name: deviceName,
     distance_km: distanceKm,
-    distance_source: raw.distance_source ?? raw.distanceSource ?? (distanceKm == null ? null : 'wearable'),
-    duration_seconds: durationSeconds,
-    active_kcal: integerOrNull(raw.active_kcal ?? raw.activeKcal ?? raw.kcal_active ?? raw.kcalAtiva),
-    total_kcal: integerOrNull(raw.total_kcal ?? raw.totalKcal),
-    avg_heart_rate: integerOrNull(raw.avg_heart_rate ?? raw.avgHeartRate ?? raw.bpm_medio ?? raw.bpmMedio),
-    max_heart_rate: integerOrNull(raw.max_heart_rate ?? raw.maxHeartRate ?? raw.bpm_maximo ?? raw.bpmMaximo),
-    avg_pace_seconds_per_km: toPaceSeconds(raw.avg_pace_min_per_km ?? raw.avgPaceMinPerKm ?? raw.avg_pace ?? raw.avgPace),
-    best_pace_seconds_per_km: toPaceSeconds(raw.best_pace_min_per_km ?? raw.bestPaceMinPerKm ?? raw.max_pace ?? raw.maxPace),
-    avg_speed_kmh: numberOrNull(raw.avg_speed_kmh ?? raw.avgSpeedKmh),
-    max_speed_kmh: numberOrNull(raw.max_speed_kmh ?? raw.maxSpeedKmh),
-    steps: integerOrNull(raw.steps ?? raw.passos),
-    avg_cadence_spm: integerOrNull(raw.avg_cadence_spm ?? raw.avgCadenceSpm ?? raw.cadence_avg ?? raw.cadencia_media),
-    max_cadence_spm: integerOrNull(raw.max_cadence_spm ?? raw.maxCadenceSpm ?? raw.cadence_max ?? raw.cadencia_maxima),
-    avg_stride_cm: integerOrNull(raw.avg_stride_cm ?? raw.avgStrideCm ?? raw.stride_avg_cm ?? raw.passada_media_cm),
-    max_stride_cm: integerOrNull(raw.max_stride_cm ?? raw.maxStrideCm ?? raw.stride_max_cm ?? raw.passada_maxima_cm),
-    training_effect: numberOrNull(raw.training_effect ?? raw.trainingEffect),
-    heart_rate_zones: raw.heart_rate_zones ?? raw.heartRateZones ?? null,
-    splits: raw.splits ?? null,
+    distance_source: boundedText(raw.distance_source ?? raw.distanceSource, 'Origem da distância', 80) ?? (distanceKm == null ? null : 'wearable'),
+    duration_seconds: safeDurationSeconds,
+    active_kcal: boundedInteger(integerOrNull(raw.active_kcal ?? raw.activeKcal ?? raw.kcal_active ?? raw.kcalAtiva), 'Kcal ativas', 0, 100_000),
+    total_kcal: boundedInteger(integerOrNull(raw.total_kcal ?? raw.totalKcal), 'Kcal totais', 0, 100_000),
+    avg_heart_rate: boundedInteger(integerOrNull(raw.avg_heart_rate ?? raw.avgHeartRate ?? raw.bpm_medio ?? raw.bpmMedio), 'Frequência cardíaca média', 0, 300),
+    max_heart_rate: boundedInteger(integerOrNull(raw.max_heart_rate ?? raw.maxHeartRate ?? raw.bpm_maximo ?? raw.bpmMaximo), 'Frequência cardíaca máxima', 0, 300),
+    avg_pace_seconds_per_km: boundedInteger(toPaceSeconds(raw.avg_pace_min_per_km ?? raw.avgPaceMinPerKm ?? raw.avg_pace ?? raw.avgPace), 'Ritmo médio', 0, 86_400),
+    best_pace_seconds_per_km: boundedInteger(toPaceSeconds(raw.best_pace_min_per_km ?? raw.bestPaceMinPerKm ?? raw.max_pace ?? raw.maxPace), 'Melhor ritmo', 0, 86_400),
+    avg_speed_kmh: boundedNumber(numberOrNull(raw.avg_speed_kmh ?? raw.avgSpeedKmh), 'Velocidade média', 0, 200),
+    max_speed_kmh: boundedNumber(numberOrNull(raw.max_speed_kmh ?? raw.maxSpeedKmh), 'Velocidade máxima', 0, 200),
+    steps: boundedInteger(integerOrNull(raw.steps ?? raw.passos), 'Passos', 0, 1_000_000),
+    avg_cadence_spm: boundedInteger(integerOrNull(raw.avg_cadence_spm ?? raw.avgCadenceSpm ?? raw.cadence_avg ?? raw.cadencia_media), 'Cadência média', 0, 400),
+    max_cadence_spm: boundedInteger(integerOrNull(raw.max_cadence_spm ?? raw.maxCadenceSpm ?? raw.cadence_max ?? raw.cadencia_maxima), 'Cadência máxima', 0, 400),
+    avg_stride_cm: boundedInteger(integerOrNull(raw.avg_stride_cm ?? raw.avgStrideCm ?? raw.stride_avg_cm ?? raw.passada_media_cm), 'Passada média', 0, 500),
+    max_stride_cm: boundedInteger(integerOrNull(raw.max_stride_cm ?? raw.maxStrideCm ?? raw.stride_max_cm ?? raw.passada_maxima_cm), 'Passada máxima', 0, 500),
+    training_effect: boundedNumber(numberOrNull(raw.training_effect ?? raw.trainingEffect), 'Efeito do treino', 0, 10),
+    heart_rate_zones: normalizeHeartRateZones(raw.heart_rate_zones ?? raw.heartRateZones),
+    splits: normalizeSplits(raw.splits),
     raw_json: raw,
     confidence: normalizeConfidence(raw.confidence),
     counts_toward_daily_totals: Boolean(raw.counts_toward_daily_totals ?? false),
     metrics_may_already_exist_in_health_connect: Boolean(raw.metrics_may_already_exist_in_health_connect ?? true),
     dedupe_key: dedupeKey,
-    notes: buildCardioNotes(raw.notes ?? 'Sessão importada por JSON de print. Métricas diárias continuam vindo do Health Connect para evitar duplicidade.', durationSeconds),
+    notes: buildCardioNotes(boundedText(raw.notes, 'Observações', 1_000) ?? 'Sessão importada por JSON de print. Métricas diárias continuam vindo do Health Connect para evitar duplicidade.', safeDurationSeconds),
   };
 }
 
@@ -327,6 +335,29 @@ function toPaceSeconds(value) {
 function normalizeConfidence(value) {
   const raw = String(value || 'manual_review').toLowerCase();
   return ['low', 'medium', 'high', 'manual_review'].includes(raw) ? raw : 'manual_review';
+}
+
+function normalizeImportMethod(value) {
+  const method = String(value ?? 'screenshot_json').toLowerCase();
+  return ['manual', 'screenshot_json', 'health_connect_inferred', 'other'].includes(method) ? method : 'other';
+}
+
+function normalizeHeartRateZones(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const zones: Record<string, number | null> = {};
+  for (const key of ['light_seconds', 'intensive_seconds', 'aerobic_seconds', 'anaerobic_seconds', 'vo2max_seconds']) {
+    zones[key] = boundedInteger(value[key], `Zona ${key}`, 0, 86_400);
+  }
+  return zones;
+}
+
+function normalizeSplits(value) {
+  if (!Array.isArray(value)) return null;
+  return value.map((split, index) => ({
+    km: boundedNumber(split?.km, `Distância da parcial ${index + 1}`, 0, 1_000),
+    pace_min_per_km: boundedText(split?.pace_min_per_km, `Ritmo da parcial ${index + 1}`, 30),
+    notes: boundedText(split?.notes, `Observação da parcial ${index + 1}`, 200),
+  }));
 }
 
 function buildDedupeKey({ date, startMinute, activityType, distanceKm, durationSeconds, source }) {
