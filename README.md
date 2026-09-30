@@ -19,10 +19,24 @@ Aplicação pessoal para registrar alimentação, hidratação, recuperação e 
 
 O cliente web usa React 19, TypeScript e Vite. Componentes consomem serviços Supabase; regras determinísticas ficam em `src/domain`, e os serviços preservam origem, data local e identificadores dos registros. PostgreSQL armazena os dados, Supabase Auth identifica o usuário e RLS controla o acesso. Não há servidor Node separado para iniciar localmente.
 
-O Android Bridge usa Kotlin, Jetpack Compose, Health Connect e Ktor. O fluxo de dados é:
+O Android Bridge usa Kotlin, Jetpack Compose, Health Connect e Ktor. Os dois fluxos oficiais convergem no mesmo backend protegido:
 
-```text
-Redmi Watch → Mi Fitness → Health Connect → Android Bridge → Supabase → Web
+```mermaid
+flowchart TB
+  subgraph Wearable[Pipeline wearable]
+    direction LR
+    Watch[Redmi Watch] --> Mi[Mi Fitness] --> HC[Health Connect] --> Android[Android Bridge]
+  end
+
+  subgraph Assisted[Pipeline de extração assistida]
+    direction LR
+    Input[Foto ou texto] --> Prompts[Contratos de extração] --> JSON[Central JSON<br/>validação e conferência]
+  end
+
+  Android --> DB[(Supabase<br/>Auth + RLS + Postgres)]
+  JSON --> DB
+  DB --> Web[Frontend Web<br/>React + TypeScript + Vite]
+  Web --> Product[Hoje · Academia · Progresso · Saúde]
 ```
 
 A sincronização depende das permissões e dos dados disponibilizados pelas fontes no Android. Importações JSON complementam esse fluxo, inclusive para corrigir sono divergente.
