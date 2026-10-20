@@ -1,10 +1,254 @@
 <!doctype html>
-<meta charset="utf-8"><title>Atleta Hib — QA cycle 2 evidence</title>
-<style>body{font:16px system-ui;background:#070a09;color:#f5f8f3;max-width:960px;margin:32px auto;padding:0 16px}a{color:#b8ff00}section{border-top:1px solid #28312d;padding:16px 0}code{color:#65d8ff}small{color:#a8b3ad}</style>
-<h1>QA — evidência cycle 2</h1>
-<p><strong>Phase A complete; Phase B critical harness PASS.</strong> Auth/recovery and the seven-step onboarding passed with synthetic Supabase interception. Academia was recaptured with four loaded cadence rows at 360/390/412/1440 after the critical responsive fixes.</p>
-<section><h2>Onboarding baseline reproduced</h2><p>Exact label: <strong>Baseline reproduzido do commit 0ae9190; capturado após a edição, a partir do código-base imutável.</strong></p><p>Server: <code>http://127.0.0.1:61924/</code>; worktree read-only; synthetic Supabase mock.</p><a href="before/onboarding-reproduced/390-onboarding.png">390 onboarding</a> · <a href="before/onboarding-reproduced/1440-onboarding.png">1440 onboarding</a></section>
-<section><h2>Icon proof</h2><p>Web baseline: <code>public/icons/atleta-hib-symbol-1024.png</code>, 1024×1024, SHA-256 <code>443df5f6d443c5d0ba5dff17e24f1a6e25dd18d45d80618771f18a40e9c9b657</code>, reused as original any/maskable source.</p><p>Web current: any 192×192, any 512×512, maskable 512×512, Apple Touch 180×180. Manifest declares any and separate maskable purpose. Android baseline foreground XML was 302 bytes; current vector foreground XML is 825 bytes. These are file/resource proofs, not launcher screenshots.</p></section>
-<section><h2>Phase B final evidence</h2><p><a href="after/web/390-recovery-request.png">Recovery request 390</a> · <a href="after/web/390-recovery-landing.png">Recovery landing 390</a> · <a href="after/web/390-onboarding-review.png">Onboarding review 390</a> · <a href="after/web/critical-flows.json">critical flow results</a>.</p><p>Independent QA rerun: signup, login, recovery request/landing, short/mismatch, mocked password update/exit, malformed draft, validation/focus, seven steps, Back, correction, per-user resume, service-error retention, plan + weight callbacks and draft cleanup: <strong>PASS</strong>. Existing recurring smoke: 89 captures, 0 JS errors. PWA static: 10/10 checks.</p></section>
-<section><h2>FOLLOWUP 3 focused Academia</h2><p><a href="after/web/360-Academia.png">360</a> · <a href="after/web/390-Academia.png">390</a> · <a href="after/web/412-Academia.png">412</a> · <a href="after/web/1440-Academia.png">1440</a>.</p><p>Director fixture repair loaded four real synthetic cadence rows at every width. Automated bounding-box check: <strong>PASS</strong>, 4 rows and 0 overlaps at each viewport. All four images were opened: status, workout title, duration/preferred day and selection remain legible; desktop uses ordered lane rows. The fixed mobile navigation appearing mid-image is a full-page screenshot artifact, not a cadence overlap.</p></section>
-<section><h2>Evidence boundary</h2><small>The earlier Web baseline remains in <code>before/web/</code>. Onboarding was not chronologically captured before edits; the two onboarding files above are reproduced from the immutable base and are not labeled as pre-edit captures. Browser/Supabase are synthetic; Android results do not represent emulator or physical-device evidence.</small></section>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Atleta Hib — comparativo UX/UI</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --page: #070a09;
+      --panel: #101613;
+      --panel-strong: #151d19;
+      --line: #2a3730;
+      --text: #f5f8f3;
+      --muted: #a8b3ad;
+      --accent: #b8ff00;
+      --info: #65d8ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--text);
+      font: 16px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 48px 0 72px;
+    }
+
+    header { padding-bottom: 28px; }
+    section { padding: 32px 0; border-top: 1px solid var(--line); }
+    h1 { max-width: 820px; margin: 8px 0 12px; font-size: clamp(2rem, 5vw, 4.5rem); line-height: .98; letter-spacing: -.055em; }
+    h2 { margin: 0 0 8px; font-size: clamp(1.35rem, 3vw, 2rem); letter-spacing: -.025em; }
+    h3 { margin: 28px 0 10px; font-size: 1.05rem; }
+    p { max-width: 820px; margin: 8px 0; color: var(--muted); }
+    strong { color: var(--text); }
+    code { color: var(--info); }
+
+    .eyebrow {
+      margin: 0;
+      color: var(--accent);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+    .badge {
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel);
+      color: var(--muted);
+      font-size: .78rem;
+    }
+
+    .boundary {
+      margin: 14px 0 20px;
+      padding: 12px 14px;
+      border-left: 3px solid var(--info);
+      background: rgba(101, 216, 255, .07);
+      color: var(--muted);
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .shot, .icon-card {
+      min-width: 0;
+      margin: 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--panel);
+    }
+
+    .shot > a:first-child, .icon-card > a:first-child {
+      display: grid;
+      min-height: 220px;
+      place-items: center;
+      padding: 14px;
+      background: #050706;
+    }
+
+    .shot img {
+      display: block;
+      width: 100%;
+      max-height: 560px;
+      object-fit: contain;
+    }
+
+    figcaption { padding: 14px 16px 16px; }
+    figcaption strong { display: block; margin-bottom: 5px; }
+    figcaption span { display: block; min-height: 2.8em; color: var(--muted); font-size: .88rem; }
+    a { color: var(--accent); text-underline-offset: 3px; }
+    .original { display: inline-block; margin-top: 9px; font-size: .86rem; font-weight: 750; }
+
+    .icons {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .icon-card > a:first-child { min-height: 190px; }
+    .icon-card img { display: block; width: 100%; max-height: 180px; object-fit: contain; }
+
+    .checks { display: grid; gap: 10px; margin: 18px 0 0; padding: 0; list-style: none; }
+    .checks li { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-strong); color: var(--muted); }
+    .checks strong { color: var(--accent); }
+
+    @media (max-width: 760px) {
+      main { width: min(100% - 20px, 1180px); padding-top: 28px; }
+      .compare { grid-template-columns: 1fr; }
+      .icons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .shot img { max-height: 520px; }
+    }
+
+    @media (max-width: 420px) {
+      .icons { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">Evidência visual consolidada</p>
+      <h1>Atleta Hib, antes e depois</h1>
+      <p>Comparação direta da reformulação Web/PWA, onboarding e companion Android. Clique em qualquer imagem para abrir o arquivo original.</p>
+      <div class="badges" aria-label="Fronteiras da evidência">
+        <span class="badge">Web: dados sintéticos</span>
+        <span class="badge">Android: Robolectric native graphics</span>
+        <span class="badge">Sem backend real</span>
+        <span class="badge">Sem dispositivo físico</span>
+      </div>
+    </header>
+
+    <section aria-labelledby="onboarding-title">
+      <h2 id="onboarding-title">Onboarding · 390 px</h2>
+      <p class="boundary"><strong>Baseline reproduzido do commit 0ae9190; capturado após a edição, a partir do código-base imutável.</strong> Não é uma captura cronológica pré-edição.</p>
+      <div class="compare">
+        <figure class="shot">
+          <a href="before/onboarding-reproduced/390-onboarding.png"><img src="before/onboarding-reproduced/390-onboarding.png" alt="Onboarding anterior reproduzido em 390 pixels"></a>
+          <figcaption><strong>Antes · baseline reproduzido</strong><span>Formulário inicial do código-base imutável.</span><a class="original" href="before/onboarding-reproduced/390-onboarding.png">Abrir original</a></figcaption>
+        </figure>
+        <figure class="shot">
+          <a href="after/web/390-onboarding.png"><img src="after/web/390-onboarding.png" alt="Novo onboarding do Atleta Hib em 390 pixels"></a>
+          <figcaption><strong>Depois · pergunta principal por etapa</strong><span>Progresso, ilustração contextual e ação dominante mais claros.</span><a class="original" href="after/web/390-onboarding.png">Abrir original</a></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="hoje-mobile-title">
+      <h2 id="hoje-mobile-title">Hoje · 390 px</h2>
+      <p>Hierarquia móvel simplificada sem retirar treino, prontidão, próximos passos ou navegação.</p>
+      <div class="compare">
+        <figure class="shot">
+          <a href="before/web/390-Hoje.png"><img src="before/web/390-Hoje.png" alt="Tela Hoje anterior em 390 pixels"></a>
+          <figcaption><strong>Antes</strong><span>Dashboard móvel original com blocos de peso visual semelhante.</span><a class="original" href="before/web/390-Hoje.png">Abrir original</a></figcaption>
+        </figure>
+        <figure class="shot">
+          <a href="after/web/390-Hoje.png"><img src="after/web/390-Hoje.png" alt="Tela Hoje reformulada em 390 pixels"></a>
+          <figcaption><strong>Depois</strong><span>Plano do dia e próxima ação assumem prioridade esportiva.</span><a class="original" href="after/web/390-Hoje.png">Abrir original</a></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="hoje-desktop-title">
+      <h2 id="hoje-desktop-title">Hoje · 1440 px</h2>
+      <p>A mesma arquitetura responsiva em desktop, com leitura mais editorial e menos aparência de painel SaaS.</p>
+      <div class="compare">
+        <figure class="shot">
+          <a href="before/web/1440-Hoje.png"><img src="before/web/1440-Hoje.png" alt="Tela Hoje anterior em 1440 pixels"></a>
+          <figcaption><strong>Antes</strong><span>Composição desktop do baseline sintético.</span><a class="original" href="before/web/1440-Hoje.png">Abrir original</a></figcaption>
+        </figure>
+        <figure class="shot">
+          <a href="after/web/1440-Hoje.png"><img src="after/web/1440-Hoje.png" alt="Tela Hoje reformulada em 1440 pixels"></a>
+          <figcaption><strong>Depois</strong><span>Ritmo, contraste e sequência de ações reorganizados.</span><a class="original" href="after/web/1440-Hoje.png">Abrir original</a></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="android-title">
+      <h2 id="android-title">Atleta Hib Sync · Android</h2>
+      <p class="boundary">PNGs gerados pelo <strong>BridgeScreenTest</strong> com Robolectric native graphics. São evidência verdadeira do teste de UI, mas não representam emulador nem aparelho físico.</p>
+      <h3>Login</h3>
+      <div class="compare">
+        <figure class="shot">
+          <a href="before/android/login.png"><img src="before/android/login.png" alt="Login Android anterior"></a>
+          <figcaption><strong>Antes</strong><span>Acesso original do companion Health Connect.</span><a class="original" href="before/android/login.png">Abrir original</a></figcaption>
+        </figure>
+        <figure class="shot">
+          <a href="after/android/login.png"><img src="after/android/login.png" alt="Login Android reformulado"></a>
+          <figcaption><strong>Depois</strong><span>Senha visível, estados e próxima ação com leitura mais direta.</span><a class="original" href="after/android/login.png">Abrir original</a></figcaption>
+        </figure>
+      </div>
+      <h3>Health Connect conectado</h3>
+      <div class="compare">
+        <figure class="shot">
+          <a href="before/android/connected.png"><img src="before/android/connected.png" alt="Tela Android conectada anterior"></a>
+          <figcaption><strong>Antes</strong><span>Estado conectado original.</span><a class="original" href="before/android/connected.png">Abrir original</a></figcaption>
+        </figure>
+        <figure class="shot">
+          <a href="after/android/connected.png"><img src="after/android/connected.png" alt="Tela Android conectada reformulada"></a>
+          <figcaption><strong>Depois</strong><span>Conta, permissões, última sincronização, progresso e próxima ação em sequência.</span><a class="original" href="after/android/connected.png">Abrir original</a></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="icons-title">
+      <h2 id="icons-title">Identidade PWA · PNGs reais</h2>
+      <p>Arquivos raster renderizáveis declarados pela aplicação. O Android usa recursos vetoriais/adaptativos; sem captura de launcher, eles permanecem prova de arquivo, não simulação visual.</p>
+      <div class="icons">
+        <figure class="icon-card">
+          <a href="../../public/icons/atleta-hib-symbol-1024.png"><img src="../../public/icons/atleta-hib-symbol-1024.png" alt="Ícone original do Atleta Hib"></a>
+          <figcaption><strong>Antes · símbolo 1024</strong><span>Fonte original reutilizada como any e maskable.</span><a class="original" href="../../public/icons/atleta-hib-symbol-1024.png">Abrir original</a></figcaption>
+        </figure>
+        <figure class="icon-card">
+          <a href="../../public/icons/atleta-hib-any-512.png"><img src="../../public/icons/atleta-hib-any-512.png" alt="Novo ícone PWA any do Atleta Hib"></a>
+          <figcaption><strong>Depois · any 512</strong><span>Ícone principal da instalação PWA.</span><a class="original" href="../../public/icons/atleta-hib-any-512.png">Abrir original</a></figcaption>
+        </figure>
+        <figure class="icon-card">
+          <a href="../../public/icons/atleta-hib-maskable-512.png"><img src="../../public/icons/atleta-hib-maskable-512.png" alt="Novo ícone PWA maskable do Atleta Hib"></a>
+          <figcaption><strong>Depois · maskable 512</strong><span>Área segura própria para recortes do sistema.</span><a class="original" href="../../public/icons/atleta-hib-maskable-512.png">Abrir original</a></figcaption>
+        </figure>
+        <figure class="icon-card">
+          <a href="../../public/icons/atleta-hib-apple-touch-180.png"><img src="../../public/icons/atleta-hib-apple-touch-180.png" alt="Novo ícone Apple Touch do Atleta Hib"></a>
+          <figcaption><strong>Depois · Apple Touch 180</strong><span>Atalho dedicado para dispositivos Apple.</span><a class="original" href="../../public/icons/atleta-hib-apple-touch-180.png">Abrir original</a></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="limits-title">
+      <h2 id="limits-title">Validação e fronteiras</h2>
+      <ul class="checks">
+        <li><strong>PASS</strong> — cadastro, login, recuperação completa simulada e onboarding de sete etapas, incluindo voltar, corrigir, retomar por usuário e preservar respostas em erro.</li>
+        <li><strong>PASS</strong> — smoke recorrente sintético: 89 capturas, zero erros JavaScript; Academia carregada com quatro linhas e zero sobreposições em 360/390/412/1440.</li>
+        <li><strong>PASS</strong> — manifest/service worker e 10 verificações PWA estáticas; Web lint, tipos, 283 testes e build; Android unit, lint e assemble.</li>
+        <li><strong>NÃO EXECUTADO</strong> — interface nativa de instalação PWA; emulador Android; aparelho físico. Nenhum dado real ou backend vivo foi usado.</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
