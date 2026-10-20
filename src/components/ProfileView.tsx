@@ -50,10 +50,10 @@ export default function ProfileView({ userId, profile, refreshBoot, onError }) {
   }
 
   return (
-    <div>
+    <div className="profile-logbook-page">
       <PageHeader title="Perfil" description="Seus dados, metas e preferências." />
 
-      <form className="panel form-grid" onSubmit={handleSave}>
+      <form className="profile-ledger form-grid" onSubmit={handleSave}>
         <fieldset className="form-section full">
           <legend>Dados pessoais</legend>
           <div className="form-section-grid">

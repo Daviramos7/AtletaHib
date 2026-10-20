@@ -1,5 +1,6 @@
 /* Shared visual language. Product layouts remain in styles.css. */
 :root {
+  color-scheme: dark;
   --brand-lime: #b8ff00;
   --brand-lime-soft: #d9ff73;
   --brand-cyan: #65d8ff;
@@ -36,6 +37,9 @@
 }
 
 body { background: var(--brand-bg); line-height: 1.5; }
+html { -webkit-tap-highlight-color: rgba(184,255,0,.18); }
+
+:focus-visible { outline: 3px solid var(--brand-cyan); outline-offset: 3px; }
 
 .brand-logo { display: block; width: min(260px, 100%); height: auto; object-fit: contain; }
 .brand-logo--compact { width: 38px; aspect-ratio: 1; object-fit: contain; }
@@ -220,7 +224,6 @@ button, a, input, select, textarea, summary { scroll-margin-block: 88px; }
 .primary-btn:hover { box-shadow: none; transform: none; }
 .primary-btn, .ghost-btn, .danger-btn { border-radius: var(--brand-radius-sm); font-weight: 600; }
 .content-card-v2, .sidebar-v2 { backdrop-filter: none; }
-.content-card-v2:focus { outline: none; }
 .content-card-v2 .simple-panel,
 .content-card-v2 .panel,
 .content-card-v2 .metric-card,

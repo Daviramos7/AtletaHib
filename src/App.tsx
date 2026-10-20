@@ -5,6 +5,7 @@ import { isSupabaseConfigured } from './lib/supabaseClient';
 import { getSession, onAuthStateChange, signOut } from './services/authService';
 import { ensureUserBootstrap } from './services/bootstrapService';
 import LoginView from './components/LoginView';
+import ResetPasswordView from './components/ResetPasswordView';
 import TodayView from './components/TodayView';
 import { classifyNotice, noticeText } from './utils/notices';
 import OnboardingView from './components/OnboardingView';
@@ -36,6 +37,7 @@ export default function App() {
   const [error, setError] = useState('');
   const [navigationIntent, setNavigationIntent] = useState(null);
   const userId = session?.user?.id;
+  const [passwordRecovery, setPasswordRecovery] = useState(() => window.location.hash.includes('type=recovery'));
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -106,6 +108,8 @@ export default function App() {
       </div>
     );
   }
+
+  if (passwordRecovery) return <ResetPasswordView onDone={() => { window.history.replaceState(null, '', window.location.pathname); setPasswordRecovery(false); }} />;
 
   if (!session) {
     return <LoginView onError={setError} error={error} />;
@@ -222,7 +226,7 @@ export default function App() {
 
 function Notice({ message, onClose }) {
   const tone = classifyNotice(message);
-  return <div className={`app-notice ${tone}`} role={tone === 'error' ? 'alert' : 'status'}>
+  return <div className={`app-notice ${tone}`} role={tone === 'error' ? 'alert' : 'status'} aria-live={tone === 'error' ? 'assertive' : 'polite'}>
     <span>{noticeText(message)}</span>
     <button type="button" onClick={onClose} aria-label="Fechar mensagem"><X size={18} /></button>
   </div>;

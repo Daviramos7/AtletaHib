@@ -12,8 +12,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -22,12 +25,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -36,6 +42,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.daviramos.atletabridge.data.SendState
 import com.daviramos.atletabridge.health.*
 import com.daviramos.atletabridge.ui.AtletaHibTheme
+import com.daviramos.atletabridge.ui.HibCyan
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -78,35 +85,35 @@ fun BridgeScreen(
     onSignIn: (String, String) -> Unit = { _, _ -> }, onSignOut: () -> Unit = {},
     onSync: (Int) -> Unit = {}, onPermissions: () -> Unit = {}, onHealthSettings: () -> Unit = {}
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
     var details by remember { mutableStateOf(false) }
     var logoutConfirm by remember { mutableStateOf(false) }
-    LaunchedEffect(state.connected) { if (state.connected) password = "" }
+    if (!state.connected) {
+        LoginScreen(state, onSignIn)
+        return
+    }
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding().verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            Image(painterResource(R.drawable.atleta_hib_logo_horizontal), "Atleta Hib",
-                Modifier.fillMaxWidth().height(48.dp), contentScale = ContentScale.Fit)
+            .padding(horizontal = 20.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+            BrandMark("Sincronização")
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Conectar saúde", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
-                Text("Envie as métricas do Health Connect para sua conta.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Tudo pronto para o Health Connect", style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.semantics { heading() })
+                Text("Revise as etapas abaixo e envie suas métricas quando estiver pronto.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Section("Sincronização") {
-                StatusLine("Health Connect", if (state.available) "✓ Disponível" else "! Instale ou atualize")
-                StatusLine("Conta", if (state.connected) "✓ Sessão salva" else "! Entre para conectar")
-                StatusLine("Servidor", state.backendStatus)
-                Text("Última sincronização completa: ${formatSyncTime(state.lastSync)}", style = MaterialTheme.typography.bodyMedium)
+            SequenceSection("Sua conta", "Conectada", state.backendStatus)
+            SequenceSection("Health Connect", if (state.available) "Disponível" else "Indisponível",
+                if (state.available) "Permissões podem ser revisadas abaixo." else "Instale ou atualize o Health Connect para continuar.")
+            Section("Próxima sincronização") {
+                Text("Última sincronização", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(formatSyncTime(state.lastSync), style = MaterialTheme.typography.titleLarge)
                 if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-                Text((if (state.error) "! " else if (state.result != null) "✓ " else "") + state.message,
+                Text(state.message,
                     color = if (state.error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
                 Button(onClick = { onSync(1) }, enabled = !state.busy && state.connected && state.available && state.configured,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                     Text(if (state.busy) "Aguarde…" else if (state.error && state.connected) "Tentar sincronizar novamente" else "Sincronizar agora")
                 }
-                TextButton(onClick = { onSync(7) }, enabled = !state.busy && state.connected && state.available && state.configured,
-                    modifier = Modifier.fillMaxWidth()) { Text("Sincronizar últimos 7 dias") }
                 if (!state.configured) Text("! Servidor não configurado neste APK.", color = MaterialTheme.colorScheme.error)
                 state.result?.let { result ->
                     Text("${result.sent} resumo(s) enviado(s) · ${result.unchanged} sem alteração", style = MaterialTheme.typography.labelLarge)
@@ -123,17 +130,6 @@ fun BridgeScreen(
                         StatusLine(metric.label, label)
                     }
                 }
-            }
-            if (!state.connected) Section("Sua conta") {
-                Text("Use o e-mail e a senha do Atleta Hib.")
-                OutlinedTextField(email, { email = it }, label = { Text("E-mail") }, singleLine = true,
-                    enabled = !state.busy, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(password, { password = it }, label = { Text("Senha") }, singleLine = true,
-                    enabled = !state.busy, visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth())
-                Button(onClick = { onSignIn(email, password); password = "" },
-                    enabled = !state.busy && state.configured && email.isNotBlank() && password.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("Entrar") }
-                Text("Sua senha não é salva no celular.", style = MaterialTheme.typography.bodyMedium)
             }
             Section("Permissões") {
                 Text("No Mi Fitness, permita o envio ao Health Connect. Aqui, escolha o que o Atleta Hib pode ler.", style = MaterialTheme.typography.bodyMedium)
@@ -179,9 +175,72 @@ fun BridgeScreen(
 }
 
 @Composable
+private fun LoginScreen(state: BridgeState, onSignIn: (String, String) -> Unit) {
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var attempted by remember { mutableStateOf(false) }
+    val emailInvalid = attempted && email.isBlank()
+    val passwordInvalid = attempted && password.isBlank()
+    val submit = {
+        attempted = true
+        if (email.isNotBlank() && password.isNotBlank()) {
+            onSignIn(email, password)
+            password = ""
+        }
+    }
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding().verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 28.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            BrandMark("Atleta Hib Sync")
+            Spacer(Modifier.height(18.dp))
+            Text("Conecte sua conta", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
+            Text("Use as mesmas credenciais do Atleta Hib para enviar as métricas que você permitir no Health Connect.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Section("Suas credenciais") {
+                OutlinedTextField(email, { email = it }, label = { Text("E-mail") }, singleLine = true,
+                    isError = emailInvalid, supportingText = { if (emailInvalid) Text("Informe seu e-mail.") },
+                    enabled = !state.busy, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp))
+                OutlinedTextField(password, { password = it }, label = { Text("Senha") }, singleLine = true,
+                    isError = passwordInvalid, supportingText = { if (passwordInvalid) Text("Informe sua senha.") },
+                    enabled = !state.busy, visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = { TextButton(onClick = { passwordVisible = !passwordVisible }, modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = if (passwordVisible) "Ocultar senha" else "Mostrar senha" }) { Text(if (passwordVisible) "Ocultar" else "Mostrar") } },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { submit() }), modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp))
+                if (state.error) Text(state.message, color = MaterialTheme.colorScheme.error, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+                Button(onClick = submit, enabled = !state.busy && state.configured, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(if (state.busy) "Entrando…" else "Entrar") }
+                Text("Sua senha não é salva no celular.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (!state.configured) Text("Servidor não configurado neste APK.", color = MaterialTheme.colorScheme.error)
+        }
+    }
+}
+
+@Composable
+private fun BrandMark(label: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Box(Modifier.size(18.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(5.dp)))
+        Text(label, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+    }
+}
+
+@Composable
+private fun SequenceSection(title: String, state: String, detail: String) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Box(Modifier.padding(top = 5.dp).size(10.dp).background(HibCyan, RoundedCornerShape(5.dp)))
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(state, style = MaterialTheme.typography.bodyLarge)
+            Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
 private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
-    OutlinedCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        Column(Modifier.padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
             content()
         }

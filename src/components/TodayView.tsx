@@ -34,16 +34,12 @@ export default function TodayView({ userId, trainingPlan, profile, onNavigate, o
       <PageHeader eyebrow={new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })} title="Hoje" />
       {failed && <ErrorState title="Não foi possível atualizar seu dia" action={<button className="ghost-btn" type="button" onClick={refresh}>Tentar novamente</button>} />}
       {loading ? <LoadingState title="Carregando seu dia" /> : dailyTruth && <>
-        <ReadinessCard userId={userId} todayPlan={todayPlan} dailyTruth={dailyTruth} onError={onError} onNavigate={onNavigate} compact />
-        <div className="today-overview-grid">
+        <section className="today-command" aria-label="Comando do dia"><ReadinessCard userId={userId} todayPlan={todayPlan} dailyTruth={dailyTruth} onError={onError} onNavigate={onNavigate} compact /><div className="today-next-action"><div><span>Próximo passo</span><strong>{dailyTruth.strengthApp.length ? 'Registrar sua recuperação' : todayPlan?.title ?? 'Ver treino recomendado'}</strong></div><button className="primary-btn" type="button" onClick={() => onNavigate(dailyTruth.strengthApp.length ? 'register' : 'gym', dailyTruth.strengthApp.length ? { registerTab: 'checkin' } : null)}>{dailyTruth.strengthApp.length ? 'Fazer check-in' : 'Ver treino'} <ArrowRight size={16} aria-hidden /></button></div></section>
+        <div className="today-overview-grid today-ledger" aria-label="Registros de hoje">
           <DailyStatusCard dailyTruth={dailyTruth} onNavigate={onNavigate} />
           <WaterQuickCard userId={userId} profile={profile} onError={onError} onNavigate={onNavigate} />
         </div>
-        <section className="today-gym-link">
-          <Dumbbell size={22} aria-hidden />
-          <div><h3>Treino da semana</h3><p>{dailyTruth.strengthApp.length ? 'Treino registrado hoje.' : 'Veja a sessão recomendada na Academia.'}</p></div>
-          <button className="ghost-btn" type="button" onClick={() => onNavigate('gym')}>Ver treino <ArrowRight size={16} aria-hidden /></button>
-        </section>
+        <section className="today-gym-link today-detail-row"><Dumbbell size={22} aria-hidden /><div><h3>Treino da semana</h3><p>{dailyTruth.strengthApp.length ? 'Treino registrado hoje.' : 'Sua sessão está no comando acima.'}</p></div></section>
         <DataQualityCard dailyTruth={dailyTruth} onNavigate={onNavigate} />
       </>}
     </div>

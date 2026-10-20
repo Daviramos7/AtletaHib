@@ -26,9 +26,9 @@ export default function ProgressHubView(props) {
 
   return (
     <div className="simple-page progress-hub">
-      <PageHeader title="Progresso" />
+      <PageHeader title="Progresso" description={`Tendência selecionada: ${TABS.find((item) => item.id === tab)?.label ?? 'Peso'}.`} />
 
-      <div className="simple-tabs">
+      <div className="simple-tabs progress-domains" aria-label="Domínio do progresso">
         {TABS.map((item) => {
           const Icon = item.icon;
           return <button key={item.id} type="button" aria-pressed={tab === item.id} className={tab === item.id ? 'active' : ''} onClick={() => setTab(item.id)}><Icon size={16} aria-hidden /> {item.label}</button>;

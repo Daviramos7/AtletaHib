@@ -23,10 +23,10 @@ export default function RegisterHubView(props) {
   }, [props.navigationIntent]);
 
   return (
-    <div className="simple-page">
-      <PageHeader title="Registrar" />
+    <div className="simple-page register-logbook">
+      <PageHeader title="Registrar" description="Escolha o registro que quer adicionar à sua rotina." />
 
-      <div className="simple-tabs" aria-label="Tipo de registro">
+      <div className="simple-tabs logbook-choices" aria-label="Tipo de registro">
         {TABS.map((item) => {
           const Icon = item.icon;
           return <button key={item.id} type="button" aria-pressed={tab === item.id} className={tab === item.id ? 'active' : ''} onClick={() => setTab(item.id)}><Icon size={16} aria-hidden="true" /> {item.label}</button>;

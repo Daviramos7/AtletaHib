@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { signIn, signUp } from '../services/authService';
+import { requireSupabase } from '../lib/supabaseClient';
 import { BrandLogo, FormField } from './ui';
 import { noticeText } from '../utils/notices';
 
@@ -7,6 +9,7 @@ export default function LoginView({ error, onError }) {
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const isLogin = mode === 'login';
 
@@ -29,6 +32,24 @@ export default function LoginView({ error, onError }) {
     }
   }
 
+  async function requestRecovery() {
+    if (!email) {
+      onError('Informe seu e-mail para receber o link de recuperação.');
+      return;
+    }
+    onError('');
+    setBusy(true);
+    try {
+      const { error: recoveryError } = await requireSupabase().auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+      if (recoveryError) throw recoveryError;
+      onError('Enviamos um link de recuperação para seu e-mail.');
+    } catch (err) {
+      onError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="login-page">
       <section className="login-hero">
@@ -44,9 +65,13 @@ export default function LoginView({ error, onError }) {
           <input type="email" name="email" autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@email.com" required />
         </FormField>
         <FormField label="Senha" hint={isLogin ? undefined : 'No mínimo 6 caracteres.'}>
-          <input type="password" name="password" autoComplete={isLogin ? 'current-password' : 'new-password'} value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required />
+          <div className="password-field">
+            <input type={showPassword ? 'text' : 'password'} name="password" autoComplete={isLogin ? 'current-password' : 'new-password'} value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required />
+            <button type="button" className="password-toggle" aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={showPassword} onClick={() => setShowPassword((visible) => !visible)}>{showPassword ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}</button>
+          </div>
         </FormField>
         <button className="primary-btn" disabled={busy}>{busy ? 'Processando...' : isLogin ? 'Entrar' : 'Criar conta'}</button>
+        {isLogin && <button type="button" className="link-btn login-recovery" disabled={busy} onClick={requestRecovery}>Esqueci minha senha</button>}
         <button type="button" className="link-btn" disabled={busy} onClick={() => { setMode(isLogin ? 'signup' : 'login'); onError(''); }}>
           {isLogin ? 'Criar uma conta' : 'Já tenho conta'}
         </button>

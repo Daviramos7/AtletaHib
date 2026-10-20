@@ -10,6 +10,8 @@ export function BrandLogo({ compact = false, className = '' }: { compact?: boole
     <img
       className={`brand-logo ${compact ? 'brand-logo--compact' : ''} ${className}`.trim()}
       src={compact ? '/branding/atleta-hib-simbolo.png' : '/branding/atleta-hib-logo-horizontal.png'}
+      width={compact ? 1024 : 1386}
+      height={compact ? 1024 : 285}
       alt="Atleta Hib"
     />
   );

@@ -1,0 +1,46 @@
+{
+  "auth": {
+    "signup": "PASS",
+    "login": "PASS",
+    "recoveryRequest": "PASS",
+    "recoveryLanding": "PASS",
+    "shortPassword": "PASS (native validity)",
+    "mismatch": "PASS",
+    "updateUser": "PASS",
+    "recoveryExit": "PASS"
+  },
+  "onboarding": {
+    "malformedDraft": "PASS",
+    "validationFocus": "PASS",
+    "sevenSteps": "PASS",
+    "back": "PASS",
+    "correction": "PASS",
+    "resumePerUser": "PASS",
+    "serviceErrorRetention": "PASS",
+    "planCallback": "PASS",
+    "weightCallback": "PASS",
+    "draftCleanup": "PASS"
+  },
+  "academia": {
+    "360": {
+      "status": "PASS",
+      "rows": 4,
+      "overlaps": 0
+    },
+    "390": {
+      "status": "PASS",
+      "rows": 4,
+      "overlaps": 0
+    },
+    "412": {
+      "status": "PASS",
+      "rows": 4,
+      "overlaps": 0
+    },
+    "1440": {
+      "status": "PASS",
+      "rows": 4,
+      "overlaps": 0
+    }
+  }
+}

@@ -689,8 +689,8 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
   }
 
   return (
-    <div className="simple-page gym-v32-page">
-      <div className="simple-hero gym-v32-hero">
+    <div className="simple-page gym-v32-page training-lane-page">
+      <div className="simple-hero gym-v32-hero training-command-header">
         <div>
           <p className="eyebrow">{startedAt || persistedWorkoutSessionId ? 'Sessão em andamento' : 'Academia'}</p>
           <h2>{selectedDay?.title ?? 'Sem treino'}</h2>
@@ -883,8 +883,8 @@ function WeeklyGymQueueCard({ queue, selectedDayId, activePlanDayId, onSelect })
           return (
             <button key={item.day.id} type="button" aria-pressed={active} disabled={Boolean(activePlanDayId) && String(activePlanDayId) !== String(item.day.id)} className={`${active ? 'active' : ''} status-${item.status}`} onClick={() => onSelect(item.day)}>
               <span className="weekly-queue-status"><StatusIcon size={15} aria-hidden="true" /> {label}</span>
-              <strong>{item.day.title}</strong>
-              <small>~{item.estimatedMinutes} min · preferência {getWeekdayLabel(item.preferredWeekday)}</small>
+              <strong className="weekly-queue-title">{item.day.title}</strong>
+              <small className="weekly-queue-meta">~{item.estimatedMinutes} min · preferência {getWeekdayLabel(item.preferredWeekday)}</small>
               {active && <small className="weekly-queue-selection">{activePlanDayId ? 'Em andamento' : 'Selecionado'}</small>}
             </button>
           );

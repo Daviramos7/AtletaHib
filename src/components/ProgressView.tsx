@@ -60,13 +60,13 @@ export default function ProgressView({ userId, profile, refreshBoot, onError }) 
     <div className="progress-page">
       <PageHeader eyebrow="Tendências" title="Peso" description="Médias semanais para comparar a tendência." />
 
-      <div className="metric-grid three">
+      <div className="metric-grid three progress-metric-strip">
         <MetricCard label="Peso atual" value={stats.latest ? `${Number(stats.latest.weight_kg).toFixed(1)} kg` : '--'} detail="último registro" />
         <MetricCard label="Perdido" value={stats.lost === null ? '--' : `${stats.lost.toFixed(1)} kg`} detail="desde o primeiro registro" />
         <MetricCard label="Falta" value={stats.targetLeft !== null ? `${stats.targetLeft.toFixed(1)} kg` : '--'} detail="até a meta" />
       </div>
 
-      <section className="panel highlight-panel">
+      <section className="progress-trend">
         <p className="eyebrow">Gráfico semanal</p>
         <div className="chart-title-row">
           <h3>Média semanal do peso</h3>
@@ -76,7 +76,7 @@ export default function ProgressView({ userId, profile, refreshBoot, onError }) 
         <p className="muted">Use o peso de manhã, após ir ao banheiro, e compare a média semanal. Peso diário oscila por água, sal, treino e sono.</p>
       </section>
 
-      <form className="panel form-grid" onSubmit={handleSave}>
+      <form className="progress-register-sheet form-grid" onSubmit={handleSave}>
         <p className="eyebrow full">Registrar peso atualizado</p>
         <label>Data
           <input type="date" value={form.log_date} onChange={(e) => setForm({ ...form, log_date: e.target.value })} />
@@ -93,7 +93,7 @@ export default function ProgressView({ userId, profile, refreshBoot, onError }) 
         <button className="primary-btn" disabled={saving}><Save size={16} /> {saving ? 'Salvando…' : 'Salvar peso'}</button>
       </form>
 
-      <section className="panel">
+      <section className="progress-history-sheet">
         <p className="eyebrow">Histórico de peso</p>
         {weights.length === 0 ? <p className="muted">Sem registros ainda.</p> : weights.map((item) => (
           <div className="entry-row" key={item.id}>

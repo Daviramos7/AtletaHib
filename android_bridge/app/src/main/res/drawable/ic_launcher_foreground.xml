@@ -1,5 +1,13 @@
-<?xml version="1.0" encoding="utf-8"?>
-<inset xmlns:android="http://schemas.android.com/apk/res/android"
-    android:insetLeft="20%" android:insetRight="20%" android:insetTop="20%" android:insetBottom="20%">
-    <bitmap android:src="@drawable/atleta_hib_symbol" android:gravity="fill" />
-</inset>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Two linked arcs identify the Health Connect companion without using a device-specific logo. -->
+    <path android:fillColor="#B8FF00"
+        android:pathData="M54,24C37.4,24 24,37.4 24,54s13.4,30 30,30c10.4,0 19.5,-5.3 24.9,-13.3l-7.1,-4.8C67.9,71.6 61.4,75.3 54,75.3C42.2,75.3 32.7,65.8 32.7,54S42.2,32.7 54,32.7c7.4,0 13.9,3.7 17.8,9.4l7.1,-4.8C73.5,29.3 64.4,24 54,24z" />
+    <path android:fillColor="#65D8FF"
+        android:pathData="M60,43L69,43L69,51L77,51L77,60L69,60L69,68L60,68L60,60L52,60L52,51L60,51z" />
+    <path android:fillColor="#F5F8F3"
+        android:pathData="M44,48L52,54L44,60z" />
+</vector>

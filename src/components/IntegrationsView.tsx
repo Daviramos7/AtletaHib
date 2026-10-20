@@ -157,14 +157,16 @@ export default function IntegrationsView({ userId, profile, onError, onNavigate 
   }
 
   return (
-    <div>
+    <div className="health-pipeline-page">
       <PageHeader
         title="Saúde"
         description="Dados recebidos do relógio e conexão com o celular."
         action={<span className="pill"><Watch size={16} /> {WEARABLE_OPTIONS[profile?.wearable_provider] ?? 'Manual'}</span>}
       />
 
-      <details className="panel disclosure-panel">
+      <section className="health-source-lane" aria-label="Caminho de sincronização"><span><Watch size={16} aria-hidden /> Fonte</span><span>Health Connect</span><span><Link2 size={16} aria-hidden /> Atleta Hib Sync</span><strong>{derivedStatus.value}</strong></section>
+
+      <details className="panel disclosure-panel health-pipeline" open>
         <summary>Conectar relógio</summary>
         <p>Sincronize o Mi Fitness com o Health Connect e envie os dados pelo aplicativo Android Atleta Hib.</p>
         <div className="integration-flow">
@@ -176,7 +178,7 @@ export default function IntegrationsView({ userId, profile, onError, onNavigate 
         <button className="primary-btn" onClick={handleConfigureRedmi} disabled={busy}><Bluetooth size={16} /> Preparar Redmi + Mi Fitness</button>
       </details>
 
-      <div className="metric-grid">
+      <div className="metric-grid health-ledger">
         <Metric icon={CheckCircle2} label="Status" value={derivedStatus.value} sub={derivedStatus.sub} />
         <Metric icon={Activity} label="FC média" value={todayMetric?.avg_heart_rate ? `${todayMetric.avg_heart_rate} bpm` : '--'} sub={todayMetric?.metric_date ? `registro ${formatDate(todayMetric.metric_date)}` : 'sem registro'} />
         <Metric icon={RefreshCcw} label="Kcal ativas" value={todayMetric?.active_kcal ?? '--'} sub={formatWearableSource(todayMetric?.source, todayMetric?.provider)} />
@@ -279,7 +281,7 @@ export default function IntegrationsView({ userId, profile, onError, onNavigate 
         </label>
       </details>
 
-      <section className="panel">
+      <section className="health-history-ledger">
         <p className="eyebrow">Histórico importado/manual</p>
         {metrics.length === 0 ? <p className="muted-text">Nenhum dado de relógio registrado ainda.</p> : (
           <div className="table-list">

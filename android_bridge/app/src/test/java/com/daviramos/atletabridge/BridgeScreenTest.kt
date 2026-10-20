@@ -86,10 +86,11 @@ class BridgeScreenTest {
             }
         }
     }
-    @Test fun disconnectedCannotSyncAndHasLogin() {
+    @Test fun disconnectedShowsDedicatedLoginWithoutSyncAction() {
         show(connected.copy(connected = false))
-        compose.onNodeWithText("Sincronizar agora").performScrollTo().assertIsNotEnabled()
         compose.onNodeWithText("Entrar", useUnmergedTree = true).performScrollTo().assertExists()
+        compose.onNodeWithText("Sincronizar agora").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Mostrar senha").assertExists()
         snapshot("login")
     }
 }

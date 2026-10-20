@@ -1,10 +1,11 @@
-const CACHE_NAME = 'atleta-hib-v4-1-2';
+const CACHE_NAME = 'atleta-hib-v4-ux';
 const APP_SHELL = [
   '/',
   '/manifest.json',
-  '/branding/atleta-hib-logo-horizontal.png',
-  '/branding/atleta-hib-simbolo.png',
-  '/icons/atleta-hib-symbol-1024.png',
+  '/icons/atleta-hib-any-192.png',
+  '/icons/atleta-hib-any-512.png',
+  '/icons/atleta-hib-maskable-512.png',
+  '/icons/atleta-hib-apple-touch-180.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -20,12 +21,12 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  if (url.hostname.includes('supabase.co')) return;
-  if (event.request.method !== 'GET') return;
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/')) return;
 
   event.respondWith(
     fetch(event.request)
       .then((response) => {
+        if (!response.ok || response.type === 'opaque') return response;
         const clone = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         return response;
