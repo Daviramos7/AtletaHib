@@ -44,7 +44,6 @@ async function check(page: Page, tag: string, screen: string, scale: number, fai
   const closed = await auditLayout(page);
   await page.evaluate(() => document.querySelectorAll('details').forEach((details) => { details.open = true; }));
   const expanded = await auditLayout(page);
-  if (shots) await page.screenshot({ path: join(dir, `${screen}-expandido.png`), fullPage: true });
   // O JSON da auditoria vai para o disco nos casos com print e em qualquer caso com achado.
   if (shots || closed.findings.length || expanded.findings.length) {
     await mkdir(dir, { recursive: true });
