@@ -72,8 +72,8 @@ export default function PlanBuilderView({ userId, profile, refreshBoot, onError 
           </select>
         </label>
         <label>Musculação/semana
-          <select value={Math.min(Number(form.weekly_strength_days ?? 3), 3)} onChange={(e) => update('weekly_strength_days', Number(e.target.value))}>
-            {[2, 3].map((value) => <option key={value} value={value}>{value}x</option>)}
+          <select value={form.weekly_strength_days ?? 3} onChange={(e) => update('weekly_strength_days', Number(e.target.value))}>
+            {[2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}x</option>)}
           </select>
         </label>
         <label>Cardio/semana

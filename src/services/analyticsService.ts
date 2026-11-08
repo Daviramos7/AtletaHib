@@ -2,14 +2,12 @@ import { requireSupabase } from '../lib/supabaseClient';
 import { setVolumeKg } from '../domain/exerciseTracking';
 import { calculateReadiness } from '../domain/readiness';
 import { countUniqueBaseSessionsByWeek } from '../domain/weeklyGym';
-import { WEEKLY_STRENGTH_BASE_TARGET, WEEKLY_STRENGTH_MIN_VALID } from '../domain/weeklyPlanRules';
+import { WEEKLY_STRENGTH_BASE_TARGET, minimumValidCountFor } from '../domain/weeklyPlanRules';
 import { localDayRangeIso } from '../utils/dates';
 
 const DEFAULT_TARGETS = {
   minMealLoggedDays7: 5,
   minWaterHitDays7: 4,
-  // 2 treinos já fazem a semana valer: abaixo disso é prioridade, 2 não é atraso.
-  minStrengthSessions7: WEEKLY_STRENGTH_MIN_VALID,
   minCardioSessions7: 2,
   idealCardioSessions7: 3,
   minCheckinDays7: 4,
@@ -130,6 +128,8 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
     checkinDays,
     avgReadiness,
     workouts,
+    // Mínimo do plano do perfil (3 dias → 2): semana no mínimo não é atraso.
+    strengthMinValid7: minimumValidCountFor(Number(profile?.weekly_strength_days ?? WEEKLY_STRENGTH_BASE_TARGET)),
     cardioSessions,
     totalKm,
     strengthVolume,
@@ -180,7 +180,7 @@ export async function loadWeeklyReview(userId, profile, days = 7) {
 function buildDecision(stats) {
   if (stats.mealLoggedDays < scaledTarget(DEFAULT_TARGETS.minMealLoggedDays7, stats.days)) return { title: 'Prioridade: registrar comida', body: 'Sem registro alimentar, o app vira chute. Antes de reduzir kcal, registre a maioria dos dias da semana.' };
   if (stats.avgKcal > stats.kcalGoal + 180) return { title: 'Prioridade: cortar vazamento calórico', body: 'A média passou da meta. Olhe lanches, fim de semana, óleo, bebida e porções sem pesar.' };
-  if (stats.workouts < scaledTarget(DEFAULT_TARGETS.minStrengthSessions7, stats.days)) return { title: 'Prioridade: musculação', body: 'O mínimo estratégico é manter força com consistência. Corrida sem força aumenta risco de dor.' };
+  if (stats.workouts < scaledTarget(stats.strengthMinValid7, stats.days)) return { title: 'Prioridade: musculação', body: 'O mínimo estratégico é manter força com consistência. Corrida sem força aumenta risco de dor.' };
   if (stats.waterHitDays < scaledTarget(DEFAULT_TARGETS.minWaterHitDays7, stats.days)) return { title: 'Prioridade: água', body: 'Bata a meta de água na maioria dos dias. Água baixa bagunça fome, treino e peso na balança.' };
   if (stats.checkinDays < scaledTarget(DEFAULT_TARGETS.minCheckinDays7, stats.days)) return { title: 'Prioridade: check-in', body: 'Registre sono, dor e fome. Isso evita insistir em corrida pesada em dia ruim.' };
   if (stats.avgReadiness && stats.avgReadiness < 60) return { title: 'Prioridade: recuperação', body: 'Seu corpo está avisando. Mantenha treino, mas reduza impacto e proteja sono.' };
@@ -191,7 +191,7 @@ function buildRuleReport(stats) {
   const targets = {
     meal: scaledTarget(DEFAULT_TARGETS.minMealLoggedDays7, stats.days),
     water: scaledTarget(DEFAULT_TARGETS.minWaterHitDays7, stats.days),
-    strength: scaledTarget(DEFAULT_TARGETS.minStrengthSessions7, stats.days),
+    strength: scaledTarget(stats.strengthMinValid7, stats.days),
     cardio: scaledTarget(DEFAULT_TARGETS.minCardioSessions7, stats.days),
     cardioIdeal: scaledTarget(DEFAULT_TARGETS.idealCardioSessions7, stats.days),
     checkin: scaledTarget(DEFAULT_TARGETS.minCheckinDays7, stats.days),
@@ -365,7 +365,7 @@ function buildWeeklyReportExport({
       main_goal: profile?.objective ?? 'emagrecimento e condicionamento',
       kcal_goal: stats.kcalGoal,
       water_goal_ml: stats.waterGoal,
-      strength_goal_weekly: Math.min(Number(profile?.weekly_strength_days ?? WEEKLY_STRENGTH_BASE_TARGET), WEEKLY_STRENGTH_BASE_TARGET),
+      strength_goal_weekly: Number(profile?.weekly_strength_days ?? WEEKLY_STRENGTH_BASE_TARGET),
       cardio_goal_weekly: profile?.weekly_cardio_days ?? 3,
       target_weight_kg: profile?.target_weight_kg ?? null,
       current_weight_kg: profile?.current_weight_kg ?? null,

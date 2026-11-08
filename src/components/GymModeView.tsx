@@ -16,7 +16,6 @@ import { exerciseTracking, formatSetExecution, hasSetExecution, initialTrackingV
 import { buildAdaptiveWorkoutRecommendation, selectWorkoutVariant } from '../domain/adaptiveWorkout';
 import { buildWeeklyGymQueue, selectionKindFor } from '../domain/weeklyGym';
 import { cardioPrescriptionFromDay } from '../domain/cardioRules';
-import { WEEKLY_STRENGTH_BASE_TARGET } from '../domain/weeklyPlanRules';
 import { buildCardioPlanSnapshot, buildStrengthPlanSnapshot, deriveGymSessionLifecycle, plannedVsRealized } from '../domain/gymSession';
 import { resetPersonalizedTrainingPlan } from '../services/trainingService';
 import {
@@ -467,16 +466,16 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
     }
 
     const confirmed = window.confirm(
-      'Gerar o plano de 3 treinos (Ter Inferior, Qua Superior, Sex Full body)? O plano ativo atual será arquivado. O histórico de treinos, séries, cargas e repetições será preservado.',
+      `Gerar um novo plano de ${Number(profile.weekly_strength_days ?? 3)} treinos por semana, conforme o seu perfil? O plano ativo atual será arquivado. O histórico de treinos, séries, cargas e repetições será preservado.`,
     );
     if (!confirmed) return;
 
     try {
       setRegeneratingPlan(true);
-      await resetPersonalizedTrainingPlan(userId, { ...profile, weekly_strength_days: WEEKLY_STRENGTH_BASE_TARGET });
+      await resetPersonalizedTrainingPlan(userId, profile);
       setSelectedDayId(null);
       await refreshBoot?.();
-      onError?.('Plano atualizado: plano de 3 treinos gerado e ativado. O plano anterior foi arquivado e o histórico foi preservado.');
+      onError?.('Plano atualizado conforme o seu perfil. O plano anterior foi arquivado e o histórico foi preservado.');
     } catch (err) {
       onError?.(err.message);
     } finally {

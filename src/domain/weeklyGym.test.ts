@@ -273,6 +273,10 @@ describe('weekStateFor', () => {
     [2, 3, 'valid'],
     [3, 3, 'complete'],
     [0, 0, 'in_progress'],
+    [2, 4, 'in_progress'],
+    [3, 4, 'valid'],
+    [4, 4, 'complete'],
+    [2, 2, 'complete'],
     [1, 1, 'complete'],
   ])('%i de %i → %s', (done, target, state) => {
     expect(weekStateFor(done, target)).toBe(state);

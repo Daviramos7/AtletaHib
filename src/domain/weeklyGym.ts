@@ -1,6 +1,6 @@
 import { calculateReadiness, dateKeyInTimeZone } from './readiness';
 import { getExerciseMetadata } from './exerciseCatalog';
-import { WEEKLY_STRENGTH_MIN_VALID, weekStateFor, type WeekState } from './weeklyPlanRules';
+import { minimumValidCountFor, weekStateFor, type WeekState } from './weeklyPlanRules';
 
 export type WeeklyGymStatus = 'pending' | 'recommended' | 'completed' | 'not_ideal';
 
@@ -46,7 +46,7 @@ export interface WeeklyGymQueue {
   recommended: WeeklyGymQueueItem | null;
   completedBaseCount: number;
   targetCount: number;
-  /** Mínimo para a semana ser válida (2). Abaixo disso a semana só está "em andamento", nunca "atrasada". */
+  /** Mínimo para a semana ser válida (plano de 3: 2). Abaixo disso a semana só está "em andamento", nunca "atrasada". */
   minimumValidCount: number;
   weekState: WeekState;
   extraCount: number;
@@ -200,7 +200,7 @@ export function buildWeeklyGymQueue({
     recommended,
     completedBaseCount,
     targetCount: strengthDays.length,
-    minimumValidCount: Math.min(WEEKLY_STRENGTH_MIN_VALID, strengthDays.length),
+    minimumValidCount: minimumValidCountFor(strengthDays.length),
     weekState: weekStateFor(completedBaseCount, strengthDays.length),
     extraCount,
     checkinMissing: !checkin,

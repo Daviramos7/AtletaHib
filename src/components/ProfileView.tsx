@@ -136,8 +136,8 @@ export default function ProfileView({ userId, profile, refreshBoot, onError }) {
           <p className="muted-text">Para alterar os exercícios do plano ativo, abra Academia → Editar plano.</p>
           <div className="form-section-grid">
         <label>Musculação/semana
-          <select value={Math.min(Number(form.weekly_strength_days ?? 3), 3)} onChange={(e) => setForm({ ...form, weekly_strength_days: Number(e.target.value) })}>
-            {[2, 3].map((value) => <option key={value} value={value}>{value}x</option>)}
+          <select value={form.weekly_strength_days ?? 3} onChange={(e) => setForm({ ...form, weekly_strength_days: Number(e.target.value) })}>
+            {[2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}x</option>)}
           </select>
         </label>
         <label>Cardio/semana

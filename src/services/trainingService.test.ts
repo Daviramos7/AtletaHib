@@ -73,7 +73,7 @@ describe('regenerar plano sem perder o atual', () => {
     expect(training.map((day) => [day.weekday, day.session_split, day.sequence_order, day.cardio_min_minutes, day.cardio_max_minutes, day.cardio_intensity])).toEqual([
       [2, 'lower', 1, 15, 20, 'leve'],
       [3, 'upper', 2, 20, 25, 'moderado'],
-      [5, 'full_body', 3, 10, 15, 'leve'],
+      [5, 'full_body', 3, 15, 20, 'leve'],
     ]);
     expect(training.every((day) => day.user_id === 'user-1' && day.plan_id === 'new-plan')).toBe(true);
   });

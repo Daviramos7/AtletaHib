@@ -194,6 +194,38 @@ const strengthLibrary = {
   ],
 };
 
+// Plano de 4 sessões (Upper/Lower A/B), para perfil com 4 ou mais dias de força.
+const fourDayStrengthLibrary = {
+  A: [
+    { position: 1, exercise_name: 'Supino máquina ou halteres', sets: '3', reps: '8-12', rest_seconds: 90, exercise_role: 'main', notes: 'Carga moderada e execução limpa.' },
+    { position: 2, exercise_name: 'Puxada na frente', sets: '3', reps: '10-12', rest_seconds: 90, exercise_role: 'main', notes: 'Controlar a descida.' },
+    { position: 3, exercise_name: 'Remada baixa', sets: '3', reps: '10-12', rest_seconds: 90, exercise_role: 'main', notes: 'Lombar neutra.' },
+    { position: 4, exercise_name: 'Desenvolvimento máquina/halteres', sets: '2', reps: '10-12', rest_seconds: 75, exercise_role: 'secondary', notes: 'Sem arquear a lombar.' },
+    { position: 5, exercise_name: 'Tríceps corda', sets: '2', reps: '10-12', rest_seconds: 60, exercise_role: 'accessory', notes: 'Cotovelos estáveis.' },
+  ],
+  B: [
+    { position: 1, exercise_name: 'Leg press 45°', sets: '3', reps: '10-12', rest_seconds: 90, exercise_role: 'main', notes: 'Amplitude confortável e técnica limpa.' },
+    { position: 2, exercise_name: 'Cadeira flexora', sets: '3', reps: '10-12', rest_seconds: 75, exercise_role: 'main', notes: 'Posterior de coxa controlado.' },
+    { position: 3, exercise_name: 'Cadeira extensora', sets: '2', reps: '12-15', rest_seconds: 75, exercise_role: 'secondary', notes: 'Movimento controlado.' },
+    { position: 4, exercise_name: 'Panturrilha', sets: '3', reps: '12-15', rest_seconds: 60, exercise_role: 'accessory', notes: 'Movimento completo.' },
+    { position: 5, exercise_name: 'Prancha', sets: '2', reps: '20-45s', rest_seconds: 60, exercise_role: 'accessory', notes: 'Core firme.' },
+  ],
+  C: [
+    { position: 1, exercise_name: 'Supino inclinado máquina/halteres', sets: '3', reps: '10-12', rest_seconds: 90, exercise_role: 'main', notes: 'Controle na descida.' },
+    { position: 2, exercise_name: 'Puxada triângulo', sets: '3', reps: '10-12', rest_seconds: 90, exercise_role: 'main', notes: 'Pegada neutra.' },
+    { position: 3, exercise_name: 'Remada baixa', sets: '2', reps: '10-12', rest_seconds: 75, exercise_role: 'secondary', notes: 'Lombar neutra e movimento controlado.' },
+    { position: 4, exercise_name: 'Elevação lateral', sets: '2', reps: '12-15', rest_seconds: 60, exercise_role: 'accessory', notes: 'Sem impulso.' },
+    { position: 5, exercise_name: 'Rosca direta ou alternada', sets: '2', reps: '10-12', rest_seconds: 60, exercise_role: 'accessory', notes: 'Sem roubar.' },
+  ],
+  D: [
+    { position: 1, exercise_name: 'Agachamento goblet ou smith', sets: '3', reps: '8-10', rest_seconds: 90, exercise_role: 'main', notes: 'Escolher amplitude segura.' },
+    { position: 2, exercise_name: 'Mesa flexora', sets: '3', reps: '10-12', rest_seconds: 75, exercise_role: 'main', notes: 'Controle total.' },
+    { position: 3, exercise_name: 'Stiff com halteres', sets: '2', reps: '8-10', rest_seconds: 90, exercise_role: 'secondary', notes: 'Coluna neutra e carga controlada.' },
+    { position: 4, exercise_name: 'Cadeira abdutora', sets: '2', reps: '12-15', rest_seconds: 60, exercise_role: 'accessory', notes: 'Estabilidade de quadril.' },
+    { position: 5, exercise_name: 'Panturrilha', sets: '2', reps: '12-15', rest_seconds: 60, exercise_role: 'accessory', notes: 'Movimento completo.' },
+  ],
+};
+
 // Plano de 3 treinos (Ter Inferior, Qua Superior, Sex Full body). Só nomes que já existiam
 // no app e que o exerciseCatalog classifica. Principal ("main") nunca é cortado por tempo;
 // acessório e cardio são os primeiros a sair quando o tempo aperta.
@@ -241,7 +273,7 @@ export const THREE_SESSION_DAYS = [
   },
   {
     weekday: 5, sequence_order: 3, session_split: 'full_body', title: 'Full body', reference: '21h15 às 22h45 (academia fecha às 23h)',
-    cardio: { min: 10, max: 15, intensity: 'leve', label: 'Cardio leve no final', description: '10-15min · Primeiro a sair se o tempo apertar.' },
+    cardio: { min: 15, max: 20, intensity: 'leve', label: 'Cardio leve no final', description: '15-20min · Leve. Primeiro a sair se o tempo apertar.' },
   },
 ] as const;
 
@@ -269,7 +301,7 @@ export function buildTrainingPlanFromProfile(profile = PROFILE_FALLBACKS) {
     days: [],
   };
 
-  const addStrengthDay = (weekday, letter, title, type = 'forca', library = strengthLibrary) => {
+  const addStrengthDay = (weekday, letter, title, type = 'forca', library: Record<string, any[]> = strengthLibrary, identity: Record<string, unknown> = {}) => {
     const exercises = library[letter].map((exercise, idx) => ({ ...exercise, position: idx + 1 }));
     if (type.includes('corrida')) {
       exercises.push({ position: exercises.length + 1, exercise_name: 'Cardio pós-treino', sets: '1', reps: '10-15min', rest_seconds: 0, notes: cardioNote(profile) });
@@ -280,6 +312,7 @@ export function buildTrainingPlanFromProfile(profile = PROFILE_FALLBACKS) {
       title,
       type,
       day_kind: hasCardio ? 'strength_cardio' : 'strength',
+      ...identity,
       cardio_required: hasCardio,
       cardio_options: hasCardio ? [{ label: 'Cardio pós-treino', description: cardioNote(profile) }] : [],
       notes: `Treino gerado pelo perfil do usuário. Horário preferencial: ${String(profile.training_time ?? '18:00').slice(0, 5)}. Ajuste cargas pelo registro de força.`,
@@ -287,7 +320,7 @@ export function buildTrainingPlanFromProfile(profile = PROFILE_FALLBACKS) {
     });
   };
 
-  if (strengthDays >= 3) {
+  if (strengthDays === 3) {
     // Plano de 3 treinos: cardio é etapa fixa de cada sessão, não um dia separado.
     for (const template of THREE_SESSION_DAYS) {
       plan.days.push({
@@ -319,6 +352,31 @@ export function buildTrainingPlanFromProfile(profile = PROFILE_FALLBACKS) {
         exercises: [],
       });
     }
+  } else if (strengthDays >= 4) {
+    addStrengthDay(1, 'A', 'Superior A', cardioDays >= 1 ? 'forca_corrida' : 'forca', fourDayStrengthLibrary, { session_split: 'upper', sequence_order: 1 });
+    addStrengthDay(2, 'B', 'Inferior A', cardioDays >= 3 ? 'forca_z2' : 'forca', fourDayStrengthLibrary, { session_split: 'lower', sequence_order: 2 });
+    addStrengthDay(4, 'C', 'Superior B', cardioDays >= 4 ? 'forca_z2' : 'forca', fourDayStrengthLibrary, { session_split: 'upper', sequence_order: 3 });
+    addStrengthDay(5, 'D', 'Inferior B', cardioDays >= 2 ? 'forca_z2' : 'forca', fourDayStrengthLibrary, { session_split: 'lower', sequence_order: 4 });
+    plan.days.push({
+      weekday: 3,
+      title: 'Descanso entre blocos',
+      type: 'descanso',
+      day_kind: 'rest',
+      cardio_required: false,
+      cardio_options: [],
+      notes: 'Quarta-feira reservada para recuperação. Caminhada leve é opcional e não precisa virar treino.',
+      exercises: [],
+    });
+    plan.days.push({
+      weekday: 6,
+      title: 'Dia livre',
+      type: 'descanso',
+      day_kind: 'rest',
+      cardio_required: false,
+      cardio_options: [],
+      notes: 'Sábado livre. Futebol ou lazer são opcionais e devem ser registrados somente se realmente acontecerem.',
+      exercises: [],
+    });
   } else {
     addStrengthDay(1, 'A', 'Força A — Full body', cardioDays >= 2 ? 'forca_corrida' : 'forca');
     addStrengthDay(4, 'B', 'Força B — Full body');
