@@ -1,0 +1,264 @@
+{
+  "closed": {
+    "findings": [
+      {
+        "kind": "nested_card",
+        "selector": "div.insight-card «Cardio apareceu na semana»",
+        "detail": "profundidade 2 dentro de section.panel.report-card.good «Cardio apareceu na semana»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.insight-card «Movimento diário razoável»",
+        "detail": "profundidade 2 dentro de section.panel.report-card.good «Cardio apareceu na semana»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.insight-card «Musculação abaixo do alvo»",
+        "detail": "profundidade 2 dentro de section.panel.report-card.warning «Musculação abaixo do alvo»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.insight-card «Dados de dieta insuficientes»",
+        "detail": "profundidade 2 dentro de section.panel.report-card.warning «Musculação abaixo do alvo»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.insight-card «Água irregular»",
+        "detail": "profundidade 2 dentro de section.panel.report-card.warning «Musculação abaixo do alvo»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.insight-card «Check-in baixo»",
+        "detail": "profundidade 2 dentro de section.panel.report-card.warning «Musculação abaixo do alvo»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div «1»",
+        "detail": "profundidade 2 dentro de section.panel «1»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div «2»",
+        "detail": "profundidade 2 dentro de section.panel «1»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div «3»",
+        "detail": "profundidade 2 dentro de section.panel «1»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.adherence-day «qui., 05»",
+        "detail": "profundidade 2 dentro de section.panel «qui., 05»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.adherence-day «sex., 06»",
+        "detail": "profundidade 2 dentro de section.panel «qui., 05»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.adherence-day «sáb., 07»",
+        "detail": "profundidade 2 dentro de section.panel «qui., 05»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.adherence-day «dom., 08»",
+        "detail": "profundidade 2 dentro de section.panel «qui., 05»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.adherence-day «seg., 09»",
+        "detail": "profundidade 2 dentro de section.panel «qui., 05»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.adherence-day «ter., 10»",
+        "detail": "profundidade 2 dentro de section.panel «qui., 05»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.adherence-day «qua., 11»",
+        "detail": "profundidade 2 dentro de section.panel «qui., 05»"
+      },
+      {
+        "kind": "tight_padding",
+        "selector": "div.adherence-day «qui., 05»",
+        "detail": "texto «qui., 05» a 10px da borda interna (mínimo 12px)"
+      },
+      {
+        "kind": "tight_padding",
+        "selector": "div.adherence-day «sex., 06»",
+        "detail": "texto «sex., 06» a 10px da borda interna (mínimo 12px)"
+      },
+      {
+        "kind": "tight_padding",
+        "selector": "div.adherence-day «sáb., 07»",
+        "detail": "texto «sáb., 07» a 10px da borda interna (mínimo 12px)"
+      },
+      {
+        "kind": "tight_padding",
+        "selector": "div.adherence-day «dom., 08»",
+        "detail": "texto «dom., 08» a 10px da borda interna (mínimo 12px)"
+      },
+      {
+        "kind": "tight_padding",
+        "selector": "div.adherence-day «seg., 09»",
+        "detail": "texto «seg., 09» a 10px da borda interna (mínimo 12px)"
+      },
+      {
+        "kind": "tight_padding",
+        "selector": "div.adherence-day «ter., 10»",
+        "detail": "texto «ter., 10» a 10px da borda interna (mínimo 12px)"
+      },
+      {
+        "kind": "tight_padding",
+        "selector": "div.adherence-day «qua., 11»",
+        "detail": "texto «qua., 11» a 10px da borda interna (mínimo 12px)"
+      },
+      {
+        "kind": "cramped",
+        "selector": "section.panel.weekly-score-panel.danger «Semana fraca»",
+        "detail": "colado 0px abaixo de header.ds-page-header «Resumo do período»"
+      },
+      {
+        "kind": "cramped",
+        "selector": "section.panel «1»",
+        "detail": "colado 0px abaixo de div.rule-report-grid «Cardio apareceu na semana»"
+      }
+    ],
+    "cardCount": 31,
+    "maxCardDepth": 2
+  },
+  "expanded": {
+    "findings": [
+      {
+        "kind": "nested_card",
+        "selector": "div.insight-card «Cardio apareceu na semana»",
+        "detail": "profundidade 2 dentro de section.panel.report-card.good «Cardio apareceu na semana»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.insight-card «Movimento diário razoável»",
+        "detail": "profundidade 2 dentro de section.panel.report-card.good «Cardio apareceu na semana»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.insight-card «Musculação abaixo do alvo»",
+        "detail": "profundidade 2 dentro de section.panel.report-card.warning «Musculação abaixo do alvo»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.insight-card «Dados de dieta insuficientes»",
+        "detail": "profundidade 2 dentro de section.panel.report-card.warning «Musculação abaixo do alvo»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.insight-card «Água irregular»",
+        "detail": "profundidade 2 dentro de section.panel.report-card.warning «Musculação abaixo do alvo»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.insight-card «Check-in baixo»",
+        "detail": "profundidade 2 dentro de section.panel.report-card.warning «Musculação abaixo do alvo»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div «1»",
+        "detail": "profundidade 2 dentro de section.panel «1»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div «2»",
+        "detail": "profundidade 2 dentro de section.panel «1»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div «3»",
+        "detail": "profundidade 2 dentro de section.panel «1»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.adherence-day «qui., 05»",
+        "detail": "profundidade 2 dentro de section.panel «qui., 05»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.adherence-day «sex., 06»",
+        "detail": "profundidade 2 dentro de section.panel «qui., 05»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.adherence-day «sáb., 07»",
+        "detail": "profundidade 2 dentro de section.panel «qui., 05»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.adherence-day «dom., 08»",
+        "detail": "profundidade 2 dentro de section.panel «qui., 05»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.adherence-day «seg., 09»",
+        "detail": "profundidade 2 dentro de section.panel «qui., 05»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.adherence-day «ter., 10»",
+        "detail": "profundidade 2 dentro de section.panel «qui., 05»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.adherence-day «qua., 11»",
+        "detail": "profundidade 2 dentro de section.panel «qui., 05»"
+      },
+      {
+        "kind": "tight_padding",
+        "selector": "div.adherence-day «qui., 05»",
+        "detail": "texto «qui., 05» a 10px da borda interna (mínimo 12px)"
+      },
+      {
+        "kind": "tight_padding",
+        "selector": "div.adherence-day «sex., 06»",
+        "detail": "texto «sex., 06» a 10px da borda interna (mínimo 12px)"
+      },
+      {
+        "kind": "tight_padding",
+        "selector": "div.adherence-day «sáb., 07»",
+        "detail": "texto «sáb., 07» a 10px da borda interna (mínimo 12px)"
+      },
+      {
+        "kind": "tight_padding",
+        "selector": "div.adherence-day «dom., 08»",
+        "detail": "texto «dom., 08» a 10px da borda interna (mínimo 12px)"
+      },
+      {
+        "kind": "tight_padding",
+        "selector": "div.adherence-day «seg., 09»",
+        "detail": "texto «seg., 09» a 10px da borda interna (mínimo 12px)"
+      },
+      {
+        "kind": "tight_padding",
+        "selector": "div.adherence-day «ter., 10»",
+        "detail": "texto «ter., 10» a 10px da borda interna (mínimo 12px)"
+      },
+      {
+        "kind": "tight_padding",
+        "selector": "div.adherence-day «qua., 11»",
+        "detail": "texto «qua., 11» a 10px da borda interna (mínimo 12px)"
+      },
+      {
+        "kind": "cramped",
+        "selector": "section.panel.weekly-score-panel.danger «Semana fraca»",
+        "detail": "colado 0px abaixo de header.ds-page-header «Resumo do período»"
+      },
+      {
+        "kind": "cramped",
+        "selector": "section.panel «1»",
+        "detail": "colado 0px abaixo de div.rule-report-grid «Cardio apareceu na semana»"
+      }
+    ],
+    "cardCount": 31,
+    "maxCardDepth": 2
+  }
+}

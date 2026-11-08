@@ -209,7 +209,7 @@ function scaleOptionalMacro(value: number | null, factor: number) {
 }
 
 function formatMacroTotal(value: number, itemCount: number) {
-  if (!itemCount) return '--';
+  if (!itemCount) return '—';
   // O "parcial" vai no detalhe do card; o número grande fica curto para caber em qualquer coluna.
   return `${value.toFixed(0)}g`;
 }

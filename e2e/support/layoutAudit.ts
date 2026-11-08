@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test';
 
 export interface LayoutFinding {
   kind: 'clipped' | 'scroll_hidden' | 'overlap' | 'text_collision' | 'escapes_card' | 'nested_card' | 'page_overflow' | 'offscreen'
-    | 'tight_padding' | 'chip_wrap' | 'double_divider' | 'cramped';
+    | 'tight_padding' | 'chip_wrap' | 'double_divider' | 'cramped' | 'text_covered';
   selector: string;
   detail: string;
 }
@@ -189,6 +189,23 @@ export async function auditLayout(page: Page): Promise<{ findings: LayoutFinding
         if (cutX || cutY) break;
       }
     }
+    // Texto saindo da caixa pintada mais próxima (selo, pílula, botão com fundo): o caso do número
+    // grande dentro de um quadrado de altura fixa. Card já é coberto por escapes_card acima.
+    const escapedBox = new Set<Element>();
+    for (const text of texts) {
+      if (text.label.startsWith('::before') || escapedBox.has(text.el)) continue;
+      let box: Element | null = null;
+      for (let anc: Element | null = text.el; anc && anc !== document.body; anc = anc.parentElement) {
+        const st = getComputedStyle(anc);
+        if (st.display === 'inline') continue;
+        if (boxLike(st) || cardSet.has(anc)) { box = anc; break; }
+      }
+      if (!box || cardSet.has(box)) continue;
+      const b = box.getBoundingClientRect(); const r = text.rect;
+      const out = Math.max(b.left - r.left, r.right - b.right, b.top - r.top, r.bottom - b.bottom);
+      if (out > 1.5) { escapedBox.add(text.el); findings.push({ kind: 'escapes_card', selector: describe(text.el), detail: `texto «${text.label}» sai ${Math.round(out)}px da caixa ${describe(box)}` }); }
+    }
+
     // Reticências escondem texto: conta como corte.
     for (const el of all) {
       const style = getComputedStyle(el);
@@ -212,6 +229,47 @@ export async function auditLayout(page: Page): Promise<{ findings: LayoutFinding
         }
       }
     }
+
+    // Texto coberto por outro elemento (campo, caixa, item vizinho): pergunta ao navegador o que está
+    // pintado por cima de 3 pontos de cada linha de texto. Pega o que a colisão texto×texto não pega,
+    // como subtítulo atrás de um campo de data ou texto atrás de uma caixa com fundo.
+    const paints = (el: Element) => {
+      const style = getComputedStyle(el);
+      if (parse(style.opacity) === 0 || style.visibility === 'hidden') return false;
+      return boxLike(style) || ['INPUT', 'SELECT', 'TEXTAREA', 'IMG', 'svg', 'CANVAS'].includes(el.tagName)
+        || [style.borderTopWidth, style.borderBottomWidth, style.borderLeftWidth, style.borderRightWidth].some((w) => parse(w) > 0);
+    };
+    const stuck = (el: Element) => { for (let n: Element | null = el; n; n = n.parentElement) { const p = getComputedStyle(n).position; if (p === 'fixed' || p === 'sticky') return n; } return null; };
+    const startY = window.scrollY;
+    const docTexts = texts.filter((t) => !t.label.startsWith('::before') && !t.layer && !stuck(t.el)).map((t) => ({ ...t, docTop: t.rect.top + startY }));
+    const coveredReported = new Set<Element>();
+    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+    for (let y = 0; y <= Math.max(0, maxScroll) + 1; y += Math.max(200, Math.floor(window.innerHeight / 2))) {
+      window.scrollTo(0, y);
+      const sy = window.scrollY;
+      for (const t of docTexts) {
+        if (coveredReported.has(t.el)) continue;
+        const top = t.docTop - sy;
+        if (top < 0 || top + t.rect.height > window.innerHeight) continue;
+        const cy = top + t.rect.height / 2;
+        for (const cx of [t.rect.left + 3, t.rect.left + t.rect.width / 2, t.rect.right - 3]) {
+          if (cx < 0 || cx > vw) continue;
+          const stack = document.elementsFromPoint(cx, cy);
+          let cover: Element | null = null;
+          for (const hit of stack) {
+            if (hit === t.el || t.el.contains(hit) || hit.contains(t.el)) break;
+            if (stuck(hit)) continue; // nav fixa/toast: some ao rolar, não é defeito de layout
+            if (paints(hit)) { cover = hit; break; }
+          }
+          if (cover) {
+            coveredReported.add(t.el);
+            findings.push({ kind: 'text_covered', selector: describe(t.el), detail: `texto «${t.label}» coberto por ${describe(cover)}` });
+            break;
+          }
+        }
+      }
+    }
+    window.scrollTo(0, startY);
 
     // ── Ritmo visual (não é corte nem colisão, mas o olho pega) ──────────────────────────────
     const MIN_PADDING = 12;
@@ -300,9 +358,24 @@ export async function auditLayout(page: Page): Promise<{ findings: LayoutFinding
       }
     }
 
-    // 4) Elementos colados: irmãos empilhados com menos de 4px quando um deles é caixa/controle;
-    //    e ícone encostado no marcador ▶ do <summary>.
+    // 4) Elementos colados: irmãos empilhados cujas caixas PINTADAS mais próximas (o próprio irmão ou
+    //    um descendente na borda: campo dentro do cabeçalho, botão dentro de uma div) ficam a menos de
+    //    6px; e ícone encostado no marcador ▶ do <summary>.
+    const MIN_GAP = 6;
     const boxedEl = (el: Element) => boxLike(getComputedStyle(el));
+    const paintedEdge = (el: Element, side: 'top' | 'bottom') => {
+      const own = el.getBoundingClientRect();
+      let best: number | null = null;
+      for (const node of [el, ...el.querySelectorAll('*')]) {
+        if (!visible(node) || (node !== el && outOfFlow(node))) continue;
+        if (!(isControl(node) || boxedEl(node))) continue;
+        const r = node.getBoundingClientRect();
+        if (r.height < 2) continue;
+        if (side === 'bottom' && r.bottom >= own.bottom - 2) best = Math.max(best ?? -Infinity, r.bottom);
+        if (side === 'top' && r.top <= own.top + 2) best = Math.min(best ?? Infinity, r.top);
+      }
+      return best;
+    };
     for (const parent of all) {
       const kids = [...parent.children].filter((kid) => visible(kid) && !outOfFlow(kid) && kid.tagName !== 'SUMMARY');
       for (let i = 0; i + 1 < kids.length; i += 1) {
@@ -310,13 +383,14 @@ export async function auditLayout(page: Page): Promise<{ findings: LayoutFinding
         const ra = a.getBoundingClientRect(); const rb = b.getBoundingClientRect();
         if (ra.height < 2 || rb.height < 2 || rb.top < ra.bottom - 1) continue;
         if (Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left) <= 0) continue;
-        if (!boxedEl(a) && !boxedEl(b)) continue;
+        const ea = paintedEdge(a, 'bottom'); const eb = paintedEdge(b, 'top');
+        if (ea === null && eb === null) continue;
         // Itens irmãos da mesma lista separados por divisória (linhas de tabela, fila, histórico).
         if (a.tagName === b.tagName && (hasDivider(getComputedStyle(a)) || hasDivider(getComputedStyle(b)))) continue;
         // Linhas de lista separadas por divisória já têm o respiro dentro delas.
-        if (cardSet.has(parent) && !boxedEl(a) && !boxedEl(b)) continue;
-        const gap = rb.top - ra.bottom;
-        if (gap < 4) findings.push({ kind: 'cramped', selector: describe(b), detail: `colado ${Math.round(gap)}px abaixo de ${describe(a)}` });
+        if (cardSet.has(parent) && !boxedEl(a) && !boxedEl(b) && ea === null && eb === null) continue;
+        const gap = (eb ?? rb.top) - (ea ?? ra.bottom);
+        if (gap < MIN_GAP) findings.push({ kind: 'cramped', selector: describe(b), detail: `colado ${Math.round(gap)}px abaixo de ${describe(a)}` });
       }
     }
     for (const summary of all.filter((el) => el.tagName === 'SUMMARY')) {

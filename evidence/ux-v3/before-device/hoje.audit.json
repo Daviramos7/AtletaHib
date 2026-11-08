@@ -1,0 +1,24 @@
+{
+  "closed": {
+    "findings": [
+      {
+        "kind": "cramped",
+        "selector": "summary «Sobre os dados de hoje 4 avisos»",
+        "detail": "ícone a 21px do início, encostado no marcador ▶"
+      }
+    ],
+    "cardCount": 3,
+    "maxCardDepth": 1
+  },
+  "expanded": {
+    "findings": [
+      {
+        "kind": "cramped",
+        "selector": "summary «Sobre os dados de hoje 4 avisos»",
+        "detail": "ícone a 21px do início, encostado no marcador ▶"
+      }
+    ],
+    "cardCount": 7,
+    "maxCardDepth": 1
+  }
+}

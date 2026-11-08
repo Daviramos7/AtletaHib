@@ -181,7 +181,7 @@ html { -webkit-tap-highlight-color: rgba(184,255,0,.18); }
   .top-actions .ghost-btn span { display: none; }
   .main-grid-v2 { margin-top: 0; }
   .content-card-v2 { min-height: calc(100dvh - 66px); padding: 15px 12px 26px; border: 0; border-radius: 0; background: transparent; }
-  .ds-page-header { display: grid; }
+  .ds-page-header { display: grid; grid-template-columns: minmax(0, 1fr); justify-content: stretch; }
   .ds-page-header__action { width: 100%; }
   .ds-page-header__action > * { width: 100%; }
   .ds-page-header__action .pill,
@@ -227,7 +227,6 @@ button, a, input, select, textarea, summary { scroll-margin-block: 88px; }
 .content-card-v2 .small-metric,
 .content-card-v2 .hevy-card-v32,
 .content-card-v2 .cardio-progress-v322,
-.content-card-v2 .sleep-history-card { background: var(--surface); background-image: none; box-shadow: none; }
 .content-card-v2 .simple-hero { background: transparent; border: 0; padding: 0; box-shadow: none; }
 .simple-page { gap: var(--space-4); }
 .simple-panel, .panel { padding: var(--space-4); border-radius: var(--brand-radius-md); }
@@ -239,8 +238,8 @@ button, a, input, select, textarea, summary { scroll-margin-block: 88px; }
 .metric-head svg { width: 17px; flex-shrink: 0; }
 .pill, .day-kind-badge, .ds-badge { max-width: 100%; white-space: normal; font-weight: 600; border-radius: var(--brand-radius-sm); line-height: 1.4; }
 /* Seletor de abas: botões soltos, sem caixa externa (era card com botões-card dentro). */
-.simple-tabs { display: flex; flex-wrap: wrap; gap: var(--space-2); padding: 0; border: 0; background: transparent; }
-.simple-tabs button { flex: 1 1 auto; justify-content: center; font-size: .85rem; font-weight: 600; white-space: nowrap; border: 1px solid var(--border); border-radius: var(--brand-radius-sm); background: transparent; }
+.simple-tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 6.5em), 1fr)); gap: var(--space-2); padding: 0; border: 0; background: transparent; }
+.simple-tabs button { min-width: 0; justify-content: center; font-size: .85rem; font-weight: 600; white-space: nowrap; border: 1px solid var(--border); border-radius: var(--brand-radius-sm); background: transparent; }
 .simple-tabs button.active { color: var(--text); border-color: var(--brand-lime); background: var(--brand-surface-raised); box-shadow: none; }
 .topbar-v2 { min-height: 64px; padding-block: 8px 16px; }
 .topbar-current h1 { font-size: 1rem; font-weight: 600; }
@@ -254,6 +253,9 @@ button, a, input, select, textarea, summary { scroll-margin-block: 88px; }
 .app-notice > span { flex: 1; }
 .app-notice > button { display: grid; place-items: center; flex: 0 0 44px; width: 44px; color: var(--text); border: 0; background: transparent; }
 .disclosure-panel, .gym-secondary-details { min-width: 0; }
+/* A tela de cada aba (Registrar e Progresso) é sempre uma pilha com o mesmo respiro,
+   seja qual for a classe da raiz dela (várias eram <div> em bloco, sem espaçamento). */
+.register-logbook > .simple-tabs ~ *, .progress-hub > .simple-tabs ~ * { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
 .disclosure-panel { padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--brand-radius-md); background: var(--surface); }
 .panel .disclosure-panel, .simple-panel .disclosure-panel { padding: var(--space-3) 0 0; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; }
 summary { cursor: pointer; color: var(--text); line-height: 1.5; min-height: 44px; align-content: center; font-weight: 600; }
@@ -293,7 +295,7 @@ details[open] > summary { margin-bottom: var(--space-3); }
 .readiness-card-v36.compact { border-left-width: 3px; }
 .quality-details { background: transparent; border: 0; border-top: 1px solid var(--border); border-radius: 0; padding: var(--space-3) 0 0; }
 .quality-details summary { color: var(--muted); font-weight: 500; }
-.quality-details summary > svg { margin: 0 6px 0 8px; vertical-align: -3px; }
+.quality-details summary > svg { margin: 0 6px 0 10px; vertical-align: -3px; }
 .quality-details summary > span { margin-left: 6px; white-space: nowrap; }
 .quality-details > .ghost-btn { margin-top: var(--space-3); }
 .water-quick-card-v361 h3 { font-size: 1.6rem; }
@@ -301,7 +303,7 @@ details[open] > summary { margin-bottom: var(--space-3); }
 .gym-session-context { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .gym-session-context > div { min-width: 0; }
 .gym-session-timer { display: flex; gap: var(--space-2); align-items: center; font-variant-numeric: tabular-nums; }
-.gym-inline-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-2); }
+.gym-inline-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3); }
 .weekly-queue-status { display: flex; align-items: center; gap: var(--space-1); font-weight: 600; }
 .weekly-queue-status svg { flex-shrink: 0; }
 .weekly-gym-grid-v42 button { border-radius: var(--brand-radius-sm); padding: var(--space-3); border-left: 3px solid var(--border); }
@@ -410,8 +412,8 @@ details[open] > summary { margin-bottom: var(--space-3); }
   .water-actions-v361 > div { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .water-actions-v361 button { font-weight: 600; }
   .sleep-stage-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .sleep-hero-main { grid-template-columns: minmax(0, 1fr) 72px; gap: 12px; }
-  .sleep-score-orb { width: 72px; height: 72px; border-radius: var(--brand-radius-md); }
+  .sleep-hero-main { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
+  .sleep-score-orb { min-width: 72px; min-height: 72px; border-radius: var(--brand-radius-md); }
   .sleep-score-orb span { font-size: 1.7rem; font-weight: 600; letter-spacing: 0; }
   .ds-dialog__actions { grid-template-columns: 1fr 1fr; }
 }
@@ -436,7 +438,7 @@ details[open] > summary { margin-bottom: var(--space-3); }
 .gym-v32-page .replacement-actions-v332 button { border-radius: 8px; font-weight: 600; min-width: 60px; width: auto; padding: 8px; }
 .gym-v32-page .exercise-progress-mini-v34 { padding: 12px; background: transparent; }
 .gym-v32-page .exercise-progress-mini-v34 strong { font-size: .875rem; font-weight: 400; line-height: 1.5; letter-spacing: 0; }
-.gym-v32-page .hevy-rest-v32 { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; padding: 4px 12px; font-size: .85rem; line-height: 1.5; font-weight: 400; color: var(--muted); background: transparent; }
+.gym-v32-page .hevy-rest-v32 { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 4px 12px; font-size: .85rem; line-height: 1.5; font-weight: 400; color: var(--muted); background: transparent; }
 .gym-v32-page .hevy-rest-v32 button { flex-shrink: 0; padding: 6px 0; min-height: 44px; line-height: 1.5; font-weight: 500; }
 .gym-v32-page .hevy-table-v32 { padding: 4px 12px 12px; }
 /* Linha de série: colunas proporcionais (nº, carga/segundos, reps/meta, RPE) + botão de 44px. Única definição. */

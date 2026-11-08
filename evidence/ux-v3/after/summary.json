@@ -2,26 +2,26 @@
   {
     "width": 360,
     "screen": "hoje",
-    "cards": 3,
-    "maxCardDepth": 1
-  },
-  {
-    "width": 360,
-    "screen": "registrar",
-    "cards": 4,
-    "maxCardDepth": 1
-  },
-  {
-    "width": 360,
-    "screen": "academia",
     "cards": 1,
     "maxCardDepth": 1
   },
   {
     "width": 360,
+    "screen": "registrar",
+    "cards": 0,
+    "maxCardDepth": 0
+  },
+  {
+    "width": 360,
+    "screen": "academia",
+    "cards": 0,
+    "maxCardDepth": 0
+  },
+  {
+    "width": 360,
     "screen": "academia-sessao",
-    "cards": 8,
-    "maxCardDepth": 1
+    "cards": 0,
+    "maxCardDepth": 0
   },
   {
     "width": 360,
@@ -32,8 +32,8 @@
   {
     "width": 360,
     "screen": "saude",
-    "cards": 4,
-    "maxCardDepth": 1
+    "cards": 0,
+    "maxCardDepth": 0
   },
   {
     "width": 360,
@@ -50,26 +50,26 @@
   {
     "width": 390,
     "screen": "hoje",
-    "cards": 3,
-    "maxCardDepth": 1
-  },
-  {
-    "width": 390,
-    "screen": "registrar",
-    "cards": 4,
-    "maxCardDepth": 1
-  },
-  {
-    "width": 390,
-    "screen": "academia",
     "cards": 1,
     "maxCardDepth": 1
   },
   {
     "width": 390,
+    "screen": "registrar",
+    "cards": 0,
+    "maxCardDepth": 0
+  },
+  {
+    "width": 390,
+    "screen": "academia",
+    "cards": 0,
+    "maxCardDepth": 0
+  },
+  {
+    "width": 390,
     "screen": "academia-sessao",
-    "cards": 8,
-    "maxCardDepth": 1
+    "cards": 0,
+    "maxCardDepth": 0
   },
   {
     "width": 390,
@@ -80,8 +80,8 @@
   {
     "width": 390,
     "screen": "saude",
-    "cards": 4,
-    "maxCardDepth": 1
+    "cards": 0,
+    "maxCardDepth": 0
   },
   {
     "width": 390,
@@ -98,26 +98,26 @@
   {
     "width": 412,
     "screen": "hoje",
-    "cards": 3,
-    "maxCardDepth": 1
-  },
-  {
-    "width": 412,
-    "screen": "registrar",
-    "cards": 4,
-    "maxCardDepth": 1
-  },
-  {
-    "width": 412,
-    "screen": "academia",
     "cards": 1,
     "maxCardDepth": 1
   },
   {
     "width": 412,
+    "screen": "registrar",
+    "cards": 0,
+    "maxCardDepth": 0
+  },
+  {
+    "width": 412,
+    "screen": "academia",
+    "cards": 0,
+    "maxCardDepth": 0
+  },
+  {
+    "width": 412,
     "screen": "academia-sessao",
-    "cards": 8,
-    "maxCardDepth": 1
+    "cards": 0,
+    "maxCardDepth": 0
   },
   {
     "width": 412,
@@ -128,8 +128,8 @@
   {
     "width": 412,
     "screen": "saude",
-    "cards": 4,
-    "maxCardDepth": 1
+    "cards": 0,
+    "maxCardDepth": 0
   },
   {
     "width": 412,
@@ -146,26 +146,26 @@
   {
     "width": 1440,
     "screen": "hoje",
-    "cards": 3,
-    "maxCardDepth": 1
-  },
-  {
-    "width": 1440,
-    "screen": "registrar",
-    "cards": 4,
-    "maxCardDepth": 1
-  },
-  {
-    "width": 1440,
-    "screen": "academia",
     "cards": 1,
     "maxCardDepth": 1
   },
   {
     "width": 1440,
+    "screen": "registrar",
+    "cards": 0,
+    "maxCardDepth": 0
+  },
+  {
+    "width": 1440,
+    "screen": "academia",
+    "cards": 0,
+    "maxCardDepth": 0
+  },
+  {
+    "width": 1440,
     "screen": "academia-sessao",
-    "cards": 8,
-    "maxCardDepth": 1
+    "cards": 0,
+    "maxCardDepth": 0
   },
   {
     "width": 1440,
@@ -176,8 +176,8 @@
   {
     "width": 1440,
     "screen": "saude",
-    "cards": 4,
-    "maxCardDepth": 1
+    "cards": 0,
+    "maxCardDepth": 0
   },
   {
     "width": 1440,

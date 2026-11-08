@@ -20,7 +20,7 @@ const SCALES = [1, 1.15, 1.3];
 const SHOT_CASES = new Set(['320-fonte115', '320-fonte130', '360-fonte115', '360-fonte130', '390-fonte130']);
 const FAILING_KINDS: LayoutFinding['kind'][] = [
   'clipped', 'scroll_hidden', 'text_collision', 'escapes_card', 'overlap', 'offscreen', 'page_overflow',
-  'tight_padding', 'chip_wrap', 'double_divider', 'cramped',
+  'tight_padding', 'chip_wrap', 'double_divider', 'cramped', 'text_covered',
 ];
 
 const rows: Array<Record<string, unknown>> = [];
@@ -89,6 +89,13 @@ for (const width of WIDTHS) {
         await page.reload(); await settle(page);
         await navigate(page, 'Registrar');
         await page.locator('.logbook-choices').getByRole('button', { name: tab, exact: true }).click();
+        await check(page, tag, screen, scale, failures);
+      }
+      // Todas as abas do Progresso (Peso é a padrão, já auditada acima).
+      for (const [tab, screen] of [['Sono', 'progresso-sono'], ['Força', 'progresso-forca'], ['Relógio', 'progresso-relogio'], ['Cardio', 'progresso-cardio'], ['Semana', 'progresso-semana']]) {
+        await page.reload(); await settle(page);
+        await navigate(page, 'Progresso');
+        await page.locator('.progress-domains').getByRole('button', { name: tab, exact: true }).click();
         await check(page, tag, screen, scale, failures);
       }
       await page.reload(); await settle(page); await navigate(page, 'Academia');

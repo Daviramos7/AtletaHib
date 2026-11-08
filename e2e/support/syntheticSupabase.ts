@@ -101,14 +101,20 @@ export function buildScenario({ onboardingCompleted = true, strengthDays = 3, to
       { id: 'meal-2', user_id: USER_ID, log_date: today, meal_type: 'almoco', food_name: 'Arroz, feijão, frango grelhado e salada', grams: 420, kcal: 640, protein_g: 48, carbs_g: 70, fat_g: 14, source: 'manual', created_at: iso },
       { id: 'meal-3', user_id: USER_ID, log_date: today, meal_type: 'lanche', food_name: 'Barra de proteína (rótulo sem macros)', grams: 45, kcal: 190, protein_g: null, carbs_g: null, fat_g: null, source: 'manual', created_at: iso },
     ],
-    sleep_sessions: Array.from({ length: 7 }, (_, i) => ({ id: `sleep-${i}`, user_id: USER_ID, sleep_date: shift(today, -i), sleep_start_time: '23:20', sleep_end_time: '06:40', duration_minutes: 440 - i * 6, sleep_score: 80 - i, deep_sleep_minutes: 90, light_sleep_minutes: 250, rem_sleep_minutes: 90, awake_minutes: 10, avg_heart_rate: 57, avg_spo2: 97, source_app: 'Mi Fitness', import_method: 'health_connect', confidence: 'high', updated_at: iso })),
+    sleep_sessions: Array.from({ length: 7 }, (_, i) => ({ id: `sleep-${i}`, user_id: USER_ID, sleep_date: shift(today, -i), sleep_start_time: '23:20', sleep_end_time: '06:40', duration_minutes: i === 1 ? 356 : 440 - i * 6, sleep_score: i === 1 ? 49 : 80 - i, deep_sleep_minutes: 90, light_sleep_minutes: 250, rem_sleep_minutes: 90, awake_minutes: 10, avg_heart_rate: 57, avg_spo2: 97, source_app: 'Mi Fitness', import_method: 'health_connect', confidence: 'high', updated_at: iso })),
     weight_logs: Array.from({ length: 8 }, (_, i) => ({ id: `weight-${i}`, user_id: USER_ID, log_date: shift(today, -i * 7), weight_kg: Number((84.6 + i * 0.45).toFixed(1)), waist_cm: null })),
     wearable_daily_metrics: [{ id: 'metric-phone', user_id: USER_ID, metric_date: today, source: 'health_connect_phone', provider: 'google_fit', steps: 6900, sleep_minutes: null, avg_heart_rate: null, resting_heart_rate: null, active_kcal: 380, workout_minutes: 0, distance_km: 4.8, updated_at: iso }, ...Array.from({ length: 7 }, (_, i) => ({ id: `metric-${i}`, user_id: USER_ID, metric_date: shift(today, -i), source: 'health_connect_android_bridge', provider: 'redmi_mi_fitness', steps: 7400 - i * 350, sleep_minutes: 440 - i * 6, avg_heart_rate: 71, resting_heart_rate: 57, active_kcal: 420 - i * 15, workout_minutes: i % 2 ? 0 : 70, distance_km: 5.1, updated_at: iso }))],
     health_integrations: [{ id: 'integration-demo', user_id: USER_ID, provider: 'redmi_mi_fitness', device_name: 'Relógio de teste', source_app: 'Mi Fitness', sync_mode: 'health_connect', status: 'connected', last_sync_at: iso }],
     workout_sessions: sessions,
     workout_exercise_sets: sets,
     cardio_sessions: [{ id: 'cardio-today', user_id: USER_ID, workout_session_id: null, performed_at: `${today}T07:10:00-03:00`, activity_type: 'esteira', duration_seconds: 1680, distance_km: 3.4, avg_heart_rate: 122, active_kcal: 240, source: 'manual', counts_toward_daily_totals: false, counts_toward_progression: true, created_at: iso }, ...sessions.map((session, i) => ({ id: `cardio-${i}`, user_id: USER_ID, workout_session_id: session.id, performed_at: session.performed_at, activity_type: 'bike', duration_seconds: 1200, distance_km: 6.2, avg_heart_rate: 128, active_kcal: 190, source: 'manual', counts_toward_daily_totals: false, counts_toward_progression: true, created_at: session.performed_at }))],
-    wearable_workout_sessions: [],
+    // Treinos importados do relógio (aba Relógio do Progresso), com FC e kcal.
+    wearable_workout_sessions: sessions.slice(-3).map((session, i) => ({
+      id: `wearable-${i}`, user_id: USER_ID, workout_session_id: session.id, performed_at: session.performed_at,
+      activity_label: 'Treino de força', device_name: 'Redmi Watch', source_app: 'Mi Fitness', dedupe_key: `mi-${i}`,
+      duration_seconds: 4380 - i * 120, active_kcal: 410 + i * 12, total_kcal: 520 + i * 15, avg_heart_rate: 112 + i, max_heart_rate: 158 + i,
+      metrics_may_already_exist_in_health_connect: i === 0, created_at: session.performed_at,
+    })),
     custom_foods: [],
   };
 }
@@ -120,7 +126,8 @@ export interface MockHandle {
 }
 
 /** Instala o mock no contexto e uma sessão sintética (sem tela de login). */
-export async function installSyntheticSupabase(context: BrowserContext, baseURL: string, data: SyntheticData, { authenticated = true } = {}): Promise<MockHandle> {
+// Aceita contexto inteiro (desktop) ou só uma aba (Chrome real do celular: não pode interceptar as outras abas).
+export async function installSyntheticSupabase(context: Pick<BrowserContext, 'route' | 'addInitScript'>, baseURL: string, data: SyntheticData, { authenticated = true } = {}): Promise<MockHandle> {
   const handle: MockHandle = { data, writes: [], blocked: [] };
   const appOrigin = new URL(baseURL).origin;
   const mockOrigin = new URL(SYNTHETIC_SUPABASE_URL).origin;

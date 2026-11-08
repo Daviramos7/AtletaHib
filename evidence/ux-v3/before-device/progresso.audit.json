@@ -1,0 +1,24 @@
+{
+  "closed": {
+    "findings": [
+      {
+        "kind": "double_divider",
+        "selector": "section.progress-trend «Média semanal do peso»",
+        "detail": "linha em y=1033 e outra de form.progress-register-sheet.form-grid «Registrar peso atualizadoDataPeso kgCint» em y=1057, sem conteúdo entre elas"
+      }
+    ],
+    "cardCount": 0,
+    "maxCardDepth": 0
+  },
+  "expanded": {
+    "findings": [
+      {
+        "kind": "double_divider",
+        "selector": "section.progress-trend «Média semanal do peso»",
+        "detail": "linha em y=1033 e outra de form.progress-register-sheet.form-grid «Registrar peso atualizadoDataPeso kgCint» em y=1057, sem conteúdo entre elas"
+      }
+    ],
+    "cardCount": 0,
+    "maxCardDepth": 0
+  }
+}

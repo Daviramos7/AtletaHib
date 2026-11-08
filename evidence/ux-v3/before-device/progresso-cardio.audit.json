@@ -1,0 +1,114 @@
+{
+  "closed": {
+    "findings": [
+      {
+        "kind": "nested_card",
+        "selector": "div.cardio-data-warning-v404 «Kcal da sessão não somam novamente ao to»",
+        "detail": "profundidade 2 dentro de section.simple-panel.cardio-data-hero-v404 «Histórico de cardio»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.cardio-data-row-v404 «Cardio»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Sessões de cardio registradas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.cardio-data-row-v404 «Bike»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Sessões de cardio registradas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.cardio-data-row-v404 «Bike»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Sessões de cardio registradas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.cardio-data-row-v404 «Bike»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Sessões de cardio registradas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.cardio-data-row-v404 «Bike»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Sessões de cardio registradas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.cardio-data-row-v404 «Bike»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Sessões de cardio registradas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.cardio-data-row-v404 «Bike»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Sessões de cardio registradas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.cardio-data-row-v404 «Bike»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Sessões de cardio registradas»"
+      },
+      {
+        "kind": "tight_padding",
+        "selector": "div.cardio-data-warning-v404 «Kcal da sessão não somam novamente ao to»",
+        "detail": "texto «Kcal da sessão não somam novam» a 11px da borda interna (mínimo 12px)"
+      }
+    ],
+    "cardCount": 15,
+    "maxCardDepth": 2
+  },
+  "expanded": {
+    "findings": [
+      {
+        "kind": "nested_card",
+        "selector": "div.cardio-data-warning-v404 «Kcal da sessão não somam novamente ao to»",
+        "detail": "profundidade 2 dentro de section.simple-panel.cardio-data-hero-v404 «Histórico de cardio»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.cardio-data-row-v404 «Cardio»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Sessões de cardio registradas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.cardio-data-row-v404 «Bike»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Sessões de cardio registradas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.cardio-data-row-v404 «Bike»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Sessões de cardio registradas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.cardio-data-row-v404 «Bike»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Sessões de cardio registradas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.cardio-data-row-v404 «Bike»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Sessões de cardio registradas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.cardio-data-row-v404 «Bike»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Sessões de cardio registradas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.cardio-data-row-v404 «Bike»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Sessões de cardio registradas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.cardio-data-row-v404 «Bike»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Sessões de cardio registradas»"
+      },
+      {
+        "kind": "tight_padding",
+        "selector": "div.cardio-data-warning-v404 «Kcal da sessão não somam novamente ao to»",
+        "detail": "texto «Kcal da sessão não somam novam» a 11px da borda interna (mínimo 12px)"
+      }
+    ],
+    "cardCount": 15,
+    "maxCardDepth": 2
+  }
+}
