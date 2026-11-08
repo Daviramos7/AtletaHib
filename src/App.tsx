@@ -3,6 +3,7 @@ import type { ComponentType } from 'react';
 import { Activity, BarChart3, Dumbbell, LogOut, Salad, Settings, User, Watch, X } from 'lucide-react';
 import { isSupabaseConfigured } from './lib/supabaseClient';
 import { getSession, onAuthStateChange, signOut } from './services/authService';
+import { hideSplash } from './lib/splash';
 import { ensureUserBootstrap } from './services/bootstrapService';
 import LoginView from './components/LoginView';
 import ResetPasswordView from './components/ResetPasswordView';
@@ -93,6 +94,12 @@ export default function App() {
     const timer = window.setTimeout(() => setError(''), classifyNotice(error) === 'error' ? 7000 : 3500);
     return () => window.clearTimeout(timer);
   }, [error]);
+
+  // Pronto de verdade: sem sessão (vai pro login), dados do usuário carregados ou erro a mostrar.
+  const appReady = !isSupabaseConfigured || (!loading && (!userId || boot !== null || Boolean(error)));
+  useEffect(() => {
+    if (appReady) hideSplash();
+  }, [appReady]);
 
   if (!isSupabaseConfigured) {
     return <SetupWarning />;

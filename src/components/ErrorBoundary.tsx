@@ -1,4 +1,5 @@
 import React from 'react';
+import { hideSplash } from '../lib/splash';
 
 type ErrorBoundaryProps = {
   children: React.ReactNode;
@@ -20,6 +21,8 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error('Erro capturado pelo app:', error, info);
+    // Sem isso a tela de abertura cobriria a mensagem de erro para sempre.
+    hideSplash();
   }
 
   render() {
