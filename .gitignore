@@ -44,3 +44,5 @@ build/
 
 # TypeScript build cache
 *.tsbuildinfo
+
+.claude/skills/
