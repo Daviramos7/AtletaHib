@@ -6444,3 +6444,27 @@ video {
   .training-lane-page .weekly-gym-grid-v42 .weekly-queue-selection { grid-area: selection; justify-self: start; font-size: .72rem; }
 }
 @media (max-width: 620px) { .today-ledger, .health-ledger { grid-template-columns: 1fr; } .today-next-action { align-items: stretch; flex-direction: column; } .today-next-action .primary-btn { width: 100%; } .progress-metric-strip { overflow-x: auto; } .progress-metric-strip .ds-metric-card { min-width: 120px; } .health-source-lane { grid-template-columns: 1fr; } }
+
+/* Fase 2: + série / − série durante o treino. Alvo de toque >= 44px, cabe em 360px. */
+.set-adjust-v50 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+
+.set-adjust-v50 button {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 850;
+}
+
+.set-adjust-v50 button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowRight, CheckCircle2, Circle, Clock3, Plus, RotateCcw, Save, Square } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CheckCircle2, Circle, Clock3, Minus, Plus, RotateCcw, Save, Square } from 'lucide-react';
 import { calculateVolumeKg, completeStrengthForGymSession, finalizeGymSession, listGymSessionHistory, listStrengthSets, updateGymSessionCardioStatus } from '../services/workoutService';
 import { listCardioSessions, saveManualCardioSession } from '../services/cardioService';
 import { getCheckin } from '../services/checkinService';
@@ -15,6 +15,7 @@ import { localDateKey } from '../utils/dates';
 import { exerciseTracking, formatSetExecution, hasSetExecution, initialTrackingValues, isDurationExercise } from '../domain/exerciseTracking';
 import { buildAdaptiveWorkoutRecommendation, selectWorkoutVariant } from '../domain/adaptiveWorkout';
 import { buildWeeklyGymQueue, selectionKindFor } from '../domain/weeklyGym';
+import { addSetToExercise, plannedRowsOnly, removableSetFor, removeSetRow, setRowHasData } from '../domain/setAdjustments';
 import { cardioPrescriptionFromDay } from '../domain/cardioRules';
 import { buildCardioPlanSnapshot, buildStrengthPlanSnapshot, deriveGymSessionLifecycle, plannedVsRealized } from '../domain/gymSession';
 import { resetPersonalizedTrainingPlan } from '../services/trainingService';
@@ -364,6 +365,23 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
     setSetRows((current) => current.map((row) => (row.rowId === rowId ? { ...row, ...patch } : row)));
   }
 
+  // Edição feita pelo usuário: diferencia série com dados de série só pré-preenchida pelo plano.
+  function editSetRow(rowId, patch) {
+    updateSetRow(rowId, { ...patch, edited: true });
+  }
+
+  function addSet(exerciseEntryId) {
+    const suffix = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    setSetRows((current) => addSetToExercise(current, exerciseEntryId, suffix));
+  }
+
+  function removeSet(exerciseEntryId, exerciseName) {
+    const target = removableSetFor(setRows, exerciseEntryId);
+    if (!target) return;
+    if (setRowHasData(target) && !window.confirm(`A série ${target.set_number} de ${exerciseName} já tem dados. Remover mesmo assim?`)) return;
+    setSetRows((current) => removeSetRow(current, target.rowId));
+  }
+
   function toggleSet(row) {
     updateSetRow(row.rowId, { done: !row.done, completed_at: !row.done ? new Date().toISOString() : null });
   }
@@ -512,7 +530,7 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
         readiness_score: sessionRecommendation?.readinessScore ?? null,
         adaptation_summary: sessionRecommendation,
         selection_kind: selectionKind,
-        strength_plan: sessionStrengthPlan.length ? sessionStrengthPlan : buildStrengthPlanSnapshot(setRows),
+        strength_plan: sessionStrengthPlan.length ? sessionStrengthPlan : buildStrengthPlanSnapshot(plannedRowsOnly(setRows)),
         cardio_plan: snapshot,
         all_rows: setRows,
         sets: validSets.map((row) => ({
@@ -544,7 +562,7 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
           cardioStatus: completedWorkout.session.cardio_status,
           selectionKind,
           cardioPlan: snapshot,
-          strengthPlan: sessionStrengthPlan.length ? sessionStrengthPlan : buildStrengthPlanSnapshot(setRows),
+          strengthPlan: sessionStrengthPlan.length ? sessionStrengthPlan : buildStrengthPlanSnapshot(plannedRowsOnly(setRows)),
         }));
       }
       setTimerRunning(false);
@@ -810,17 +828,28 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
                     <div className={`hevy-row-v32 ${row.done ? 'done' : ''}`} key={row.rowId}>
                       <strong>{row.set_number}</strong>
                       {isDurationExercise(row) ? <>
-                        <input type="number" inputMode="numeric" aria-label={`${group.exerciseName}, série ${row.set_number}: duração em segundos`} min="1" max="86400" step="1" value={row.duration_seconds ?? ''} onChange={(event) => updateSetRow(row.rowId, { duration_seconds: event.target.value })} />
+                        <input type="number" inputMode="numeric" aria-label={`${group.exerciseName}, série ${row.set_number}: duração em segundos`} min="1" max="86400" step="1" value={row.duration_seconds ?? ''} onChange={(event) => editSetRow(row.rowId, { duration_seconds: event.target.value })} />
                         <span>{row.planned_reps}</span>
                       </> : <>
-                        <input type="number" inputMode="decimal" aria-label={`${group.exerciseName}, série ${row.set_number}: carga em kg`} min="0" step="0.5" value={row.load_kg} onChange={(event) => updateSetRow(row.rowId, { load_kg: event.target.value })} />
-                        <input type="number" inputMode="numeric" aria-label={`${group.exerciseName}, série ${row.set_number}: repetições`} min="0" value={row.reps} onChange={(event) => updateSetRow(row.rowId, { reps: event.target.value })} />
+                        <input type="number" inputMode="decimal" aria-label={`${group.exerciseName}, série ${row.set_number}: carga em kg`} min="0" step="0.5" value={row.load_kg} onChange={(event) => editSetRow(row.rowId, { load_kg: event.target.value })} />
+                        <input type="number" inputMode="numeric" aria-label={`${group.exerciseName}, série ${row.set_number}: repetições`} min="0" value={row.reps} onChange={(event) => editSetRow(row.rowId, { reps: event.target.value })} />
                       </>}
-                      <input type="number" inputMode="numeric" aria-label={`${group.exerciseName}, série ${row.set_number}: esforço RPE de 1 a 10`} min="1" max="10" value={row.perceived_effort} onChange={(event) => updateSetRow(row.rowId, { perceived_effort: event.target.value })} />
+                      <input type="number" inputMode="numeric" aria-label={`${group.exerciseName}, série ${row.set_number}: esforço RPE de 1 a 10`} min="1" max="10" value={row.perceived_effort} onChange={(event) => editSetRow(row.rowId, { perceived_effort: event.target.value })} />
                       <button className="check-v32" type="button" aria-pressed={row.done} aria-label={`${group.exerciseName}, série ${row.set_number}: ${row.done ? 'desmarcar' : 'marcar como feita'}`} onClick={() => toggleSet(row)}>{row.done ? <CheckCircle2 size={19} aria-hidden="true" /> : <Circle size={19} aria-hidden="true" />}</button>
                     </div>
                   ))}
                 </div>
+
+                {startedAt && strengthStatus === 'active' && (
+                  <div className="set-adjust-v50" role="group" aria-label={`Séries de ${group.exerciseName}`}>
+                    <button type="button" className="ghost-btn" onClick={() => removeSet(group.exerciseEntryId, group.exerciseName)} disabled={group.rows.length <= 1} aria-label={`Remover a última série de ${group.exerciseName}`}>
+                      <Minus size={16} aria-hidden="true" /> série
+                    </button>
+                    <button type="button" className="ghost-btn" onClick={() => addSet(group.exerciseEntryId)} aria-label={`Adicionar uma série em ${group.exerciseName}`}>
+                      <Plus size={16} aria-hidden="true" /> série
+                    </button>
+                  </div>
+                )}
               </article>
             ))}
           </div>
