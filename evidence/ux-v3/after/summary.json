@@ -1,0 +1,194 @@
+[
+  {
+    "width": 360,
+    "screen": "hoje",
+    "cards": 2,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 360,
+    "screen": "registrar",
+    "cards": 0,
+    "maxCardDepth": 0
+  },
+  {
+    "width": 360,
+    "screen": "academia",
+    "cards": 1,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 360,
+    "screen": "academia-sessao",
+    "cards": 1,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 360,
+    "screen": "progresso",
+    "cards": 8,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 360,
+    "screen": "saude",
+    "cards": 4,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 360,
+    "screen": "perfil",
+    "cards": 4,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 360,
+    "screen": "onboarding",
+    "cards": 1,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 390,
+    "screen": "hoje",
+    "cards": 2,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 390,
+    "screen": "registrar",
+    "cards": 0,
+    "maxCardDepth": 0
+  },
+  {
+    "width": 390,
+    "screen": "academia",
+    "cards": 1,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 390,
+    "screen": "academia-sessao",
+    "cards": 1,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 390,
+    "screen": "progresso",
+    "cards": 8,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 390,
+    "screen": "saude",
+    "cards": 4,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 390,
+    "screen": "perfil",
+    "cards": 4,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 390,
+    "screen": "onboarding",
+    "cards": 1,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 412,
+    "screen": "hoje",
+    "cards": 2,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 412,
+    "screen": "registrar",
+    "cards": 0,
+    "maxCardDepth": 0
+  },
+  {
+    "width": 412,
+    "screen": "academia",
+    "cards": 1,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 412,
+    "screen": "academia-sessao",
+    "cards": 1,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 412,
+    "screen": "progresso",
+    "cards": 8,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 412,
+    "screen": "saude",
+    "cards": 4,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 412,
+    "screen": "perfil",
+    "cards": 4,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 412,
+    "screen": "onboarding",
+    "cards": 1,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 1440,
+    "screen": "hoje",
+    "cards": 2,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 1440,
+    "screen": "registrar",
+    "cards": 0,
+    "maxCardDepth": 0
+  },
+  {
+    "width": 1440,
+    "screen": "academia",
+    "cards": 1,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 1440,
+    "screen": "academia-sessao",
+    "cards": 1,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 1440,
+    "screen": "progresso",
+    "cards": 8,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 1440,
+    "screen": "saude",
+    "cards": 4,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 1440,
+    "screen": "perfil",
+    "cards": 4,
+    "maxCardDepth": 1
+  },
+  {
+    "width": 1440,
+    "screen": "onboarding",
+    "cards": 1,
+    "maxCardDepth": 1
+  }
+]

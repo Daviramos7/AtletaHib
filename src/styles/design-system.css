@@ -326,8 +326,6 @@ details[open] > summary { margin-bottom: var(--space-3); }
 .json-import-head-v364 h3 { font-size: 1.1rem; }
 .json-hub-textarea-v364 { min-height: 180px; max-height: 45dvh; font-size: .875rem; }
 .json-preview-v364 { min-width: 0; overflow-wrap: anywhere; }
-.weight-chart-wrap { overflow-x: auto; }
-.weight-chart { min-width: 480px; }
 .metric-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .water-progress-track-v361 > span { background: var(--brand-cyan); box-shadow: none; }
 .adaptive-workout-metrics-v413 > div { border: 0; background: transparent; border-radius: 0; padding: 8px 0; }
@@ -339,10 +337,16 @@ details[open] > summary { margin-bottom: var(--space-3); }
 
 @media (max-width: 980px) {
   .app-shell-v2 { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
-  .mobile-nav { position: fixed; z-index: 60; inset: auto 0 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); padding: 4px max(4px, env(safe-area-inset-right)) max(4px, env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-left)); border-top: 1px solid var(--border); background: var(--bg); }
-  .mobile-nav button { display: grid; align-content: center; justify-items: center; gap: 4px; min-width: 0; min-height: 58px; padding: 4px 1px; border: 0; border-top: 2px solid transparent; background: transparent; color: var(--muted); font-size: .65rem; font-weight: 500; }
+  .mobile-nav { position: fixed; z-index: 60; inset: auto 0 0; display: flex; container: mobile-nav / inline-size; padding: 4px max(4px, env(safe-area-inset-right)) max(4px, env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-left)); border-top: 1px solid var(--border); background: var(--bg); }
+  .mobile-nav button { flex: 1 1 0; display: grid; align-content: center; justify-items: center; gap: 4px; min-width: 44px; min-height: 58px; padding: 4px 1px; border: 0; border-top: 2px solid transparent; background: transparent; color: var(--muted); font-size: .65rem; font-weight: 500; }
   .mobile-nav button[aria-current="page"] { color: var(--text); border-top-color: var(--accent); }
   .mobile-nav button[aria-current="page"] svg { color: var(--accent); }
+}
+/* Nav estreita (largura em em: reage à escala de fonte do celular): só o item ativo mostra o rótulo e ganha
+   a largura dele; os outros ficam com o ícone, e o rótulo continua no nome acessível do botão. */
+@container mobile-nav (max-width: 20em) {
+  .mobile-nav button:not([aria-current="page"]) span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .mobile-nav button[aria-current="page"] { flex: 1 0 auto; padding-inline: 8px; }
 }
 @media (max-width: 700px) {
   .app-shell-v2 { padding-inline: 0; }
@@ -380,13 +384,8 @@ details[open] > summary { margin-bottom: var(--space-3); }
   .today-gym-link > button { margin-left: 34px; }
   input, select, textarea { font-size: 16px; }
   .form-section-grid { grid-template-columns: 1fr; }
-  .weekly-gym-grid-v42 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .weekly-gym-grid-v42 button strong { font-size: .9rem; }
-  .weekly-gym-grid-v42 button small { font-size: .72rem; }
-  .weekly-queue-status { font-size: .73rem; }
   .gym-log-top-v32 { position: static; background: transparent; display: grid; gap: var(--space-3); padding: 0; }
   .gym-log-top-v32 > button { width: 100%; }
-  .hevy-table-v32 .hevy-header-v32, .hevy-table-v32 .hevy-row-v32 { grid-template-columns: 28px repeat(3, minmax(0, 1fr)) 44px; gap: 5px; }
   .hevy-row-v32 input { padding-inline: 3px; width: 100%; min-width: 0; }
   .check-v32 { min-width: 44px; }
   .content-card-v2 .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
@@ -425,7 +424,6 @@ details[open] > summary { margin-bottom: var(--space-3); }
 .gym-v32-page .gym-v32-hero p { margin: 0; line-height: 1.5; }
 .gym-v32-page .gym-hero-actions-v37 { display: flex; flex-wrap: wrap; width: auto; gap: 8px; }
 .gym-v32-page .gym-hero-actions-v37 button { width: auto; }
-.gym-v32-page .gym-log-panel-v32 { overflow: visible; padding: 16px; }
 .gym-v32-page .gym-log-top-v32 { position: static; inset: auto; z-index: auto; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding: 0 0 16px; margin: 0; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; backdrop-filter: none; box-shadow: none; }
 .gym-v32-page .gym-log-top-v32 h3 { line-height: 1.4; letter-spacing: 0; }
 .gym-v32-page .gym-log-top-v32 > div { display: grid; gap: 4px; }
@@ -441,8 +439,9 @@ details[open] > summary { margin-bottom: var(--space-3); }
 .gym-v32-page .exercise-progress-mini-v34 strong { font-size: .875rem; font-weight: 400; line-height: 1.5; letter-spacing: 0; }
 .gym-v32-page .hevy-rest-v32 { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; padding: 4px 12px; font-size: .85rem; line-height: 1.5; font-weight: 400; color: var(--muted); background: transparent; }
 .gym-v32-page .hevy-rest-v32 button { flex-shrink: 0; padding: 6px 0; min-height: 44px; line-height: 1.5; font-weight: 500; }
-.gym-v32-page .hevy-table-v32 { overflow: visible; padding: 4px 8px 8px; }
-.gym-v32-page .hevy-header-v32, .gym-v32-page .hevy-row-v32 { min-width: 0; width: 100%; grid-template-columns: 28px repeat(3, minmax(0, 1fr)) 44px; gap: 6px; padding: 8px 0; }
+.gym-v32-page .hevy-table-v32 { padding: 4px 8px 8px; }
+/* Linha de série: colunas proporcionais (nº, carga/segundos, reps/meta, RPE) + botão de 44px. Única definição. */
+.gym-v32-page .hevy-header-v32, .gym-v32-page .hevy-row-v32 { width: 100%; grid-template-columns: minmax(0, .45fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, .8fr) 44px; gap: 6px; padding: 8px 0; }
 .gym-v32-page .hevy-header-v32 { font-size: .65rem; line-height: 1.5; letter-spacing: .02em; font-weight: 500; text-transform: none; }
 .gym-v32-page .hevy-row-v32 { color: var(--text); }
 .gym-v32-page .hevy-row-v32 input, .gym-v32-page .hevy-row-v32.done input { min-width: 0; width: 100%; height: 44px; padding: 8px 2px; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; line-height: 1.3; font-size: 1rem; font-weight: 500; }
@@ -453,7 +452,6 @@ details[open] > summary { margin-bottom: var(--space-3); }
 .gym-v32-page .gym-session-context p { margin: 0; }
 @media (max-width: 700px) {
   .gym-v32-page .gym-hero-actions-v37 { justify-content: flex-start; }
-  .gym-v32-page .gym-log-panel-v32 { padding: 12px; }
   .gym-v32-page .gym-log-top-v32 > button { width: 100%; }
   .gym-v32-page .session-fields-v32 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .gym-v32-page .gym-session-context { display: grid; }

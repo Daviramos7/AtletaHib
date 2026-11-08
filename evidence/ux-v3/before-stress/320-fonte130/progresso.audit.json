@@ -1,0 +1,154 @@
+{
+  "closed": {
+    "findings": [
+      {
+        "kind": "scroll_hidden",
+        "selector": "a.skip-link «Ir para o conteúdo»",
+        "detail": "texto «Ir para o conteúdo» sai 85px de div.app-shell.app-shell-v2 «Alex» (overflow hidden/auto)"
+      },
+      {
+        "kind": "scroll_hidden",
+        "selector": "strong «6.6 kg»",
+        "detail": "texto «6.6 kg» sai 2px de div.metric-grid.three.progress-metric-strip «84.6 kg» (overflow auto/auto)"
+      },
+      {
+        "kind": "scroll_hidden",
+        "selector": "p «até a meta»",
+        "detail": "texto «até a meta» sai 6px de div.metric-grid.three.progress-metric-strip «84.6 kg» (overflow auto/auto)"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-target-text «meta 78 kg»",
+        "detail": "texto «meta  78  kg» x 432→454 com viewport 320"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-value-text «85.5»",
+        "detail": "texto «85.5» x 344→364 com viewport 320"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-axis-text «26/10»",
+        "detail": "texto «26/10» x 344→364 com viewport 320"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-value-text «85.0»",
+        "detail": "texto «85.0» x 405→425 com viewport 320"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-axis-text «02/11»",
+        "detail": "texto «02/11» x 406→425 com viewport 320"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-value-text «84.6»",
+        "detail": "texto «84.6» x 467→486 com viewport 320"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-axis-text «09/11»",
+        "detail": "texto «09/11» x 467→486 com viewport 320"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "g «89 kg»",
+        "detail": "«89  kg» × «87.8» (3×8px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Registrar»",
+        "detail": "«Registrar» × «Academia» (6×16px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Academia»",
+        "detail": "«Academia» × «Progresso» (13×16px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Progresso»",
+        "detail": "«Progresso» × «Saúde» (9×16px)"
+      }
+    ],
+    "cardCount": 8,
+    "maxCardDepth": 1
+  },
+  "expanded": {
+    "findings": [
+      {
+        "kind": "scroll_hidden",
+        "selector": "a.skip-link «Ir para o conteúdo»",
+        "detail": "texto «Ir para o conteúdo» sai 85px de div.app-shell.app-shell-v2 «Alex» (overflow hidden/auto)"
+      },
+      {
+        "kind": "scroll_hidden",
+        "selector": "strong «6.6 kg»",
+        "detail": "texto «6.6 kg» sai 2px de div.metric-grid.three.progress-metric-strip «84.6 kg» (overflow auto/auto)"
+      },
+      {
+        "kind": "scroll_hidden",
+        "selector": "p «até a meta»",
+        "detail": "texto «até a meta» sai 6px de div.metric-grid.three.progress-metric-strip «84.6 kg» (overflow auto/auto)"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-target-text «meta 78 kg»",
+        "detail": "texto «meta  78  kg» x 432→454 com viewport 320"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-value-text «85.5»",
+        "detail": "texto «85.5» x 344→364 com viewport 320"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-axis-text «26/10»",
+        "detail": "texto «26/10» x 344→364 com viewport 320"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-value-text «85.0»",
+        "detail": "texto «85.0» x 405→425 com viewport 320"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-axis-text «02/11»",
+        "detail": "texto «02/11» x 406→425 com viewport 320"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-value-text «84.6»",
+        "detail": "texto «84.6» x 467→486 com viewport 320"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-axis-text «09/11»",
+        "detail": "texto «09/11» x 467→486 com viewport 320"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "g «89 kg»",
+        "detail": "«89  kg» × «87.8» (3×8px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Registrar»",
+        "detail": "«Registrar» × «Academia» (6×16px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Academia»",
+        "detail": "«Academia» × «Progresso» (13×16px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Progresso»",
+        "detail": "«Progresso» × «Saúde» (9×16px)"
+      }
+    ],
+    "cardCount": 8,
+    "maxCardDepth": 1
+  }
+}

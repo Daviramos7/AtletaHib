@@ -771,7 +771,7 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
       )}
 
       {isStrengthDay(selectedDay) && strengthStatus === 'active' && (
-        <SessionPanel className="simple-panel gym-log-panel-v32">
+        <SessionPanel className="gym-log-panel-v32">
           {!startedAt && <summary>Exercícios e séries do plano</summary>}
           <div className="gym-log-top-v32">
             <div><p className="eyebrow">Séries</p><h3>{completedSets} de {totalSets} concluídas</h3><span>{Math.round(totalVolume)} kg de volume</span></div>
@@ -784,7 +784,7 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
                 <div className="hevy-card-head-v32">
                   <div>
                     <strong>{group.exerciseName}</strong>
-                    <span>{group.rows.length} séries</span>
+                    <span>{group.rows.length} {group.rows.length === 1 ? 'série' : 'séries'}</span>
                     {group.originalName && <small>Original: {group.originalName}</small>}
                   </div>
                   <div className="replacement-actions-v332">
@@ -823,7 +823,7 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
                 <div className="hevy-rest-v32"><span>Descanso: {formatRest(group.rows[0]?.exercise?.rest_seconds)}</span>{!isDurationExercise(group.rows[0]) && <button type="button" onClick={() => copyLoadToExercise(group.exerciseEntryId, group.rows[0]?.load_kg ?? '')}>Copiar carga</button>}</div>
 
                 <div className="hevy-table-v32">
-                  <div className="hevy-header-v32"><span>Série</span><span>{isDurationExercise(group.rows[0]) ? 'Segundos' : 'Kg'}</span><span>{isDurationExercise(group.rows[0]) ? 'Meta' : 'Reps'}</span><span>RPE</span><span>Feita</span></div>
+                  <div className="hevy-header-v32" aria-hidden="true"><span title="Série">#</span><span>{isDurationExercise(group.rows[0]) ? 'Seg' : 'Kg'}</span><span>{isDurationExercise(group.rows[0]) ? 'Meta' : 'Reps'}</span><span>RPE</span><span>Feita</span></div>
                   {group.rows.map((row) => (
                     <div className={`hevy-row-v32 ${row.done ? 'done' : ''}`} key={row.rowId}>
                       <strong>{row.set_number}</strong>

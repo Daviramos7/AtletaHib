@@ -2,6 +2,46 @@
   "closed": {
     "findings": [
       {
+        "kind": "scroll_hidden",
+        "selector": "a.skip-link «Ir para o conteúdo»",
+        "detail": "texto «Ir para o conteúdo» sai 86px de div.app-shell.app-shell-v2 «Alex» (overflow hidden/auto)"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-target-text «meta 78 kg»",
+        "detail": "texto «meta  78  kg» x 437→457 com viewport 360"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-value-text «85.5»",
+        "detail": "texto «85.5» x 346→362 com viewport 360"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-axis-text «26/10»",
+        "detail": "texto «26/10» x 345→363 com viewport 360"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-value-text «85.0»",
+        "detail": "texto «85.0» x 407→424 com viewport 360"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-axis-text «02/11»",
+        "detail": "texto «02/11» x 407→423 com viewport 360"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-value-text «84.6»",
+        "detail": "texto «84.6» x 468→485 com viewport 360"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-axis-text «09/11»",
+        "detail": "texto «09/11» x 468→485 com viewport 360"
+      },
+      {
         "kind": "text_collision",
         "selector": "g «89 kg»",
         "detail": "«89  kg» × «87.8» (2×6px)"
@@ -12,6 +52,46 @@
   },
   "expanded": {
     "findings": [
+      {
+        "kind": "scroll_hidden",
+        "selector": "a.skip-link «Ir para o conteúdo»",
+        "detail": "texto «Ir para o conteúdo» sai 86px de div.app-shell.app-shell-v2 «Alex» (overflow hidden/auto)"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-target-text «meta 78 kg»",
+        "detail": "texto «meta  78  kg» x 437→457 com viewport 360"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-value-text «85.5»",
+        "detail": "texto «85.5» x 346→362 com viewport 360"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-axis-text «26/10»",
+        "detail": "texto «26/10» x 345→363 com viewport 360"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-value-text «85.0»",
+        "detail": "texto «85.0» x 407→424 com viewport 360"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-axis-text «02/11»",
+        "detail": "texto «02/11» x 407→423 com viewport 360"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-value-text «84.6»",
+        "detail": "texto «84.6» x 468→485 com viewport 360"
+      },
+      {
+        "kind": "offscreen",
+        "selector": "text.chart-axis-text «09/11»",
+        "detail": "texto «09/11» x 468→485 com viewport 360"
+      },
       {
         "kind": "text_collision",
         "selector": "g «89 kg»",

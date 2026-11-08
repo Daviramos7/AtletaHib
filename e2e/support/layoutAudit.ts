@@ -2,7 +2,7 @@
 import type { Page } from '@playwright/test';
 
 export interface LayoutFinding {
-  kind: 'clipped' | 'overlap' | 'text_collision' | 'escapes_card' | 'nested_card' | 'page_overflow' | 'offscreen';
+  kind: 'clipped' | 'scroll_hidden' | 'overlap' | 'text_collision' | 'escapes_card' | 'nested_card' | 'page_overflow' | 'offscreen';
   selector: string;
   detail: string;
 }
@@ -31,7 +31,9 @@ export async function auditLayout(page: Page): Promise<{ findings: LayoutFinding
       if (insideClosedDetails(el)) return false;
       const style = getComputedStyle(el);
       const rect = el.getBoundingClientRect();
-      return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+      // Texto só para leitor de tela (recortado de propósito em 1×1 px) não é conteúdo visível.
+      const screenReaderOnly = style.clipPath === 'inset(50%)' && rect.width <= 1 && rect.height <= 1;
+      return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0 && !screenReaderOnly;
     };
     const parse = (value: string) => Number.parseFloat(value) || 0;
     // "Cartão" = caixa com fundo ou borda ou sombra, cantos arredondados e padding próprio.
@@ -147,6 +149,45 @@ export async function auditLayout(page: Page): Promise<{ findings: LayoutFinding
         texts.push({ el, rect: new DOMRect(left, top, width, height), layer: fixedLayer(el), label: `::before ${before.content}` });
       }
     }
+    // Texto cortado de verdade: a caixa do texto sai de um ancestral que recorta (hidden/clip),
+    // fica escondida atrás de rolagem lateral (auto/scroll) ou sai da tela. Pega o caso que o
+    // scrollWidth não pega: texto vazando de um filho espremido por min-width: 0.
+    const clipReported = new Set<Element>();
+    for (const text of texts) {
+      if (text.label.startsWith('::before')) continue;
+      const r = text.rect;
+      // Camada fixa inteira fora da janela (ex.: skip-link, que só desce no foco) está escondida de propósito.
+      if (text.layer && (r.bottom <= 0 || r.top >= window.innerHeight)) continue;
+      if (!text.layer && (r.right > vw + 1 || r.left < -1)) {
+        if (!clipReported.has(text.el)) { clipReported.add(text.el); findings.push({ kind: 'offscreen', selector: describe(text.el), detail: `texto «${text.label}» x ${Math.round(r.left)}→${Math.round(r.right)} com viewport ${vw}` }); }
+        continue;
+      }
+      for (let anc = text.el.parentElement; anc && anc !== document.body && anc !== document.documentElement; anc = anc.parentElement) {
+        const style = getComputedStyle(anc);
+        const modes = [style.overflowX, style.overflowY];
+        if (modes.every((mode) => mode === 'visible')) continue;
+        const box = anc.getBoundingClientRect();
+        const outX = Math.max(box.left + parse(style.borderLeftWidth) - r.left, r.right - (box.right - parse(style.borderRightWidth)));
+        const outY = Math.max(box.top + parse(style.borderTopWidth) - r.top, r.bottom - (box.bottom - parse(style.borderBottomWidth)));
+        const cutX = style.overflowX !== 'visible' && outX > 2;
+        const cutY = style.overflowY !== 'visible' && outY > 2;
+        if ((cutX || cutY) && !clipReported.has(text.el)) {
+          clipReported.add(text.el);
+          const scrolls = (cutX ? style.overflowX : style.overflowY);
+          findings.push({ kind: ['auto', 'scroll'].includes(scrolls) ? 'scroll_hidden' as any : 'clipped', selector: describe(text.el), detail: `texto «${text.label}» sai ${Math.round(Math.max(cutX ? outX : 0, cutY ? outY : 0))}px de ${describe(anc)} (overflow ${style.overflowX}/${style.overflowY})` });
+        }
+        if (cutX || cutY) break;
+      }
+    }
+    // Reticências escondem texto: conta como corte.
+    for (const el of all) {
+      const style = getComputedStyle(el);
+      const html = el as HTMLElement;
+      if (style.textOverflow === 'ellipsis' && html.scrollWidth > html.clientWidth + 1 && (html.innerText ?? '').trim()) {
+        findings.push({ kind: 'clipped', selector: describe(el), detail: `reticências: largura ${html.clientWidth}px de ${html.scrollWidth}px` });
+      }
+    }
+
     const seen = new Set<string>();
     for (let i = 0; i < texts.length; i += 1) {
       for (let j = i + 1; j < texts.length; j += 1) {

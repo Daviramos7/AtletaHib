@@ -40,23 +40,19 @@ export function WorkoutProgressSummary(props: any) {
   const summary = buildWorkoutProgressSummary(currentRows, strengthSets, currentSession);
 
   return (
-    <section className="simple-panel workout-progress-summary-v34">
+    <dl className="workout-progress-summary-v34">
       <div>
-        <p className="eyebrow">Volume realizado</p>
-        <h3>{summary.currentVolume} kg</h3>
-        <span>Volume atual · {summary.diffLabel}</span>
+        <dt>Volume realizado</dt>
+        <dd>{summary.currentVolume} kg <small>{summary.diffLabel}</small></dd>
       </div>
-
-      <div className="progress-summary-grid-v34">
-        <div>
-          <span>Exercícios feitos</span>
-          <strong>{summary.completedExercises}/{summary.totalExercises}</strong>
-        </div>
-        <div>
-          <span>Último treino</span>
-          <strong>{summary.lastWorkoutVolume || '--'} kg</strong>
-        </div>
+      <div>
+        <dt>Exercícios feitos</dt>
+        <dd>{summary.completedExercises}/{summary.totalExercises}</dd>
       </div>
-    </section>
+      <div>
+        <dt>Último treino</dt>
+        <dd>{summary.lastWorkoutVolume || '--'} kg</dd>
+      </div>
+    </dl>
   );
 }

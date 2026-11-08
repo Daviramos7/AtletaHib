@@ -105,14 +105,35 @@ export default function ProgressView({ userId, profile, refreshBoot, onError }) 
   );
 }
 
+function useElementWidth(fallback) {
+  // Callback ref: o contêiner só existe depois que há dados, então o observador se prende quando ele aparece.
+  const [element, setElement] = useState(null);
+  const [width, setWidth] = useState(fallback);
+  useEffect(() => {
+    if (!element || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(([entry]) => {
+      const next = Math.round(entry.contentRect.width);
+      if (next > 0) setWidth(next);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [element]);
+  return [setElement, width] as const;
+}
+
+// Largura mínima (em unidades do SVG = px) entre rótulos vizinhos; com menos espaço, rótulos alternados.
+const CHART_LABEL_SPACING = 44;
+
 function WeightChart({ data, target }) {
+  // O SVG desenha na largura real do contêiner (escala 1:1): texto nunca encolhe nem some na lateral.
+  const [wrapRef, measuredWidth] = useElementWidth(760);
   if (data.length < 1) {
     return <div className="chart-empty">Registre seu peso pelo menos uma vez para iniciar o gráfico.</div>;
   }
 
-  const width = 760;
-  const height = 260;
-  const pad = { top: 22, right: 28, bottom: 44, left: 54 };
+  const width = Math.max(240, measuredWidth);
+  const height = width < 480 ? 220 : 260;
+  const pad = { top: 22, right: 20, bottom: 44, left: 54 };
   const hasTarget = target != null && Number(target) > 0;
   const values = [...data.map((item) => Number(item.avgWeight)), ...(hasTarget ? [Number(target)] : [])].filter(Number.isFinite);
   const min = Math.floor(Math.min(...values) - 1);
@@ -125,10 +146,16 @@ function WeightChart({ data, target }) {
   const points = data.map((item, idx) => `${xOf(idx)},${yOf(Number(item.avgWeight))}`).join(' ');
   const targetY = yOf(Number(target));
   const ticks = [max, Math.round((max + min) / 2), min];
+  const spacing = data.length > 1 ? chartW / (data.length - 1) : chartW;
+  const step = Math.max(1, Math.ceil(CHART_LABEL_SPACING / spacing));
+  // A semana mais recente sempre tem rótulo; as anteriores alternam quando não cabem.
+  const labeled = (idx) => (data.length - 1 - idx) % step === 0;
+  // Nas pontas, o rótulo cresce para dentro do gráfico e não encosta no eixo nem sai da caixa.
+  const anchorOf = (idx) => (data.length === 1 ? 'middle' : idx === 0 ? 'start' : idx === data.length - 1 ? 'end' : 'middle');
 
   return (
-    <div className="weight-chart-wrap">
-      <svg className="weight-chart" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Gráfico semanal de peso">
+    <div className="weight-chart-wrap" ref={wrapRef}>
+      <svg className="weight-chart" viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="img" aria-label="Gráfico semanal de peso">
         {ticks.map((tick) => (
           <g key={tick}>
             <line x1={pad.left} x2={width - pad.right} y1={yOf(tick)} y2={yOf(tick)} className="chart-grid-line" />
@@ -141,8 +168,10 @@ function WeightChart({ data, target }) {
         {data.map((item, idx) => (
           <g key={item.weekKey}>
             <circle cx={xOf(idx)} cy={yOf(Number(item.avgWeight))} r="5" className="chart-point" />
-            <text x={xOf(idx)} y={yOf(Number(item.avgWeight)) - 12} textAnchor="middle" className="chart-value-text">{Number(item.avgWeight).toFixed(1)}</text>
-            <text x={xOf(idx)} y={height - 14} textAnchor="middle" className="chart-axis-text">{item.label}</text>
+            {labeled(idx) && <>
+              <text x={xOf(idx)} y={yOf(Number(item.avgWeight)) - 12} textAnchor={anchorOf(idx)} className="chart-value-text">{Number(item.avgWeight).toFixed(1)}</text>
+              <text x={xOf(idx)} y={height - 14} textAnchor={anchorOf(idx)} className="chart-axis-text">{item.label}</text>
+            </>}
           </g>
         ))}
       </svg>

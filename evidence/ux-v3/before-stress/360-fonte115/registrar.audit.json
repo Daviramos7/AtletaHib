@@ -1,11 +1,23 @@
 {
   "closed": {
-    "findings": [],
+    "findings": [
+      {
+        "kind": "scroll_hidden",
+        "selector": "a.skip-link «Ir para o conteúdo»",
+        "detail": "texto «Ir para o conteúdo» sai 86px de div.app-shell.app-shell-v2 «Alex» (overflow hidden/auto)"
+      }
+    ],
     "cardCount": 0,
     "maxCardDepth": 0
   },
   "expanded": {
-    "findings": [],
+    "findings": [
+      {
+        "kind": "scroll_hidden",
+        "selector": "a.skip-link «Ir para o conteúdo»",
+        "detail": "texto «Ir para o conteúdo» sai 86px de div.app-shell.app-shell-v2 «Alex» (overflow hidden/auto)"
+      }
+    ],
     "cardCount": 0,
     "maxCardDepth": 0
   }
