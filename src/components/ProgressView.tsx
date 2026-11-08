@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { Save, TrendingDown } from 'lucide-react';
 import { todayKey } from '../services/dailyService';
 import { listWeightLogs, saveWeightLog } from '../services/weightService';
@@ -109,8 +109,12 @@ function useElementWidth(fallback) {
   // Callback ref: o contêiner só existe depois que há dados, então o observador se prende quando ele aparece.
   const [element, setElement] = useState(null);
   const [width, setWidth] = useState(fallback);
-  useEffect(() => {
-    if (!element || typeof ResizeObserver === 'undefined') return undefined;
+  // Layout effect: mede antes da primeira pintura, senão o 1º quadro sai com a largura de reserva (760px).
+  useLayoutEffect(() => {
+    if (!element) return undefined;
+    const first = Math.round(element.getBoundingClientRect().width);
+    if (first > 0) setWidth(first);
+    if (typeof ResizeObserver === 'undefined') return undefined;
     const observer = new ResizeObserver(([entry]) => {
       const next = Math.round(entry.contentRect.width);
       if (next > 0) setWidth(next);
