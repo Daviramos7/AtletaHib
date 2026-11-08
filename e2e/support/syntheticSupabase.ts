@@ -54,11 +54,12 @@ export function buildScenario({ onboardingCompleted = true, strengthDays = 3, to
   });
   const plan = { id: 'plan-demo', user_id: USER_ID, name: template.name, objective: template.objective, is_active: true, created_at: iso, training_days: days };
 
-  // Uma sessão concluída nesta semana (se já passou da terça) e duas na semana anterior.
+  // Histórico realista: progressão de carga ao longo de 4 semanas e uma queda na última sessão,
+  // para as etiquetas do histórico do exercício (Subindo/Caiu, melhor carga, melhor volume) aparecerem.
   const strength = days.filter((day) => String(day.day_kind).includes('strength'));
   const sessions: Row[] = [];
   const sets: Row[] = [];
-  const addSession = (dayIndex: number, dateKey: string) => {
+  const addSession = (dayIndex: number, dateKey: string, loadFactor = 1) => {
     const day = strength[dayIndex % strength.length];
     if (!day) return;
     const id = `session-${sessions.length}`;
@@ -74,15 +75,19 @@ export function buildScenario({ onboardingCompleted = true, strengthDays = 3, to
       for (let setNumber = 1; setNumber <= 3; setNumber += 1) {
         sets.push({
           id: `${id}-set-${exerciseIndex}-${setNumber}`, user_id: USER_ID, workout_session_id: id, exercise_entry_id: exercise.id,
-          exercise_name: exercise.exercise_name, set_number: setNumber, reps: 10, load_kg: 20 + exerciseIndex * 10,
+          exercise_name: exercise.exercise_name, set_number: setNumber, reps: loadFactor < 1 ? 8 : 10, load_kg: Math.round((20 + exerciseIndex * 10) * loadFactor * 2) / 2,
           duration_seconds: null, perceived_effort: 7, completed: true, performed_at: performedAt, created_at: performedAt,
         });
       }
     });
   };
-  addSession(0, shift(today, -8));
-  addSession(1, shift(today, -7));
-  addSession(0, shift(today, -1));
+  addSession(0, shift(today, -22), 1);
+  addSession(1, shift(today, -21), 1);
+  addSession(0, shift(today, -15), 1.1);
+  addSession(1, shift(today, -14), 1.1);
+  addSession(0, shift(today, -8), 1.25);
+  addSession(1, shift(today, -7), 1.2);
+  addSession(0, shift(today, -1), 0.7);
 
   return {
     profiles: [profile],
@@ -94,14 +99,15 @@ export function buildScenario({ onboardingCompleted = true, strengthDays = 3, to
     meal_entries: [
       { id: 'meal-1', user_id: USER_ID, log_date: today, meal_type: 'cafe', food_name: 'Ovos mexidos com pão integral', grams: 220, kcal: 410, protein_g: 26, carbs_g: 32, fat_g: 18, source: 'manual', created_at: iso },
       { id: 'meal-2', user_id: USER_ID, log_date: today, meal_type: 'almoco', food_name: 'Arroz, feijão, frango grelhado e salada', grams: 420, kcal: 640, protein_g: 48, carbs_g: 70, fat_g: 14, source: 'manual', created_at: iso },
+      { id: 'meal-3', user_id: USER_ID, log_date: today, meal_type: 'lanche', food_name: 'Barra de proteína (rótulo sem macros)', grams: 45, kcal: 190, protein_g: null, carbs_g: null, fat_g: null, source: 'manual', created_at: iso },
     ],
     sleep_sessions: Array.from({ length: 7 }, (_, i) => ({ id: `sleep-${i}`, user_id: USER_ID, sleep_date: shift(today, -i), sleep_start_time: '23:20', sleep_end_time: '06:40', duration_minutes: 440 - i * 6, sleep_score: 80 - i, deep_sleep_minutes: 90, light_sleep_minutes: 250, rem_sleep_minutes: 90, awake_minutes: 10, avg_heart_rate: 57, avg_spo2: 97, source_app: 'Mi Fitness', import_method: 'health_connect', confidence: 'high', updated_at: iso })),
     weight_logs: Array.from({ length: 8 }, (_, i) => ({ id: `weight-${i}`, user_id: USER_ID, log_date: shift(today, -i * 7), weight_kg: Number((84.6 + i * 0.45).toFixed(1)), waist_cm: null })),
-    wearable_daily_metrics: Array.from({ length: 7 }, (_, i) => ({ id: `metric-${i}`, user_id: USER_ID, metric_date: shift(today, -i), source: 'health_connect_android_bridge', provider: 'redmi_mi_fitness', steps: 7400 - i * 350, sleep_minutes: 440 - i * 6, avg_heart_rate: 71, resting_heart_rate: 57, active_kcal: 420 - i * 15, workout_minutes: i % 2 ? 0 : 70, distance_km: 5.1, updated_at: iso })),
+    wearable_daily_metrics: [{ id: 'metric-phone', user_id: USER_ID, metric_date: today, source: 'health_connect_phone', provider: 'google_fit', steps: 6900, sleep_minutes: null, avg_heart_rate: null, resting_heart_rate: null, active_kcal: 380, workout_minutes: 0, distance_km: 4.8, updated_at: iso }, ...Array.from({ length: 7 }, (_, i) => ({ id: `metric-${i}`, user_id: USER_ID, metric_date: shift(today, -i), source: 'health_connect_android_bridge', provider: 'redmi_mi_fitness', steps: 7400 - i * 350, sleep_minutes: 440 - i * 6, avg_heart_rate: 71, resting_heart_rate: 57, active_kcal: 420 - i * 15, workout_minutes: i % 2 ? 0 : 70, distance_km: 5.1, updated_at: iso }))],
     health_integrations: [{ id: 'integration-demo', user_id: USER_ID, provider: 'redmi_mi_fitness', device_name: 'Relógio de teste', source_app: 'Mi Fitness', sync_mode: 'health_connect', status: 'connected', last_sync_at: iso }],
     workout_sessions: sessions,
     workout_exercise_sets: sets,
-    cardio_sessions: sessions.map((session, i) => ({ id: `cardio-${i}`, user_id: USER_ID, workout_session_id: session.id, performed_at: session.performed_at, activity_type: 'bike', duration_seconds: 1200, distance_km: 6.2, avg_heart_rate: 128, active_kcal: 190, source: 'manual', counts_toward_daily_totals: false, counts_toward_progression: true, created_at: session.performed_at })),
+    cardio_sessions: [{ id: 'cardio-today', user_id: USER_ID, workout_session_id: null, performed_at: `${today}T07:10:00-03:00`, activity_type: 'esteira', duration_seconds: 1680, distance_km: 3.4, avg_heart_rate: 122, active_kcal: 240, source: 'manual', counts_toward_daily_totals: false, counts_toward_progression: true, created_at: iso }, ...sessions.map((session, i) => ({ id: `cardio-${i}`, user_id: USER_ID, workout_session_id: session.id, performed_at: session.performed_at, activity_type: 'bike', duration_seconds: 1200, distance_km: 6.2, avg_heart_rate: 128, active_kcal: 190, source: 'manual', counts_toward_daily_totals: false, counts_toward_progression: true, created_at: session.performed_at }))],
     wearable_workout_sessions: [],
     custom_foods: [],
   };

@@ -28,8 +28,10 @@ export function ExerciseProgressMini(props: any) {
       </div>
       <details className="exercise-progress-stats-v34">
         <summary>Histórico do exercício</summary>
-        <small>{progress.trendLabel}</small>
-        {!isDurationExercise(exercise ?? best) && <><small>Melhor carga: {progress.bestLoad} kg</small><small>Melhor volume: {progress.bestVolume} kg</small></>}
+        <div className="exercise-progress-chips-v34">
+          <small>{progress.trendLabel}</small>
+          {!isDurationExercise(exercise ?? best) && <><small>Melhor carga: {progress.bestLoad} kg</small><small>Melhor volume: {progress.bestVolume} kg</small></>}
+        </div>
       </details>
     </div>
   );

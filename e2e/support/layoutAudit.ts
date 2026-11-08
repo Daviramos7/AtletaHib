@@ -2,7 +2,8 @@
 import type { Page } from '@playwright/test';
 
 export interface LayoutFinding {
-  kind: 'clipped' | 'scroll_hidden' | 'overlap' | 'text_collision' | 'escapes_card' | 'nested_card' | 'page_overflow' | 'offscreen';
+  kind: 'clipped' | 'scroll_hidden' | 'overlap' | 'text_collision' | 'escapes_card' | 'nested_card' | 'page_overflow' | 'offscreen'
+    | 'tight_padding' | 'chip_wrap' | 'double_divider' | 'cramped';
   selector: string;
   detail: string;
 }
@@ -36,19 +37,28 @@ export async function auditLayout(page: Page): Promise<{ findings: LayoutFinding
       return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0 && !screenReaderOnly;
     };
     const parse = (value: string) => Number.parseFloat(value) || 0;
-    // "Cartão" = caixa com fundo ou borda ou sombra, cantos arredondados e padding próprio.
+    // Caixa visível: fundo (cor ou gradiente), borda ou sombra.
+    const hasVisibleBox = (style: CSSStyleDeclaration) => {
+      const bg = style.backgroundColor;
+      const hasBg = (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') || style.backgroundImage !== 'none';
+      const hasBorder = parse(style.borderTopWidth) > 0 && style.borderTopStyle !== 'none';
+      return hasBg || hasBorder || style.boxShadow !== 'none';
+    };
+    // "Cartão" = caixa visível com cantos arredondados. Não exige padding próprio: um card com
+    // padding 0 (o conteúdo encostado na borda) é justamente um dos defeitos que queremos ver.
+    const boxLike = (style: CSSStyleDeclaration) => {
+      const bg = style.backgroundColor;
+      const hasBg = (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') || style.backgroundImage !== 'none';
+      const side = (s: string) => parse((style as any)[`border${s}Width`]) > 0 && (style as any)[`border${s}Style`] !== 'none';
+      return hasBg || style.boxShadow !== 'none' || (side('Top') && side('Right') && side('Bottom') && side('Left'));
+    };
+    const hasDivider = (style: CSSStyleDeclaration) => ['Top', 'Bottom'].some((s) => parse((style as any)[`border${s}Width`]) > 0 && (style as any)[`border${s}Style`] !== 'none');
     const isCard = (el: Element) => {
       if (!(el instanceof HTMLElement) || !visible(el)) return false;
       if (['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA', 'A', 'LABEL', 'SUMMARY', 'IMG', 'SVG', 'SPAN', 'SMALL', 'STRONG', 'P'].includes(el.tagName)) return false;
       const style = getComputedStyle(el);
-      const radius = parse(style.borderTopLeftRadius);
-      const bg = style.backgroundColor;
-      const hasBg = bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent';
-      const hasBorder = parse(style.borderTopWidth) > 0 && style.borderTopStyle !== 'none';
-      const hasShadow = style.boxShadow !== 'none';
-      const padding = Math.min(parse(style.paddingTop), parse(style.paddingLeft));
       const rect = el.getBoundingClientRect();
-      return radius >= 8 && padding >= 8 && (hasBg || hasBorder || hasShadow) && rect.width >= 120 && rect.height >= 48;
+      return parse(style.borderTopLeftRadius) >= 8 && boxLike(style) && rect.width >= 120 && rect.height >= 48;
     };
 
     const all = [...root.querySelectorAll('*')].filter(visible);
@@ -201,6 +211,121 @@ export async function auditLayout(page: Page): Promise<{ findings: LayoutFinding
           findings.push({ kind: 'text_collision', selector: describe(a.el.parentElement ?? a.el), detail: `«${a.label}» × «${b.label}» (${Math.round(w)}×${Math.round(h)}px)` });
         }
       }
+    }
+
+    // ── Ritmo visual (não é corte nem colisão, mas o olho pega) ──────────────────────────────
+    const MIN_PADDING = 12;
+    const isControl = (el: Element) => ['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA'].includes(el.tagName);
+    const outOfFlow = (el: Element) => { for (let n: Element | null = el; n && n !== root; n = n.parentElement) { const p = getComputedStyle(n).position; if (p === 'absolute' || p === 'fixed') return true; } return false; };
+    const nearestCard = (el: Element) => { for (let p = el.parentElement; p; p = p.parentElement) if (cardSet.has(p)) return p; return null; };
+
+    // 1) Padding mínimo: texto ou controle a menos de 12px da borda interna do card que o contém.
+    const tight = new Map<Element, { gap: number; what: string }>();
+    const measure = (card: Element, rect: DOMRect, what: string) => {
+      const style = getComputedStyle(card);
+      const box = card.getBoundingClientRect();
+      const gap = Math.min(
+        rect.left - (box.left + parse(style.borderLeftWidth)),
+        (box.right - parse(style.borderRightWidth)) - rect.right,
+        rect.top - (box.top + parse(style.borderTopWidth)),
+        (box.bottom - parse(style.borderBottomWidth)) - rect.bottom,
+      );
+      const current = tight.get(card);
+      if (gap < MIN_PADDING - 0.5 && (!current || gap < current.gap)) tight.set(card, { gap, what });
+    };
+    for (const text of texts) {
+      if (text.label.startsWith('::before') || text.layer || outOfFlow(text.el)) continue;
+      const card = nearestCard(text.el) ?? (cardSet.has(text.el) ? text.el : null);
+      if (card) measure(card, text.rect, `texto «${text.label}»`);
+    }
+    for (const control of all.filter(isControl)) {
+      if (outOfFlow(control)) continue;
+      const card = nearestCard(control);
+      if (card) measure(card, control.getBoundingClientRect(), `${control.tagName.toLowerCase()} «${(control.textContent ?? '').trim().slice(0, 24) || (control as HTMLInputElement).placeholder || ''}»`);
+    }
+    for (const [card, { gap, what }] of tight) {
+      findings.push({ kind: 'tight_padding', selector: describe(card), detail: `${what} a ${Math.round(gap)}px da borda interna (mínimo ${MIN_PADDING}px)` });
+    }
+
+    // 2) Etiqueta/chip quebrando por dentro: pílula (raio ≥ 20px) com texto próprio em mais de uma linha.
+    //    Bloco de canto pouco arredondado com frase é um quadro, e frase pode quebrar.
+    for (const el of all) {
+      if (isControl(el) || el.tagName === 'A' || el.tagName === 'SUMMARY') continue;
+      const style = getComputedStyle(el);
+      if (!hasVisibleBox(style) || parse(style.borderTopLeftRadius) < 20) continue;
+      const own = [...el.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE && (node.textContent ?? '').trim());
+      const text = own.map((node) => node.textContent).join(' ').trim();
+      if (!own.length || text.length > 48 || el.children.length > 2) continue;
+      const range = document.createRange();
+      range.setStartBefore(own[0]); range.setEndAfter(own[own.length - 1]);
+      const lines = new Set([...range.getClientRects()].filter((r) => r.width > 1).map((r) => Math.round(r.top)));
+      if (lines.size > 1) findings.push({ kind: 'chip_wrap', selector: describe(el), detail: `etiqueta «${text.slice(0, 30)}» quebrou em ${lines.size} linhas` });
+    }
+
+    // 3) Divisórias consecutivas: duas linhas horizontais a menos de 24px sem conteúdo entre elas.
+    //    Linha = borda superior/inferior de algo que não é caixa fechada (sem as quatro bordas),
+    //    ou a borda de uma caixa quando encosta numa linha.
+    type Line = { y: number; x1: number; x2: number; el: Element; boxed: boolean };
+    const lines: Line[] = [];
+    for (const el of all) {
+      if (isControl(el) || outOfFlow(el)) continue;
+      const style = getComputedStyle(el);
+      const rect = el.getBoundingClientRect();
+      if (rect.width < 40) continue;
+      const side = (s: 'Top' | 'Bottom' | 'Left' | 'Right') => parse((style as any)[`border${s}Width`]) > 0 && (style as any)[`border${s}Style`] !== 'none' && !/rgba\(\d+, \d+, \d+, 0\)/.test((style as any)[`border${s}Color`]);
+      const boxed = boxLike(style);
+      if (side('Top')) lines.push({ y: rect.top, x1: rect.left, x2: rect.right, el, boxed });
+      if (side('Bottom')) lines.push({ y: rect.bottom, x1: rect.left, x2: rect.right, el, boxed });
+      if (el.tagName === 'HR') lines.push({ y: rect.top, x1: rect.left, x2: rect.right, el, boxed: false });
+    }
+    const contentRects = [
+      ...texts.filter((t) => !t.label.startsWith('::before')).map((t) => t.rect),
+      ...all.filter((el) => isControl(el) || ['IMG', 'svg', 'SVG', 'CANVAS'].includes(el.tagName)).map((el) => el.getBoundingClientRect()),
+    ];
+    const reportedPairs = new Set<string>();
+    lines.sort((a, b) => a.y - b.y);
+    for (let i = 0; i < lines.length; i += 1) {
+      for (let j = i + 1; j < lines.length && lines[j].y - lines[i].y < 24; j += 1) {
+        const a = lines[i]; const b = lines[j];
+        if (a.el === b.el || (a.boxed && b.boxed) || a.el.contains(b.el) && b.boxed || b.el.contains(a.el) && a.boxed) continue;
+        // Linha perto de uma caixa só incomoda quando encosta nela; duas linhas soltas, até 24px.
+        if ((a.boxed || b.boxed) && b.y - a.y >= 6) continue;
+        const overlap = Math.min(a.x2, b.x2) - Math.max(a.x1, b.x1);
+        if (overlap < 0.5 * Math.min(a.x2 - a.x1, b.x2 - b.x1)) continue;
+        const between = contentRects.some((r) => r.bottom > a.y + 1 && r.top < b.y - 1 && r.right > Math.max(a.x1, b.x1) && r.left < Math.min(a.x2, b.x2));
+        if (between) continue;
+        const key = `${describe(a.el)}|${describe(b.el)}`;
+        if (reportedPairs.has(key)) continue; reportedPairs.add(key);
+        findings.push({ kind: 'double_divider', selector: describe(a.el), detail: `linha em y=${Math.round(a.y)} e outra de ${describe(b.el)} em y=${Math.round(b.y)}, sem conteúdo entre elas` });
+      }
+    }
+
+    // 4) Elementos colados: irmãos empilhados com menos de 4px quando um deles é caixa/controle;
+    //    e ícone encostado no marcador ▶ do <summary>.
+    const boxedEl = (el: Element) => boxLike(getComputedStyle(el));
+    for (const parent of all) {
+      const kids = [...parent.children].filter((kid) => visible(kid) && !outOfFlow(kid) && kid.tagName !== 'SUMMARY');
+      for (let i = 0; i + 1 < kids.length; i += 1) {
+        const a = kids[i]; const b = kids[i + 1];
+        const ra = a.getBoundingClientRect(); const rb = b.getBoundingClientRect();
+        if (ra.height < 2 || rb.height < 2 || rb.top < ra.bottom - 1) continue;
+        if (Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left) <= 0) continue;
+        if (!boxedEl(a) && !boxedEl(b)) continue;
+        // Itens irmãos da mesma lista separados por divisória (linhas de tabela, fila, histórico).
+        if (a.tagName === b.tagName && (hasDivider(getComputedStyle(a)) || hasDivider(getComputedStyle(b)))) continue;
+        // Linhas de lista separadas por divisória já têm o respiro dentro delas.
+        if (cardSet.has(parent) && !boxedEl(a) && !boxedEl(b)) continue;
+        const gap = rb.top - ra.bottom;
+        if (gap < 4) findings.push({ kind: 'cramped', selector: describe(b), detail: `colado ${Math.round(gap)}px abaixo de ${describe(a)}` });
+      }
+    }
+    for (const summary of all.filter((el) => el.tagName === 'SUMMARY')) {
+      const style = getComputedStyle(summary);
+      if (style.display !== 'list-item' || style.listStyleType === 'none') continue;
+      const first = summary.firstChild;
+      if (!first || first.nodeType !== Node.ELEMENT_NODE) continue;
+      const offset = (first as Element).getBoundingClientRect().left - (summary.getBoundingClientRect().left + parse(style.paddingLeft) + parse(style.borderLeftWidth));
+      if (offset < parse(style.fontSize) * 1.3) findings.push({ kind: 'cramped', selector: describe(summary), detail: `ícone a ${Math.round(offset)}px do início, encostado no marcador ▶` });
     }
 
     const docWidth = document.documentElement.scrollWidth;

@@ -18,7 +18,10 @@ const WIDTHS = [320, 360, 390, 412, 768, 1440];
 const SCALES = [1, 1.15, 1.3];
 // Prints só dos casos estreitos (os do diagnóstico + o pior); os outros só medem.
 const SHOT_CASES = new Set(['320-fonte115', '320-fonte130', '360-fonte115', '360-fonte130', '390-fonte130']);
-const FAILING_KINDS: LayoutFinding['kind'][] = ['clipped', 'scroll_hidden', 'text_collision', 'escapes_card', 'overlap', 'offscreen', 'page_overflow'];
+const FAILING_KINDS: LayoutFinding['kind'][] = [
+  'clipped', 'scroll_hidden', 'text_collision', 'escapes_card', 'overlap', 'offscreen', 'page_overflow',
+  'tight_padding', 'chip_wrap', 'double_divider', 'cramped',
+];
 
 const rows: Array<Record<string, unknown>> = [];
 
@@ -79,6 +82,13 @@ for (const width of WIDTHS) {
       for (const [label, screen] of [['Registrar', 'registrar'], ['Academia', 'academia'], ['Progresso', 'progresso'], ['Saúde', 'saude'], ['Perfil', 'perfil']]) {
         await page.reload(); await settle(page);
         await navigate(page, label);
+        await check(page, tag, screen, scale, failures);
+      }
+      // As outras abas do Registrar (a Água é a padrão, já auditada acima).
+      for (const [tab, screen] of [['Comida', 'registrar-comida'], ['Check-in', 'registrar-checkin'], ['Cardio', 'registrar-cardio'], ['JSON', 'registrar-json']]) {
+        await page.reload(); await settle(page);
+        await navigate(page, 'Registrar');
+        await page.locator('.logbook-choices').getByRole('button', { name: tab, exact: true }).click();
         await check(page, tag, screen, scale, failures);
       }
       await page.reload(); await settle(page); await navigate(page, 'Academia');

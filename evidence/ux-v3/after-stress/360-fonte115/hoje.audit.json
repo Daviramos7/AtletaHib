@@ -1,12 +1,12 @@
 {
   "closed": {
     "findings": [],
-    "cardCount": 2,
+    "cardCount": 3,
     "maxCardDepth": 1
   },
   "expanded": {
     "findings": [],
-    "cardCount": 2,
+    "cardCount": 7,
     "maxCardDepth": 1
   }
 }
