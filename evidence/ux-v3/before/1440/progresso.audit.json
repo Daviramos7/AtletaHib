@@ -1,0 +1,11 @@
+{
+  "findings": [
+    {
+      "kind": "text_collision",
+      "selector": "g «89 kg»",
+      "detail": "«89  kg» × «87.8» (4×15px)"
+    }
+  ],
+  "cardCount": 8,
+  "maxCardDepth": 1
+}

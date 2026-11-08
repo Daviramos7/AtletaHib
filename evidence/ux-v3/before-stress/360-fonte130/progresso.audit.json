@@ -1,0 +1,34 @@
+{
+  "closed": {
+    "findings": [
+      {
+        "kind": "text_collision",
+        "selector": "g «89 kg»",
+        "detail": "«89  kg» × «87.8» (3×8px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Academia»",
+        "detail": "«Academia» × «Progresso» (6×16px)"
+      }
+    ],
+    "cardCount": 8,
+    "maxCardDepth": 1
+  },
+  "expanded": {
+    "findings": [
+      {
+        "kind": "text_collision",
+        "selector": "g «89 kg»",
+        "detail": "«89  kg» × «87.8» (3×8px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Academia»",
+        "detail": "«Academia» × «Progresso» (6×16px)"
+      }
+    ],
+    "cardCount": 8,
+    "maxCardDepth": 1
+  }
+}

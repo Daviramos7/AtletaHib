@@ -1,0 +1,109 @@
+{
+  "closed": {
+    "findings": [
+      {
+        "kind": "nested_card",
+        "selector": "details «Inferior10/11/2026 · sessão-base · baseV»",
+        "detail": "profundidade 2 dentro de section.simple-panel.gym-history-v42 «Planejado x realizado»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "details «Superior04/11/2026 · sessão-base · baseV»",
+        "detail": "profundidade 2 dentro de section.simple-panel.gym-history-v42 «Planejado x realizado»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "details «Inferior03/11/2026 · sessão-base · baseV»",
+        "detail": "profundidade 2 dentro de section.simple-panel.gym-history-v42 «Planejado x realizado»"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "div.simple-page.gym-v32-page.training-lane-page «Inferior»",
+        "detail": "«::before \"01\"» × «Academia» (12×15px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button.status-recommended «Superior»",
+        "detail": "«Recomendado» × «~ 59  min · preferência  Qua» (11×16px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button.status-not_ideal «Full body»",
+        "detail": "«Não ideal hoje» × «~ 56  min · preferência  Sex» (11×16px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Academia»",
+        "detail": "«Academia» × «Progresso» (6×16px)"
+      }
+    ],
+    "cardCount": 5,
+    "maxCardDepth": 2
+  },
+  "expanded": {
+    "findings": [
+      {
+        "kind": "nested_card",
+        "selector": "div.cardio-prescription-card «Cardio leve no final»",
+        "detail": "profundidade 2 dentro de section.simple-panel.cardio-progress-card «Fase 1 de 8»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.cardio-cap-note-v402 «Até 20 min recomendados. Registre a dura»",
+        "detail": "profundidade 2 dentro de section.simple-panel.cardio-progress-card «Fase 1 de 8»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "section.simple-panel.workout-progress-summary-v34 «0 kg»",
+        "detail": "profundidade 2 dentro de details.simple-panel.gym-log-panel-v32 «Exercícios e séries do plano»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div «0/7»",
+        "detail": "profundidade 3 dentro de section.simple-panel.workout-progress-summary-v34 «0 kg»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div «4200 kg»",
+        "detail": "profundidade 3 dentro de section.simple-panel.workout-progress-summary-v34 «0 kg»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "details «Inferior10/11/2026 · sessão-base · baseV»",
+        "detail": "profundidade 2 dentro de section.simple-panel.gym-history-v42 «Planejado x realizado»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "details «Superior04/11/2026 · sessão-base · baseV»",
+        "detail": "profundidade 2 dentro de section.simple-panel.gym-history-v42 «Planejado x realizado»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "details «Inferior03/11/2026 · sessão-base · baseV»",
+        "detail": "profundidade 2 dentro de section.simple-panel.gym-history-v42 «Planejado x realizado»"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "div.simple-page.gym-v32-page.training-lane-page «Inferior»",
+        "detail": "«::before \"01\"» × «Academia» (12×15px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button.status-recommended «Superior»",
+        "detail": "«Recomendado» × «~ 59  min · preferência  Qua» (11×16px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button.status-not_ideal «Full body»",
+        "detail": "«Não ideal hoje» × «~ 56  min · preferência  Sex» (11×16px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Academia»",
+        "detail": "«Academia» × «Progresso» (6×16px)"
+      }
+    ],
+    "cardCount": 11,
+    "maxCardDepth": 3
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "closed": {
+    "findings": [
+      {
+        "kind": "text_collision",
+        "selector": "div.simple-page.gym-v32-page.training-lane-page «Inferior»",
+        "detail": "«::before \"01\"» × «Sessão em andamento» (12×15px)"
+      }
+    ],
+    "cardCount": 2,
+    "maxCardDepth": 1
+  },
+  "expanded": {
+    "findings": [
+      {
+        "kind": "nested_card",
+        "selector": "section.simple-panel.workout-progress-summary-v34 «0 kg»",
+        "detail": "profundidade 2 dentro de section.simple-panel.gym-log-panel-v32 «0 de 17 concluídas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div «0/7»",
+        "detail": "profundidade 3 dentro de section.simple-panel.workout-progress-summary-v34 «0 kg»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div «4200 kg»",
+        "detail": "profundidade 3 dentro de section.simple-panel.workout-progress-summary-v34 «0 kg»"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "div.simple-page.gym-v32-page.training-lane-page «Inferior»",
+        "detail": "«::before \"01\"» × «Sessão em andamento» (12×15px)"
+      }
+    ],
+    "cardCount": 5,
+    "maxCardDepth": 3
+  }
+}

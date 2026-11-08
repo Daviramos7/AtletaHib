@@ -1,0 +1,24 @@
+{
+  "closed": {
+    "findings": [
+      {
+        "kind": "text_collision",
+        "selector": "button «Academia»",
+        "detail": "«Academia» × «Progresso» (5×15px)"
+      }
+    ],
+    "cardCount": 0,
+    "maxCardDepth": 0
+  },
+  "expanded": {
+    "findings": [
+      {
+        "kind": "text_collision",
+        "selector": "button «Academia»",
+        "detail": "«Academia» × «Progresso» (5×15px)"
+      }
+    ],
+    "cardCount": 0,
+    "maxCardDepth": 0
+  }
+}

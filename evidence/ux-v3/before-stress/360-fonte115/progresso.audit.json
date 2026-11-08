@@ -1,0 +1,24 @@
+{
+  "closed": {
+    "findings": [
+      {
+        "kind": "text_collision",
+        "selector": "g «89 kg»",
+        "detail": "«89  kg» × «87.8» (2×6px)"
+      }
+    ],
+    "cardCount": 8,
+    "maxCardDepth": 1
+  },
+  "expanded": {
+    "findings": [
+      {
+        "kind": "text_collision",
+        "selector": "g «89 kg»",
+        "detail": "«89  kg» × «87.8» (2×6px)"
+      }
+    ],
+    "cardCount": 8,
+    "maxCardDepth": 1
+  }
+}
