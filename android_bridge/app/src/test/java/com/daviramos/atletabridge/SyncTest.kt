@@ -82,6 +82,22 @@ class SyncTest {
         val result = SyncCoordinator(DailyReader(Source()), backend, AuthSession(backend, Store(auth))).sync((0..6).map { date.minusDays(it.toLong()) }, zone)
         assertTrue(result.partial); assertEquals(0, result.sent); assertEquals(1, backend.calls)
     }
+    @Test fun sevenDaySyncReportsProgressForEveryDay() = runTest {
+        val backend = Backend(); val progress = mutableListOf<Pair<Int, Int>>()
+        val days = (6 downTo 0).map { date.minusDays(it.toLong()) }
+        val result = SyncCoordinator(DailyReader(Source()), backend, AuthSession(backend, Store(auth))).sync(days, zone) { current, total -> progress += current to total }
+        assertEquals((1..7).map { it to 7 }, progress)
+        assertEquals(7, result.days.size); assertFalse(result.partial); assertEquals(7, backend.calls)
+    }
+    @Test fun moreThanSevenDaysIsRejected() = runTest {
+        val backend = Backend()
+        val sync = SyncCoordinator(DailyReader(Source()), backend, AuthSession(backend, Store(auth)))
+        val error = runCatching { sync.sync((0..7).map { date.minusDays(it.toLong()) }, zone) }.exceptionOrNull()
+        assertTrue("esperava IllegalArgumentException, veio $error", error is IllegalArgumentException)
+        // O lock é liberado: uma sincronização válida logo depois funciona.
+        assertEquals(1, sync.sync(listOf(date), zone).sent)
+        assertEquals(1, backend.calls)
+    }
     @Test fun offlineKeepsSessionAndRetryCanSucceed() = runTest {
         val backend = Backend().apply { failure = IOException("private network detail") }; val store = Store(auth)
         val sync = SyncCoordinator(DailyReader(Source()), backend, AuthSession(backend, store))

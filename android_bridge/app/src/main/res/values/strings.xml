@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Atleta Hib Sync</string>
+    <string name="sync_last_7_days">Sincronizar últimos 7 dias</string>
+    <string name="sync_last_7_days_hint">Use se ficou dias sem abrir o app. Dias já enviados e sem mudança não são regravados.</string>
 </resources>

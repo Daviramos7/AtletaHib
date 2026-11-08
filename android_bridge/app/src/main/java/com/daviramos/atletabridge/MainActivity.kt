@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
@@ -114,6 +115,14 @@ fun BridgeScreen(
                     modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                     Text(if (state.busy) "Aguarde…" else if (state.error && state.connected) "Tentar sincronizar novamente" else "Sincronizar agora")
                 }
+                // Restaurado: a reformulação de outubro removeu o atalho sem motivo técnico.
+                // O coordenador já aceita 1..7 dias, mostra "dia X de Y" e para no primeiro erro (parcial).
+                OutlinedButton(onClick = { onSync(7) }, enabled = !state.busy && state.connected && state.available && state.configured,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+                    Text(stringResource(R.string.sync_last_7_days))
+                }
+                Text(stringResource(R.string.sync_last_7_days_hint), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (!state.configured) Text("! Servidor não configurado neste APK.", color = MaterialTheme.colorScheme.error)
                 state.result?.let { result ->
                     Text("${result.sent} resumo(s) enviado(s) · ${result.unchanged} sem alteração", style = MaterialTheme.typography.labelLarge)
