@@ -53,7 +53,7 @@ export function WorkoutProgressSummary(props: any) {
       </div>
       <div>
         <dt>Último treino</dt>
-        <dd>{summary.lastWorkoutVolume || '--'} kg</dd>
+        <dd>{summary.lastWorkoutVolume ? `${summary.lastWorkoutVolume} kg` : '—'}</dd>
       </div>
     </dl>
   );

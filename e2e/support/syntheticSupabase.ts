@@ -223,6 +223,8 @@ export async function installSyntheticSupabase(context: Pick<BrowserContext, 'ro
 export async function settle(page: Page) {
   await page.waitForFunction(() => !document.querySelector('.ds-loading-state') && Boolean(document.querySelector('#main-content h2, #main-content h3, .login-card h2, .onboarding-flow h1, main h2')), undefined, { timeout: 20_000 });
   await page.waitForLoadState('networkidle');
+  // A tela de abertura (index.html) sai com um fade curto depois que o app fica pronto.
+  await page.waitForFunction(() => !document.getElementById('app-splash'), undefined, { timeout: 5_000 });
   const notice = page.getByRole('button', { name: 'Fechar mensagem', exact: true });
   if (await notice.isVisible().catch(() => false)) await notice.click();
   await page.evaluate(() => window.scrollTo(0, 0));

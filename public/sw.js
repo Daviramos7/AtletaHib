@@ -1,9 +1,11 @@
-const CACHE_NAME = 'atleta-hib-v4-ux';
+// v5: ícones regerados sem pixelado; o nome novo derruba o cache antigo no activate.
+const CACHE_NAME = 'atleta-hib-v5-icones';
 const APP_SHELL = [
   '/',
   '/manifest.json',
   '/icons/atleta-hib-any-192.png',
   '/icons/atleta-hib-any-512.png',
+  '/icons/atleta-hib-maskable-192.png',
   '/icons/atleta-hib-maskable-512.png',
   '/icons/atleta-hib-apple-touch-180.png',
 ];
