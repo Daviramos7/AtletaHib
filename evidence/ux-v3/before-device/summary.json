@@ -1,0 +1,91 @@
+{
+  "model": "2412DPC0AG",
+  "fontScale": "0.9",
+  "width": 375,
+  "dpr": 3.25,
+  "rootFont": "16px",
+  "bodyFont": "16px",
+  "ua": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Mobile Safari/537.36",
+  "rows": [
+    {
+      "screen": "hoje",
+      "maxCardDepth": 1,
+      "findings": 2
+    },
+    {
+      "screen": "academia",
+      "maxCardDepth": 1,
+      "findings": 0
+    },
+    {
+      "screen": "saude",
+      "maxCardDepth": 1,
+      "findings": 0
+    },
+    {
+      "screen": "perfil",
+      "maxCardDepth": 1,
+      "findings": 0
+    },
+    {
+      "screen": "registrar",
+      "maxCardDepth": 1,
+      "findings": 0
+    },
+    {
+      "screen": "registrar-comida",
+      "maxCardDepth": 1,
+      "findings": 0
+    },
+    {
+      "screen": "registrar-checkin",
+      "maxCardDepth": 1,
+      "findings": 0
+    },
+    {
+      "screen": "registrar-cardio",
+      "maxCardDepth": 1,
+      "findings": 0
+    },
+    {
+      "screen": "registrar-json",
+      "maxCardDepth": 1,
+      "findings": 0
+    },
+    {
+      "screen": "progresso",
+      "maxCardDepth": 0,
+      "findings": 2
+    },
+    {
+      "screen": "progresso-sono",
+      "maxCardDepth": 2,
+      "findings": 16
+    },
+    {
+      "screen": "progresso-forca",
+      "maxCardDepth": 2,
+      "findings": 20
+    },
+    {
+      "screen": "progresso-relogio",
+      "maxCardDepth": 2,
+      "findings": 2
+    },
+    {
+      "screen": "progresso-cardio",
+      "maxCardDepth": 2,
+      "findings": 2
+    },
+    {
+      "screen": "progresso-semana",
+      "maxCardDepth": 2,
+      "findings": 18
+    },
+    {
+      "screen": "academia-sessao",
+      "maxCardDepth": 1,
+      "findings": 0
+    }
+  ]
+}

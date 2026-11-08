@@ -1,0 +1,11 @@
+{
+  "findings": [
+    {
+      "kind": "text_collision",
+      "selector": "div.simple-page.gym-v32-page.training-lane-page «Inferior»",
+      "detail": "«::before \"01\"» × «Sessão em andamento» (12×15px)"
+    }
+  ],
+  "cardCount": 2,
+  "maxCardDepth": 1
+}

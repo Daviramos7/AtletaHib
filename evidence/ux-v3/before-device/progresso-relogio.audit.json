@@ -1,0 +1,64 @@
+{
+  "closed": {
+    "findings": [
+      {
+        "kind": "nested_card",
+        "selector": "div.strength-watch-warning-v403 «Kcal da sessão não somam novamente ao to»",
+        "detail": "profundidade 2 dentro de section.simple-panel.strength-watch-hero-v403 «Força · dados do relógio»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.strength-watch-row-v403 «Treino de força»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Últimos treinos do relógio»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.strength-watch-row-v403 «Treino de força»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Últimos treinos do relógio»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.strength-watch-row-v403 «Treino de força»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Últimos treinos do relógio»"
+      },
+      {
+        "kind": "tight_padding",
+        "selector": "div.strength-watch-warning-v403 «Kcal da sessão não somam novamente ao to»",
+        "detail": "texto «Kcal da sessão não somam novam» a 11px da borda interna (mínimo 12px)"
+      }
+    ],
+    "cardCount": 10,
+    "maxCardDepth": 2
+  },
+  "expanded": {
+    "findings": [
+      {
+        "kind": "nested_card",
+        "selector": "div.strength-watch-warning-v403 «Kcal da sessão não somam novamente ao to»",
+        "detail": "profundidade 2 dentro de section.simple-panel.strength-watch-hero-v403 «Força · dados do relógio»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.strength-watch-row-v403 «Treino de força»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Últimos treinos do relógio»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.strength-watch-row-v403 «Treino de força»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Últimos treinos do relógio»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.strength-watch-row-v403 «Treino de força»",
+        "detail": "profundidade 2 dentro de section.simple-panel «Últimos treinos do relógio»"
+      },
+      {
+        "kind": "tight_padding",
+        "selector": "div.strength-watch-warning-v403 «Kcal da sessão não somam novamente ao to»",
+        "detail": "texto «Kcal da sessão não somam novam» a 11px da borda interna (mínimo 12px)"
+      }
+    ],
+    "cardCount": 10,
+    "maxCardDepth": 2
+  }
+}

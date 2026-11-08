@@ -117,9 +117,9 @@ export default function DietView({ userId, profile, onError }) {
 
       <div className="metric-grid four">
         <MetricCard label="Kcal" value={items.length ? totals.kcal : '—'} detail={`meta ${profile?.kcal_goal ?? 2300}`} />
-        <MetricCard label="Proteína" value={formatMacroTotal(totals.protein, items.filter((item) => item.protein_g != null).length, macrosComplete)} detail={!items.length ? 'sem registros' : macrosComplete ? 'total registrado' : 'total parcial'} />
-        <MetricCard label="Carboidratos" value={formatMacroTotal(totals.carbs, items.filter((item) => item.carbs_g != null).length, macrosComplete)} detail={!items.length ? 'sem registros' : macrosComplete ? 'total registrado' : 'total parcial'} />
-        <MetricCard label="Gordura" value={formatMacroTotal(totals.fat, items.filter((item) => item.fat_g != null).length, macrosComplete)} detail={!items.length ? 'sem registros' : macrosComplete ? 'total registrado' : 'total parcial'} />
+        <MetricCard label="Proteína" value={formatMacroTotal(totals.protein, items.filter((item) => item.protein_g != null).length)} detail={!items.length ? 'sem registros' : macrosComplete ? 'total registrado' : 'parcial · há itens sem macros'} />
+        <MetricCard label="Carboidratos" value={formatMacroTotal(totals.carbs, items.filter((item) => item.carbs_g != null).length)} detail={!items.length ? 'sem registros' : macrosComplete ? 'total registrado' : 'parcial · há itens sem macros'} />
+        <MetricCard label="Gordura" value={formatMacroTotal(totals.fat, items.filter((item) => item.fat_g != null).length)} detail={!items.length ? 'sem registros' : macrosComplete ? 'total registrado' : 'parcial · há itens sem macros'} />
       </div>
 
       <form className="panel form-grid" onSubmit={handleAdd}>
@@ -208,9 +208,10 @@ function scaleOptionalMacro(value: number | null, factor: number) {
   return value === null ? null : Number((value * factor).toFixed(1));
 }
 
-function formatMacroTotal(value: number, itemCount: number, complete: boolean) {
-  if (!itemCount) return '--';
-  return `${value.toFixed(0)}g${complete ? '' : ' conhecidos'}`;
+function formatMacroTotal(value: number, itemCount: number) {
+  if (!itemCount) return '—';
+  // O "parcial" vai no detalhe do card; o número grande fica curto para caber em qualquer coluna.
+  return `${value.toFixed(0)}g`;
 }
 
 function mealSourceLabel(item: any) {

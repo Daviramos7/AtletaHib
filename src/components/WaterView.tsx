@@ -80,17 +80,18 @@ export default function WaterView(props: any) {
       </div>
 
       <section className="simple-panel water-hero-v361">
-        <div>
-          <p className="eyebrow">{date === todayKey() ? 'Hoje' : 'Nesta data'}</p>
-          <h3>{loading ? '—' : water.toLocaleString('pt-BR')} ml</h3>
-          <span>{loading ? 'Carregando…' : remaining > 0 ? `${percent}% da meta · faltam ${remaining.toLocaleString('pt-BR')} ml` : 'Meta atingida'}</span>
+        <div className="water-hero-main-v361">
+          <div>
+            <p className="eyebrow">{date === todayKey() ? 'Hoje' : 'Nesta data'}</p>
+            <h3>{loading ? '—' : water.toLocaleString('pt-BR')} ml</h3>
+            <span>{loading ? 'Carregando…' : remaining > 0 ? `${percent}% da meta · faltam ${remaining.toLocaleString('pt-BR')} ml` : 'Meta atingida'}</span>
+          </div>
+          <Droplets size={42} />
         </div>
-        <Droplets size={42} />
+        <div className="water-progress-track-v361" role="progressbar" aria-label="Meta de água" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
+          <span style={{ width: `${percent}%` }} />
+        </div>
       </section>
-
-      <div className="water-progress-track-v361" role="progressbar" aria-label="Meta de água" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
-        <span style={{ width: `${percent}%` }} />
-      </div>
 
       <section className="simple-panel water-actions-v361">
         <p className="eyebrow">Adicionar rápido</p>

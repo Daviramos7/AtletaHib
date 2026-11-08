@@ -1,0 +1,54 @@
+{
+  "closed": {
+    "findings": [
+      {
+        "kind": "scroll_hidden",
+        "selector": "a.skip-link «Ir para o conteúdo»",
+        "detail": "texto «Ir para o conteúdo» sai 85px de div.app-shell.app-shell-v2 «Alex» (overflow hidden/auto)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Registrar»",
+        "detail": "«Registrar» × «Academia» (6×16px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Academia»",
+        "detail": "«Academia» × «Progresso» (13×16px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Progresso»",
+        "detail": "«Progresso» × «Saúde» (9×16px)"
+      }
+    ],
+    "cardCount": 2,
+    "maxCardDepth": 1
+  },
+  "expanded": {
+    "findings": [
+      {
+        "kind": "scroll_hidden",
+        "selector": "a.skip-link «Ir para o conteúdo»",
+        "detail": "texto «Ir para o conteúdo» sai 85px de div.app-shell.app-shell-v2 «Alex» (overflow hidden/auto)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Registrar»",
+        "detail": "«Registrar» × «Academia» (6×16px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Academia»",
+        "detail": "«Academia» × «Progresso» (13×16px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Progresso»",
+        "detail": "«Progresso» × «Saúde» (9×16px)"
+      }
+    ],
+    "cardCount": 2,
+    "maxCardDepth": 1
+  }
+}

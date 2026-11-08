@@ -1,0 +1,74 @@
+{
+  "closed": {
+    "findings": [
+      {
+        "kind": "clipped",
+        "selector": "div.metric-card «conectado»",
+        "detail": "largura 139px de 153px (overflow hidden/hidden, height 142.828px, max-height none)"
+      },
+      {
+        "kind": "scroll_hidden",
+        "selector": "a.skip-link «Ir para o conteúdo»",
+        "detail": "texto «Ir para o conteúdo» sai 85px de div.app-shell.app-shell-v2 «Alex» (overflow hidden/auto)"
+      },
+      {
+        "kind": "clipped",
+        "selector": "strong «conectado»",
+        "detail": "texto «conectado» sai 14px de div.metric-card «conectado» (overflow hidden/hidden)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Registrar»",
+        "detail": "«Registrar» × «Academia» (6×16px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Academia»",
+        "detail": "«Academia» × «Progresso» (13×16px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Progresso»",
+        "detail": "«Progresso» × «Saúde» (9×16px)"
+      }
+    ],
+    "cardCount": 4,
+    "maxCardDepth": 1
+  },
+  "expanded": {
+    "findings": [
+      {
+        "kind": "clipped",
+        "selector": "div.metric-card «conectado»",
+        "detail": "largura 139px de 153px (overflow hidden/hidden, height 142.828px, max-height none)"
+      },
+      {
+        "kind": "scroll_hidden",
+        "selector": "a.skip-link «Ir para o conteúdo»",
+        "detail": "texto «Ir para o conteúdo» sai 85px de div.app-shell.app-shell-v2 «Alex» (overflow hidden/auto)"
+      },
+      {
+        "kind": "clipped",
+        "selector": "strong «conectado»",
+        "detail": "texto «conectado» sai 14px de div.metric-card «conectado» (overflow hidden/hidden)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Registrar»",
+        "detail": "«Registrar» × «Academia» (6×16px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Academia»",
+        "detail": "«Academia» × «Progresso» (13×16px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Progresso»",
+        "detail": "«Progresso» × «Saúde» (9×16px)"
+      }
+    ],
+    "cardCount": 4,
+    "maxCardDepth": 1
+  }
+}

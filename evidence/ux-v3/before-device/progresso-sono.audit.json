@@ -1,0 +1,204 @@
+{
+  "closed": {
+    "findings": [
+      {
+        "kind": "nested_card",
+        "selector": "div.sleep-stage-card.deep «1h 30min»",
+        "detail": "profundidade 2 dentro de section.panel.sleep-hero-panel «7h 20min · 11/11/2026»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.sleep-stage-card.light «4h 10min»",
+        "detail": "profundidade 2 dentro de section.panel.sleep-hero-panel «7h 20min · 11/11/2026»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.sleep-stage-card.rem «1h 30min»",
+        "detail": "profundidade 2 dentro de section.panel.sleep-hero-panel «7h 20min · 11/11/2026»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.sleep-stage-card.awake «10min»",
+        "detail": "profundidade 2 dentro de section.panel.sleep-hero-panel «7h 20min · 11/11/2026»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.sleep-history-card «11/11/2026 · 7h 20min»",
+        "detail": "profundidade 2 dentro de section.panel «Sessões corrigidas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.sleep-history-card «10/11/2026 · 5h 56min»",
+        "detail": "profundidade 2 dentro de section.panel «Sessões corrigidas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.sleep-history-card «09/11/2026 · 7h 8min»",
+        "detail": "profundidade 2 dentro de section.panel «Sessões corrigidas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.sleep-history-card «08/11/2026 · 7h 2min»",
+        "detail": "profundidade 2 dentro de section.panel «Sessões corrigidas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.sleep-history-card «07/11/2026 · 6h 56min»",
+        "detail": "profundidade 2 dentro de section.panel «Sessões corrigidas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.sleep-history-card «06/11/2026 · 6h 50min»",
+        "detail": "profundidade 2 dentro de section.panel «Sessões corrigidas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.sleep-history-card «05/11/2026 · 6h 44min»",
+        "detail": "profundidade 2 dentro de section.panel «Sessões corrigidas»"
+      },
+      {
+        "kind": "cramped",
+        "selector": "section.panel.sleep-hero-panel «7h 20min · 11/11/2026»",
+        "detail": "colado 0px abaixo de header.ds-page-header «Sono»"
+      },
+      {
+        "kind": "cramped",
+        "selector": "span.ds-badge.ds-source-badge.ds-source-badge--wearable «Mi Fitness»",
+        "detail": "colado 0px abaixo de div.sleep-history-head «11/11/2026 · 7h 20min»"
+      },
+      {
+        "kind": "cramped",
+        "selector": "span.ds-badge.ds-source-badge.ds-source-badge--wearable «Mi Fitness»",
+        "detail": "colado 0px abaixo de div.sleep-history-head «10/11/2026 · 5h 56min»"
+      },
+      {
+        "kind": "cramped",
+        "selector": "span.ds-badge.ds-source-badge.ds-source-badge--wearable «Mi Fitness»",
+        "detail": "colado 0px abaixo de div.sleep-history-head «09/11/2026 · 7h 8min»"
+      },
+      {
+        "kind": "cramped",
+        "selector": "span.ds-badge.ds-source-badge.ds-source-badge--wearable «Mi Fitness»",
+        "detail": "colado 0px abaixo de div.sleep-history-head «08/11/2026 · 7h 2min»"
+      },
+      {
+        "kind": "cramped",
+        "selector": "span.ds-badge.ds-source-badge.ds-source-badge--wearable «Mi Fitness»",
+        "detail": "colado 0px abaixo de div.sleep-history-head «07/11/2026 · 6h 56min»"
+      },
+      {
+        "kind": "cramped",
+        "selector": "span.ds-badge.ds-source-badge.ds-source-badge--wearable «Mi Fitness»",
+        "detail": "colado 0px abaixo de div.sleep-history-head «06/11/2026 · 6h 50min»"
+      },
+      {
+        "kind": "cramped",
+        "selector": "span.ds-badge.ds-source-badge.ds-source-badge--wearable «Mi Fitness»",
+        "detail": "colado 0px abaixo de div.sleep-history-head «05/11/2026 · 6h 44min»"
+      }
+    ],
+    "cardCount": 18,
+    "maxCardDepth": 2
+  },
+  "expanded": {
+    "findings": [
+      {
+        "kind": "nested_card",
+        "selector": "div.sleep-stage-card.deep «1h 30min»",
+        "detail": "profundidade 2 dentro de section.panel.sleep-hero-panel «7h 20min · 11/11/2026»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.sleep-stage-card.light «4h 10min»",
+        "detail": "profundidade 2 dentro de section.panel.sleep-hero-panel «7h 20min · 11/11/2026»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.sleep-stage-card.rem «1h 30min»",
+        "detail": "profundidade 2 dentro de section.panel.sleep-hero-panel «7h 20min · 11/11/2026»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.sleep-stage-card.awake «10min»",
+        "detail": "profundidade 2 dentro de section.panel.sleep-hero-panel «7h 20min · 11/11/2026»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.sleep-history-card «11/11/2026 · 7h 20min»",
+        "detail": "profundidade 2 dentro de section.panel «Sessões corrigidas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.sleep-history-card «10/11/2026 · 5h 56min»",
+        "detail": "profundidade 2 dentro de section.panel «Sessões corrigidas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.sleep-history-card «09/11/2026 · 7h 8min»",
+        "detail": "profundidade 2 dentro de section.panel «Sessões corrigidas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.sleep-history-card «08/11/2026 · 7h 2min»",
+        "detail": "profundidade 2 dentro de section.panel «Sessões corrigidas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.sleep-history-card «07/11/2026 · 6h 56min»",
+        "detail": "profundidade 2 dentro de section.panel «Sessões corrigidas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.sleep-history-card «06/11/2026 · 6h 50min»",
+        "detail": "profundidade 2 dentro de section.panel «Sessões corrigidas»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.sleep-history-card «05/11/2026 · 6h 44min»",
+        "detail": "profundidade 2 dentro de section.panel «Sessões corrigidas»"
+      },
+      {
+        "kind": "cramped",
+        "selector": "section.panel.sleep-hero-panel «7h 20min · 11/11/2026»",
+        "detail": "colado 0px abaixo de header.ds-page-header «Sono»"
+      },
+      {
+        "kind": "cramped",
+        "selector": "span.ds-badge.ds-source-badge.ds-source-badge--wearable «Mi Fitness»",
+        "detail": "colado 0px abaixo de div.sleep-history-head «11/11/2026 · 7h 20min»"
+      },
+      {
+        "kind": "cramped",
+        "selector": "span.ds-badge.ds-source-badge.ds-source-badge--wearable «Mi Fitness»",
+        "detail": "colado 0px abaixo de div.sleep-history-head «10/11/2026 · 5h 56min»"
+      },
+      {
+        "kind": "cramped",
+        "selector": "span.ds-badge.ds-source-badge.ds-source-badge--wearable «Mi Fitness»",
+        "detail": "colado 0px abaixo de div.sleep-history-head «09/11/2026 · 7h 8min»"
+      },
+      {
+        "kind": "cramped",
+        "selector": "span.ds-badge.ds-source-badge.ds-source-badge--wearable «Mi Fitness»",
+        "detail": "colado 0px abaixo de div.sleep-history-head «08/11/2026 · 7h 2min»"
+      },
+      {
+        "kind": "cramped",
+        "selector": "span.ds-badge.ds-source-badge.ds-source-badge--wearable «Mi Fitness»",
+        "detail": "colado 0px abaixo de div.sleep-history-head «07/11/2026 · 6h 56min»"
+      },
+      {
+        "kind": "cramped",
+        "selector": "span.ds-badge.ds-source-badge.ds-source-badge--wearable «Mi Fitness»",
+        "detail": "colado 0px abaixo de div.sleep-history-head «06/11/2026 · 6h 50min»"
+      },
+      {
+        "kind": "cramped",
+        "selector": "span.ds-badge.ds-source-badge.ds-source-badge--wearable «Mi Fitness»",
+        "detail": "colado 0px abaixo de div.sleep-history-head «05/11/2026 · 6h 44min»"
+      }
+    ],
+    "cardCount": 18,
+    "maxCardDepth": 2
+  }
+}

@@ -1,0 +1,194 @@
+{
+  "closed": {
+    "findings": [
+      {
+        "kind": "nested_card",
+        "selector": "div.strength-metric-v38 «62.5 kg»",
+        "detail": "profundidade 2 dentro de section.simple-panel.strength-main-card-v38 «Cadeira flexora»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.strength-metric-v38 «83.3 kg»",
+        "detail": "profundidade 2 dentro de section.simple-panel.strength-main-card-v38 «Cadeira flexora»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.strength-metric-v38 «5865 kg»",
+        "detail": "profundidade 2 dentro de section.simple-panel.strength-main-card-v38 «Cadeira flexora»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.strength-metric-v38 «10/11»",
+        "detail": "profundidade 2 dentro de section.simple-panel.strength-main-card-v38 «Cadeira flexora»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.strength-session-card-v38 «10/11, 20:40»",
+        "detail": "profundidade 2 dentro de section.simple-panel «4 sessão(ões)»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.strength-session-card-v38 «03/11, 20:40»",
+        "detail": "profundidade 2 dentro de section.simple-panel «4 sessão(ões)»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.strength-session-card-v38 «27/10, 20:40»",
+        "detail": "profundidade 2 dentro de section.simple-panel «4 sessão(ões)»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.strength-session-card-v38 «20/10, 20:40»",
+        "detail": "profundidade 2 dentro de section.simple-panel «4 sessão(ões)»"
+      },
+      {
+        "kind": "escapes_card",
+        "selector": "span «9 séries · 3960 kg»",
+        "detail": "sai 4px de aside.simple-panel.strength-exercise-list-v38 «8 encontrados»"
+      },
+      {
+        "kind": "scroll_hidden",
+        "selector": "span «9 séries · 3960 kg»",
+        "detail": "texto «9  séries ·  3960 kg» sai 17px de div.exercise-pick-list-v38 «Cadeira flexora» (overflow auto/auto)"
+      },
+      {
+        "kind": "scroll_hidden",
+        "selector": "strong «Puxada na frente»",
+        "detail": "texto «Puxada na frente» sai 46px de div.exercise-pick-list-v38 «Cadeira flexora» (overflow auto/auto)"
+      },
+      {
+        "kind": "scroll_hidden",
+        "selector": "span «9 séries · 2970 kg»",
+        "detail": "texto «9  séries ·  2970 kg» sai 69px de div.exercise-pick-list-v38 «Cadeira flexora» (overflow auto/auto)"
+      },
+      {
+        "kind": "scroll_hidden",
+        "selector": "strong «Supino máquina ou halteres»",
+        "detail": "texto «Supino máquina ou halteres» sai 98px de div.exercise-pick-list-v38 «Cadeira flexora» (overflow auto/auto)"
+      },
+      {
+        "kind": "scroll_hidden",
+        "selector": "span «9 séries · 1980 kg»",
+        "detail": "texto «9  séries ·  1980 kg» sai 121px de div.exercise-pick-list-v38 «Cadeira flexora» (overflow auto/auto)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Puxada na frente»",
+        "detail": "«9  séries ·  2970 kg» × «Exercício selecionado» (8×9px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Supino máquina ou halteres»",
+        "detail": "«Supino máquina ou halteres» × «Cadeira flexora» (128×15px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Supino máquina ou halteres»",
+        "detail": "«9  séries ·  1980 kg» × «Performance comparável caiu 55» (8×14px)"
+      },
+      {
+        "kind": "tight_padding",
+        "selector": "aside.simple-panel.strength-exercise-list-v38 «8 encontrados»",
+        "detail": "texto «9  séries ·  1980 kg» a -107px da borda interna (mínimo 12px)"
+      }
+    ],
+    "cardCount": 13,
+    "maxCardDepth": 2
+  },
+  "expanded": {
+    "findings": [
+      {
+        "kind": "nested_card",
+        "selector": "div.strength-metric-v38 «62.5 kg»",
+        "detail": "profundidade 2 dentro de section.simple-panel.strength-main-card-v38 «Cadeira flexora»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.strength-metric-v38 «83.3 kg»",
+        "detail": "profundidade 2 dentro de section.simple-panel.strength-main-card-v38 «Cadeira flexora»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.strength-metric-v38 «5865 kg»",
+        "detail": "profundidade 2 dentro de section.simple-panel.strength-main-card-v38 «Cadeira flexora»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "div.strength-metric-v38 «10/11»",
+        "detail": "profundidade 2 dentro de section.simple-panel.strength-main-card-v38 «Cadeira flexora»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.strength-session-card-v38 «10/11, 20:40»",
+        "detail": "profundidade 2 dentro de section.simple-panel «4 sessão(ões)»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.strength-session-card-v38 «03/11, 20:40»",
+        "detail": "profundidade 2 dentro de section.simple-panel «4 sessão(ões)»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.strength-session-card-v38 «27/10, 20:40»",
+        "detail": "profundidade 2 dentro de section.simple-panel «4 sessão(ões)»"
+      },
+      {
+        "kind": "nested_card",
+        "selector": "article.strength-session-card-v38 «20/10, 20:40»",
+        "detail": "profundidade 2 dentro de section.simple-panel «4 sessão(ões)»"
+      },
+      {
+        "kind": "escapes_card",
+        "selector": "span «9 séries · 3960 kg»",
+        "detail": "sai 4px de aside.simple-panel.strength-exercise-list-v38 «8 encontrados»"
+      },
+      {
+        "kind": "scroll_hidden",
+        "selector": "span «9 séries · 3960 kg»",
+        "detail": "texto «9  séries ·  3960 kg» sai 17px de div.exercise-pick-list-v38 «Cadeira flexora» (overflow auto/auto)"
+      },
+      {
+        "kind": "scroll_hidden",
+        "selector": "strong «Puxada na frente»",
+        "detail": "texto «Puxada na frente» sai 46px de div.exercise-pick-list-v38 «Cadeira flexora» (overflow auto/auto)"
+      },
+      {
+        "kind": "scroll_hidden",
+        "selector": "span «9 séries · 2970 kg»",
+        "detail": "texto «9  séries ·  2970 kg» sai 69px de div.exercise-pick-list-v38 «Cadeira flexora» (overflow auto/auto)"
+      },
+      {
+        "kind": "scroll_hidden",
+        "selector": "strong «Supino máquina ou halteres»",
+        "detail": "texto «Supino máquina ou halteres» sai 98px de div.exercise-pick-list-v38 «Cadeira flexora» (overflow auto/auto)"
+      },
+      {
+        "kind": "scroll_hidden",
+        "selector": "span «9 séries · 1980 kg»",
+        "detail": "texto «9  séries ·  1980 kg» sai 121px de div.exercise-pick-list-v38 «Cadeira flexora» (overflow auto/auto)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Puxada na frente»",
+        "detail": "«9  séries ·  2970 kg» × «Exercício selecionado» (8×9px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Supino máquina ou halteres»",
+        "detail": "«Supino máquina ou halteres» × «Cadeira flexora» (128×15px)"
+      },
+      {
+        "kind": "text_collision",
+        "selector": "button «Supino máquina ou halteres»",
+        "detail": "«9  séries ·  1980 kg» × «Performance comparável caiu 55» (8×14px)"
+      },
+      {
+        "kind": "tight_padding",
+        "selector": "aside.simple-panel.strength-exercise-list-v38 «8 encontrados»",
+        "detail": "texto «9  séries ·  1980 kg» a -107px da borda interna (mínimo 12px)"
+      }
+    ],
+    "cardCount": 13,
+    "maxCardDepth": 2
+  }
+}

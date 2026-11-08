@@ -1,0 +1,24 @@
+{
+  "closed": {
+    "findings": [
+      {
+        "kind": "clipped",
+        "selector": "main.onboarding-page «AtletaHibConfiguração inicial · passo 1 »",
+        "detail": "largura 300px de 309px (overflow hidden/auto, height 1226.92px, max-height none)"
+      }
+    ],
+    "cardCount": 1,
+    "maxCardDepth": 1
+  },
+  "expanded": {
+    "findings": [
+      {
+        "kind": "clipped",
+        "selector": "main.onboarding-page «AtletaHibConfiguração inicial · passo 1 »",
+        "detail": "largura 300px de 309px (overflow hidden/auto, height 1226.92px, max-height none)"
+      }
+    ],
+    "cardCount": 1,
+    "maxCardDepth": 1
+  }
+}

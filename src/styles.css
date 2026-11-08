@@ -84,7 +84,7 @@ button { cursor: pointer; }
 
 .page-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
 .page-title h2 { font-family: 'Inter', system-ui, sans-serif; font-weight: 900; font-size: 40px; line-height: 1.05; letter-spacing: -1.2px; margin: 0; }
-.metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+.metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9em), 1fr)); gap: 12px; }
 .metric-card, .small-metric, .panel { background: var(--surface); border: 1px solid var(--border); }
 .metric-card { padding: 16px; }
 .metric-head { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; text-transform: uppercase; font-weight: 800; letter-spacing: 1.2px; }
@@ -133,7 +133,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 .meal-group { border-top: 1px solid var(--border); padding: 12px 0; }
 .meal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .meal-head span { color: var(--accent); font-weight: 900; }
-.entry-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px; border: 1px solid var(--border); background: var(--surface-2); margin-top: 8px; }
+.entry-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--border); }
 .entry-row strong { display: block; }
 .entry-row span, .muted, small { color: var(--muted); font-size: 12px; line-height: 1.5; }
 .water-actions { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -162,7 +162,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
   .main-grid { grid-template-columns: 1fr; }
   .sidebar { position: static; }
   .sidebar nav { grid-template-columns: repeat(3, 1fr); }
-  .metric-grid { grid-template-columns: repeat(2, 1fr); }
   .form-grid, .form-inline, .edit-grid { grid-template-columns: 1fr; }
   .clean-list.two-cols { grid-template-columns: 1fr; }
 }
@@ -173,7 +172,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
   .top-actions { width: 100%; }
   .top-actions button { flex: 1; }
   .sidebar nav { grid-template-columns: repeat(2, 1fr); }
-  .metric-grid { grid-template-columns: 1fr; }
   .page-title h2 { font-size: 42px; }
   .content-card { padding: 12px; }
   .exercise-card { align-items: stretch; flex-direction: column; }
@@ -181,8 +179,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 
 .chart-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .chart-title-row h3 { margin: 0; }
-.weight-chart-wrap { width: 100%; max-width: 100%; overflow: hidden; border: 1px solid var(--border); background: var(--surface-2); margin: 10px 0 12px; border-radius: 16px; }
-.weight-chart { min-width: 0; width: 100%; max-width: 100%; height: auto; display: block; }
+.weight-chart-wrap { width: 100%; max-width: 100%; border: 1px solid var(--border); background: var(--surface-2); margin: 10px 0 12px; border-radius: 16px; }
+.weight-chart { width: 100%; max-width: 100%; height: auto; display: block; }
 .chart-grid-line { stroke: rgba(255,255,255,.12); stroke-width: 1; }
 .chart-target-line { stroke: var(--orange); stroke-width: 1.5; stroke-dasharray: 8 7; }
 .chart-target-text { fill: var(--orange); font-size: 12px; font-weight: 800; }
@@ -214,12 +212,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 .review-decision { display: flex; gap: 14px; align-items: flex-start; }
 .review-decision svg { color: var(--accent); flex: 0 0 auto; margin-top: 2px; }
 .adherence-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
-.adherence-day { background: var(--surface-2); border: 1px solid var(--border); padding: 10px; display: grid; gap: 6px; }
+.adherence-day { padding: 8px 0; border-top: 1px solid var(--border); display: grid; gap: 6px; }
 .adherence-day strong { font-size: 12px; }
 .adherence-day span { color: var(--muted); font-size: 11px; }
 .adherence-day span.ok { color: var(--green); font-weight: 900; }
 .adherence-day span.bad { color: var(--red); font-weight: 900; }
-.insight-card { background: var(--surface-2); border: 1px solid var(--border); padding: 12px; display: flex; gap: 10px; align-items: flex-start; }
+.insight-card { padding: 12px 0; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: flex-start; }
 .insight-card svg { color: var(--accent); flex: 0 0 auto; }
 .insight-card strong { display: block; }
 .insight-card p { margin: 4px 0 0; color: var(--muted); }
@@ -502,7 +500,6 @@ button:disabled { opacity: .62; cursor: not-allowed; }
 .progress-page {
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
 }
 
 .progress-page .metric-grid.four {
@@ -673,14 +670,6 @@ button:disabled { opacity: .62; cursor: not-allowed; }
     margin-right: -2px;
   }
 
-  .chart-axis-text {
-    font-size: 9px;
-  }
-
-  .chart-value-text,
-  .chart-target-text {
-    font-size: 10px;
-  }
 }
 
 @media (max-width: 520px) {
@@ -731,9 +720,9 @@ button:disabled { opacity: .62; cursor: not-allowed; }
 
 /* v2.1 — Cardio importado por JSON sem duplicar métricas diárias */
 .cardio-page {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
 }
 
 .cardio-dedupe-panel {
@@ -780,7 +769,7 @@ button:disabled { opacity: .62; cursor: not-allowed; }
 
 .cardio-entry > div {
   display: grid;
-  gap: 4px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -837,8 +826,11 @@ button:disabled { opacity: .62; cursor: not-allowed; }
 }
 
 .score-badge {
-  width: 76px;
-  height: 76px;
+  min-width: 76px;
+  min-height: 76px;
+  justify-self: start;
+  padding: 8px;
+  line-height: 1;
   border-radius: 22px;
   display: grid;
   place-items: center;
@@ -904,9 +896,8 @@ button:disabled { opacity: .62; cursor: not-allowed; }
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  padding: 12px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
 }
 
 .next-focus-list strong {
@@ -1011,8 +1002,8 @@ button:disabled { opacity: .62; cursor: not-allowed; }
   }
 
   .score-badge {
-    width: 68px;
-    height: 68px;
+    min-width: 68px;
+    min-height: 68px;
     border-radius: 18px;
     font-size: 30px;
   }
@@ -1172,16 +1163,12 @@ body::after {
 .panel,
 .metric-card,
 .small-metric,
-.entry-row,
 .exercise-card,
 .set-log-card,
 .cardio-entry,
-.insight-card,
-.adherence-day,
 .quality-grid > div,
 .last-sync-item,
-.rule-score-item,
-.next-focus-list div {
+.rule-score-item {
   transition:
     transform .18s ease,
     border-color .18s ease,
@@ -1330,7 +1317,6 @@ textarea:focus {
 .metric-card,
 .small-metric {
   position: relative;
-  overflow: hidden;
 }
 
 .metric-card::after,
@@ -1490,20 +1476,14 @@ textarea:focus {
   fill: #0d0f0e;
 }
 
-.entry-row,
 .exercise-card,
-.set-log-card,
-.cardio-entry,
-.insight-card {
+.set-log-card {
   border-radius: var(--radius-md);
 }
 
-.entry-row:hover,
 .exercise-card:hover,
 .set-log-card:hover,
 .cardio-entry:hover,
-.insight-card:hover,
-.adherence-day:hover,
 .last-sync-item:hover,
 .rule-score-item:hover {
   border-color: rgba(200,255,0,.20);
@@ -1557,9 +1537,7 @@ textarea:focus {
   background: linear-gradient(135deg, var(--accent), #ddff59);
 }
 
-.rule-score-item,
-.next-focus-list div,
-.adherence-day {
+.rule-score-item {
   border-radius: var(--radius-md);
 }
 
@@ -1800,14 +1778,16 @@ textarea:focus {
 
 .sleep-hero-main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 118px;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
   align-items: center;
 }
 
 .sleep-score-orb {
-  width: 110px;
-  height: 110px;
+  min-width: 110px;
+  min-height: 110px;
+  padding: 10px;
+  line-height: 1.1;
   border-radius: 34px;
   display: grid;
   place-items: center;
@@ -1841,10 +1821,8 @@ textarea:focus {
 }
 
 .sleep-stage-card {
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: rgba(255,255,255,.035);
+  padding: 10px 0 0;
+  border-top: 2px solid var(--border);
   display: grid;
   gap: 4px;
 }
@@ -1868,10 +1846,10 @@ textarea:focus {
   color: var(--muted);
 }
 
-.sleep-stage-card.deep { border-color: rgba(63,81,255,.24); }
-.sleep-stage-card.light { border-color: rgba(59,130,246,.24); }
-.sleep-stage-card.rem { border-color: rgba(67,217,255,.24); }
-.sleep-stage-card.awake { border-color: rgba(251,113,133,.24); }
+.sleep-stage-card.deep { border-top-color: rgba(63,81,255,.7); }
+.sleep-stage-card.light { border-top-color: rgba(59,130,246,.7); }
+.sleep-stage-card.rem { border-top-color: rgba(67,217,255,.7); }
+.sleep-stage-card.awake { border-top-color: rgba(251,113,133,.7); }
 
 .sleep-json-box {
   min-height: 260px;
@@ -1882,23 +1860,13 @@ textarea:focus {
 
 .sleep-history-list {
   display: grid;
-  gap: 12px;
 }
 
 .sleep-history-card {
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.015)),
-    rgba(255,255,255,.02);
-  transition: transform .18s ease, border-color .18s ease, background .18s ease;
-}
-
-.sleep-history-card:hover {
-  transform: translateY(-1px);
-  border-color: rgba(167,139,250,.28);
-  background: rgba(255,255,255,.045);
+  display: grid;
+  gap: 8px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
 }
 
 .sleep-history-head {
@@ -2008,8 +1976,8 @@ textarea:focus {
   }
 
   .sleep-score-orb {
-    width: 96px;
-    height: 96px;
+    min-width: 96px;
+    min-height: 96px;
     border-radius: 28px;
   }
 
@@ -2711,7 +2679,7 @@ textarea:focus {
 
 
 /* v3.2 — Simplificação geral */
-.simple-page { display: grid; gap: 16px; }
+.simple-page { display: grid; grid-template-columns: minmax(0, 1fr); }
 .compact-title h2 { margin-bottom: 0; }
 
 .simple-hero {
@@ -2861,8 +2829,6 @@ textarea:focus {
   font-weight: 900;
 }
 
-.simple-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
-
 .simple-tabs button {
   padding: 10px 13px;
   display: inline-flex;
@@ -2892,7 +2858,7 @@ textarea:focus {
 .gym-day-cards strong { font-size: 18px; }
 .gym-day-cards span { color: var(--muted); font-size: 11px; font-weight: 800; }
 
-.gym-log-panel-v32 { padding: 0; overflow: hidden; }
+.gym-log-panel-v32 { padding: 0; }
 
 .gym-log-top-v32 {
   padding: 12px;
@@ -2912,7 +2878,7 @@ textarea:focus {
   letter-spacing: -1px;
 }
 
-.hevy-exercise-list-v32 { padding: 12px; display: grid; gap: 12px; }
+.hevy-exercise-list-v32 { display: grid; grid-template-columns: minmax(0, 1fr); }
 
 .hevy-card-v32 {
   border: 1px solid var(--border);
@@ -2960,8 +2926,6 @@ textarea:focus {
 .hevy-header-v32,
 .hevy-row-v32 {
   display: grid;
-  grid-template-columns: 46px minmax(66px, 1fr) minmax(66px, 1fr) minmax(58px, .8fr) 44px;
-  gap: 7px;
   align-items: center;
 }
 
@@ -3054,12 +3018,6 @@ textarea:focus {
 
   .quick-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
-  .hevy-header-v32,
-  .hevy-row-v32 {
-    grid-template-columns: 36px minmax(48px, 1fr) minmax(48px, 1fr) minmax(44px, .8fr) 36px;
-    gap: 5px;
-  }
-
   .hevy-row-v32 { padding: 7px 8px; }
 
   .hevy-row-v32 input {
@@ -3104,10 +3062,8 @@ textarea:focus {
 }
 
 .cardio-prescription-card {
-  padding: 15px;
-  border: 1px solid rgba(125,211,252,.22);
-  border-radius: var(--radius-lg);
-  background: rgba(125,211,252,.07);
+  padding: 12px 0 0;
+  border-top: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -3478,51 +3434,12 @@ textarea:focus {
 
 
 /* v3.4 — Performance e progressão */
-.workout-progress-summary-v34 {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, .8fr);
-  gap: 14px;
-  align-items: stretch;
-  border-color: rgba(200,255,0,.20);
-  background:
-    radial-gradient(circle at 0 0, rgba(200,255,0,.10), transparent 18rem),
-    linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)),
-    var(--surface);
-}
-
-.workout-progress-summary-v34 h3 {
-  margin: 2px 0 5px;
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: clamp(34px, 7vw, 72px);
-  line-height: .92;
-  letter-spacing: -2px;
-}
-
-.workout-progress-summary-v34 span {
-  color: var(--muted);
-  font-weight: 850;
-}
-
-.progress-summary-grid-v34 {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-}
-
-.progress-summary-grid-v34 div {
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: rgba(255,255,255,.025);
-}
-
-.progress-summary-grid-v34 strong {
-  display: block;
-  margin-top: 5px;
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 25px;
-  letter-spacing: -.8px;
-}
+.workout-progress-summary-v34 { display: grid; margin: 4px 0 0; }
+.workout-progress-summary-v34 > div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.workout-progress-summary-v34 > div:last-child { border-bottom: 0; }
+.workout-progress-summary-v34 dt { color: var(--muted); font-size: .85rem; }
+.workout-progress-summary-v34 dd { margin: 0; font-weight: 650; text-align: right; }
+.workout-progress-summary-v34 small { display: block; color: var(--muted); font-size: .78rem; font-weight: 500; }
 
 .exercise-progress-mini-v34 {
   padding: 12px 13px;
@@ -3554,13 +3471,16 @@ textarea:focus {
   line-height: 1.35;
 }
 
-.exercise-progress-stats-v34 {
+/* Etiquetas do histórico: quebram entre si (flex-wrap), nunca no meio (nowrap em cada uma). */
+.exercise-progress-chips-v34 {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 8px;
+  margin-top: 8px;
 }
 
-.exercise-progress-stats-v34 small {
+.exercise-progress-chips-v34 small {
+  white-space: nowrap;
   padding: 6px 8px;
   border-radius: 999px;
   background: rgba(255,255,255,.055);
@@ -3568,11 +3488,6 @@ textarea:focus {
   font-weight: 900;
 }
 
-@media (max-width: 700px) {
-  .workout-progress-summary-v34 {
-    grid-template-columns: 1fr;
-  }
-}
 
 
 /* v3.5 — Polimento e estabilidade geral */
@@ -3682,8 +3597,7 @@ a:focus-visible {
 
 .simple-panel,
 .hevy-card-v32,
-.cardio-progress-card,
-.workout-progress-summary-v34 {
+.cardio-progress-card {
   transition: border-color .18s ease, transform .18s ease, background .18s ease;
 }
 
@@ -3962,15 +3876,20 @@ a:focus-visible {
 
 /* v3.6.1 — Registro de água exposto */
 .water-hero-v361 {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: grid;
   gap: 14px;
   border-color: rgba(56,189,248,.22);
   background:
     radial-gradient(circle at 0 0, rgba(56,189,248,.14), transparent 20rem),
     linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)),
     var(--surface);
+}
+
+.water-hero-main-v361 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
 }
 
 .water-hero-v361 h3,
@@ -4071,10 +3990,6 @@ a:focus-visible {
 }
 
 @media (max-width: 620px) {
-  .water-hero-v361 {
-    display: grid;
-  }
-
   .water-actions-v361 > div,
   .water-quick-actions-v361,
   .water-custom-v361 > div {
@@ -4379,12 +4294,8 @@ a:focus-visible {
 }
 
 .json-prompt-hint-v367 {
-  padding: 12px;
-  border: 1px solid rgba(125,211,252,.22);
-  border-radius: var(--radius-md);
-  background:
-    radial-gradient(circle at 0 0, rgba(125,211,252,.10), transparent 16rem),
-    rgba(255,255,255,.025);
+  padding: 12px 0 0;
+  border-top: 1px solid var(--border);
   display: grid;
   gap: 4px;
 }
@@ -4640,21 +4551,15 @@ a:focus-visible {
 }
 
 .auto-metric-v372 {
-  min-height: 92px;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: rgba(255,255,255,.025);
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
   display: grid;
   align-content: start;
   gap: 6px;
 }
 
 .auto-metric-v372.ok {
-  border-color: rgba(34,197,94,.20);
-  background:
-    radial-gradient(circle at 0 0, rgba(34,197,94,.10), transparent 10rem),
-    rgba(255,255,255,.025);
+  border-top-color: rgba(34,197,94,.35);
 }
 
 .auto-metric-v372 span {
@@ -4790,9 +4695,6 @@ a:focus-visible {
 .exercise-pick-list-v38 {
   display: grid;
   gap: 8px;
-  max-height: 620px;
-  overflow: auto;
-  padding-right: 2px;
 }
 
 .exercise-pick-list-v38 button {
@@ -4841,11 +4743,8 @@ a:focus-visible {
 }
 
 .strength-metric-v38 {
-  min-height: 92px;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: rgba(255,255,255,.025);
+  padding: 10px 0 0;
+  border-top: 1px solid var(--border);
   display: grid;
   align-content: start;
   gap: 5px;
@@ -4907,10 +4806,8 @@ a:focus-visible {
 }
 
 .strength-session-card-v38 {
-  padding: 13px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: rgba(255,255,255,.025);
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
   display: grid;
   gap: 10px;
 }
@@ -4948,10 +4845,6 @@ a:focus-visible {
 
   .strength-exercise-list-v38 {
     position: static;
-  }
-
-  .exercise-pick-list-v38 {
-    max-height: 320px;
   }
 
   .strength-range-v38 {
@@ -5029,17 +4922,6 @@ textarea {
     line-height: .9;
   }
 
-  .simple-tabs {
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    padding-bottom: 4px;
-    scrollbar-width: none;
-  }
-
-  .simple-tabs::-webkit-scrollbar {
-    display: none;
-  }
-
   .simple-tabs button {
     min-width: max-content;
     min-height: var(--tap-target-v39);
@@ -5083,8 +4965,6 @@ textarea {
   }
 
   .today-binary-grid,
-  .metric-grid,
-  .metric-grid.four,
   .small-stat-grid,
   .strength-metric-grid-v38,
   .daily-status-grid-v363,
@@ -5165,16 +5045,6 @@ textarea {
     min-height: var(--tap-target-v39);
   }
 
-  .hevy-table-v32 {
-    overflow-x: auto;
-    padding-bottom: 4px;
-  }
-
-  .hevy-header-v32,
-  .hevy-row-v32 {
-    min-width: 420px;
-  }
-
   .hevy-row-v32 input {
     min-height: 42px;
     text-align: center;
@@ -5202,8 +5072,6 @@ textarea {
   }
 
   .exercise-editor-card-v37,
-  .strength-session-card-v38,
-  .sleep-history-card,
   .daily-status-card-v363 {
     border-radius: 22px;
   }
@@ -5231,10 +5099,6 @@ textarea {
 
   .strength-exercise-list-v38 {
     position: static;
-  }
-
-  .exercise-pick-list-v38 {
-    max-height: 300px;
   }
 
   .weekly-row-v38 {
@@ -5272,11 +5136,6 @@ textarea {
 
   .daily-status-score-v363 strong {
     font-size: 24px;
-  }
-
-  .hevy-header-v32,
-  .hevy-row-v32 {
-    min-width: 390px;
   }
 }
 
@@ -5341,13 +5200,6 @@ body {
   box-sizing: border-box;
 }
 
-html,
-body,
-#root {
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
 img,
 svg,
 canvas,
@@ -5357,10 +5209,6 @@ video {
 }
 
 @media (max-width: 760px) {
-  body {
-    overflow-x: hidden;
-  }
-
   .app-shell,
   .main-content,
   main,
@@ -5375,7 +5223,6 @@ video {
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    overflow-x: hidden;
     padding-inline: 12px;
   }
 
@@ -5399,26 +5246,6 @@ video {
     max-width: 100%;
     min-width: 0;
     margin-inline: 0;
-  }
-
-  .simple-panel *,
-  .panel *,
-  .simple-hero *,
-  .cardio-plan-card *,
-  .cardio-plan-card-v322 *,
-  .daily-status-card-v363 *,
-  .smart-checkin-panel-v372 *,
-  .strength-main-card-v38 *,
-  .watch-import-panel-v35 * {
-    min-width: 0;
-  }
-
-  .simple-panel,
-  .panel,
-  .simple-hero,
-  .cardio-plan-card,
-  .cardio-plan-card-v322 {
-    overflow: hidden;
   }
 
   .simple-panel h1,
@@ -5510,12 +5337,6 @@ video {
     max-width: 100%;
   }
 
-  .hevy-table-v32 {
-    max-width: 100%;
-    overflow-x: auto;
-  }
-
-  .hevy-table-v32,
   .json-hub-textarea-v364,
   .json-import-box {
     overscroll-behavior-x: contain;
@@ -5662,7 +5483,7 @@ video {
 }
 
 .quality-warning-v40 {
-  padding: 11px 12px;
+  padding: 12px;
   border-radius: 16px;
   background: rgba(255, 255, 255, .045);
   border: 1px solid rgba(255, 255, 255, .07);
@@ -5708,17 +5529,13 @@ video {
   .quality-actions-v40 button {
     width: 100%;
   }
-
-  .quality-warning-v40 {
-    padding: 10px;
-  }
 }
 
 
 /* v4.0.1 — Check-in preserva valores exatos do relógio */
 .field-hint-v401 {
   display: block;
-  margin-top: 5px;
+  margin-top: 8px;
   color: var(--muted);
   font-size: .78rem;
   line-height: 1.35;
@@ -5735,10 +5552,8 @@ video {
   align-items: flex-start;
   gap: 8px;
   margin: 10px 0 0;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(200, 255, 0, .18);
-  background: rgba(200, 255, 0, .06);
+  padding: 10px 0 0;
+  border-top: 1px solid var(--border);
   color: var(--text);
   font-size: .88rem;
   line-height: 1.35;
@@ -5771,10 +5586,8 @@ video {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(251, 191, 36, .22);
-  background: rgba(251, 191, 36, .07);
+  padding: 12px 0 0;
+  border-top: 1px solid rgba(251, 191, 36, .45);
   color: var(--text);
   font-size: .9rem;
   line-height: 1.35;
@@ -5835,10 +5648,8 @@ video {
 .strength-watch-row-v403 {
   display: grid;
   gap: 10px;
-  padding: 13px;
-  border-radius: 18px;
-  border: 1px solid rgba(148, 163, 184, .12);
-  background: rgba(255, 255, 255, .035);
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
 }
 
 .strength-watch-row-v403 > div:first-child {
@@ -5935,10 +5746,8 @@ video {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(251, 191, 36, .22);
-  background: rgba(251, 191, 36, .07);
+  padding: 12px 0 0;
+  border-top: 1px solid rgba(251, 191, 36, .45);
   color: var(--text);
   font-size: .9rem;
   line-height: 1.35;
@@ -5999,10 +5808,8 @@ video {
 .cardio-data-row-v404 {
   display: grid;
   gap: 10px;
-  padding: 13px;
-  border-radius: 18px;
-  border: 1px solid rgba(148, 163, 184, .12);
-  background: rgba(255, 255, 255, .035);
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
 }
 
 .cardio-data-row-v404 > div:first-child {
@@ -6265,7 +6072,7 @@ video {
 }
 
 /* v4.1.3 — recomendação adaptativa da Academia */
-.adaptive-workout-card-v413 { display: grid; gap: 15px; overflow: hidden; }
+.adaptive-workout-card-v413 { display: grid; gap: 15px; }
 .adaptive-workout-card-v413.good { border-color: rgba(134,239,172,.26); background: radial-gradient(circle at 0 0, rgba(34,197,94,.10), transparent 24rem), var(--surface); }
 .adaptive-workout-card-v413.warning { border-color: rgba(253,230,138,.25); background: radial-gradient(circle at 0 0, rgba(251,191,36,.09), transparent 24rem), var(--surface); }
 .adaptive-workout-card-v413.danger { border-color: rgba(252,165,165,.25); background: radial-gradient(circle at 0 0, rgba(248,113,113,.09), transparent 24rem), var(--surface); }
@@ -6313,7 +6120,7 @@ video {
 .weekly-gym-queue-v42,
 .gym-cardio-transition-v42,
 .gym-history-v42 { display: grid; gap: 16px; }
-.weekly-gym-grid-v42 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+.weekly-gym-grid-v42 { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
 .weekly-gym-grid-v42 button { min-width: 0; display: grid; gap: 5px; padding: 13px; text-align: left; border: 1px solid var(--border); border-radius: 15px; background: rgba(255,255,255,.025); color: var(--text); cursor: pointer; }
 .weekly-gym-grid-v42 button span,
 .weekly-gym-grid-v42 button small { color: var(--muted); font-size: .75rem; line-height: 1.35; }
@@ -6333,8 +6140,8 @@ video {
 .gym-cardio-actions-v42 { flex-wrap: wrap; }
 .gym-finalize-v42 { width: fit-content; }
 .success-text-v42 { margin: 0; color: #86efac; font-weight: 800; }
-.gym-history-list-v42 { display: grid; gap: 10px; }
-.gym-history-list-v42 details { padding: 13px; border: 1px solid var(--border); border-radius: 14px; background: rgba(255,255,255,.025); }
+.gym-history-list-v42 { display: grid; }
+.gym-history-list-v42 details { padding: 12px 0; border-top: 1px solid var(--border); }
 .gym-history-list-v42 summary { display: flex; justify-content: space-between; gap: 12px; cursor: pointer; }
 .gym-history-list-v42 summary > span:first-child { display: grid; gap: 3px; }
 .gym-history-list-v42 details span,
@@ -6348,7 +6155,6 @@ video {
 .json-link-choice-v42 button { width: fit-content; }
 
 @media (max-width: 760px) {
-  .weekly-gym-grid-v42 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cardio-manual-fields-v42,
   .gym-history-facts-v42 { grid-template-columns: 1fr; }
   .gym-cardio-actions-v42,
@@ -6359,7 +6165,6 @@ video {
 }
 
 @media (max-width: 420px) {
-  .weekly-gym-grid-v42 { grid-template-columns: 1fr; }
 }
 
 /* UX reformulation: one quiet training surface, with the session and next action in focus. */
@@ -6372,8 +6177,6 @@ video {
 .sidebar-v2 { background: #0b0f0d; }
 .sidebar-v2 nav button { min-height: 44px; border-radius: var(--brand-radius-sm); }
 .sidebar-v2 nav button.active { background: rgba(184,255,0,.1); border-color: rgba(184,255,0,.35); color: var(--brand-text); }
-.mobile-nav { padding-bottom: max(8px, env(safe-area-inset-bottom)); background: rgba(7,10,9,.98); border-top: 1px solid var(--border); }
-.mobile-nav button { min-height: 52px; }
 .primary-btn, .ghost-btn, .link-btn, .icon-btn { min-height: 44px; border-radius: var(--brand-radius-sm); }
 .primary-btn { background: var(--brand-lime); border-color: var(--brand-lime); }
 .primary-btn:hover:not(:disabled) { background: #d4ff66; }
@@ -6389,68 +6192,52 @@ video {
 @media (max-width: 980px) { .app-shell-v2 { padding-inline: 16px; } .content-card-v2 { min-height: auto; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
 
-.today-command { border-left: 3px solid var(--brand-lime); padding-left: var(--space-4); margin-bottom: var(--space-4); }
-.today-ledger { gap: 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-.today-ledger > * { border: 0; border-radius: 0; }
 .logbook-choices, .progress-domains { padding-bottom: 12px; border-bottom: 1px solid var(--border); }
 .logbook-choices button, .progress-domains button { border-radius: 999px; }
 .training-lane-page .gym-v32-hero { border-left: 3px solid var(--brand-lime); padding-left: var(--space-4); }
-.training-lane-page .weekly-gym-grid-v42 { border-left: 1px solid var(--border); padding-left: 12px; }
+.health-pipeline-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
 .health-pipeline-page .integration-flow { padding: 12px 0; border-block: 1px solid var(--border); }
 .profile-ledger { background: transparent; border: 0; padding: 0; gap: 24px; }
 .profile-ledger .form-section, .profile-ledger details { padding-top: 16px; border-top: 1px solid var(--border); }
 
 /* Final cycle: command, lane and ledger structures avoid same-weight card stacks. */
-.today-command { display: grid; gap: 12px; padding: 16px; background: var(--surface); border: 1px solid var(--border); }
-.today-command .readiness-card-v36 { margin: 0; padding: 0; border: 0; background: transparent; }
+.today-command { display: grid; gap: 12px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--brand-lime); border-radius: var(--brand-radius-md); }
+.today-command .readiness-card-v36 { margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
 .today-next-action { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
 .today-next-action span { display: block; color: var(--muted); font-size: .78rem; }
 .today-next-action strong { display: block; margin-top: 2px; }
-.today-ledger { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.today-ledger > * { padding: 14px; background: transparent; }
-.today-detail-row { margin-top: 0; border-top: 0; }
+.today-ledger { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
 .register-logbook > :not(.ds-page-header):not(.simple-tabs) { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
-.register-logbook .panel, .register-logbook .simple-panel { padding-inline: 0; border-inline: 0; }
-.register-logbook .panel + .panel, .register-logbook .simple-panel + .simple-panel { border-top: 1px solid var(--border); }
-.training-command-header { position: relative; padding-left: 28px; border-left: 3px solid var(--brand-lime); }
-.training-command-header::before { content: '01'; position: absolute; left: 0; top: 0; color: var(--muted); font-size: .72rem; }
 .training-lane-page .adaptive-workout-card-v413, .training-lane-page .weekly-gym-queue-v42 { border-radius: 0; border-inline: 0; background: transparent; }
-.training-lane-page .weekly-gym-grid-v42 { grid-template-columns: 1fr; gap: 0; }
-.training-lane-page .weekly-gym-grid-v42 button { border: 0; border-bottom: 1px solid var(--border); border-radius: 0; grid-template-columns: minmax(88px, .65fr) minmax(160px, 1.4fr) minmax(180px, 1.2fr) minmax(96px, .6fr); grid-template-areas: "state title meta selection"; gap: 12px; align-items: center; }
-.training-lane-page .weekly-gym-grid-v42 .weekly-queue-status { grid-area: state; min-width: 0; overflow-wrap: anywhere; }
-.training-lane-page .weekly-gym-grid-v42 .weekly-queue-title { grid-area: title; min-width: 0; overflow-wrap: anywhere; }
-.training-lane-page .weekly-gym-grid-v42 .weekly-queue-meta { grid-area: meta; min-width: 0; overflow-wrap: anywhere; white-space: normal; }
-.training-lane-page .weekly-gym-grid-v42 .weekly-queue-selection { grid-area: selection; min-width: 0; overflow-wrap: anywhere; text-align: right; }
+/* Fila da semana: status como etiqueta acima do título; uma definição para todas as larguras. */
+.training-lane-page .weekly-gym-grid-v42 button { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "state" "title" "meta" "selection"; gap: 4px; align-items: start; padding: 12px 8px; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; }
+.training-lane-page .weekly-gym-grid-v42 .weekly-queue-status { grid-area: state; display: flex; align-items: center; gap: 6px; font-size: .72rem; line-height: 1.3; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.training-lane-page .weekly-gym-grid-v42 .weekly-queue-title { grid-area: title; font-size: 1rem; line-height: 1.3; color: var(--text); overflow-wrap: break-word; }
+.training-lane-page .weekly-gym-grid-v42 .weekly-queue-meta { grid-area: meta; font-size: .8rem; line-height: 1.4; white-space: normal; }
+.training-lane-page .weekly-gym-grid-v42 .weekly-queue-selection { grid-area: selection; justify-self: start; font-size: .75rem; }
 .progress-trend { padding-block: 12px 24px; border-bottom: 1px solid var(--border); }
 .progress-trend .weight-chart-wrap { border-inline: 0; border-radius: 0; background: transparent; }
-.progress-metric-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-block: 1px solid var(--border); }
+.progress-metric-strip { grid-template-columns: repeat(auto-fit, minmax(min(100%, 7em), 1fr)); gap: 0; border-block: 1px solid var(--border); }
 .progress-metric-strip .ds-metric-card { padding: 12px; border: 0; border-right: 1px solid var(--border); border-radius: 0; background: transparent; }
 .progress-metric-strip .ds-metric-card:last-child { border-right: 0; }
 .progress-register-sheet, .progress-history-sheet { margin-top: 24px; padding: 20px 0; border: 0; border-top: 1px solid var(--border); background: transparent; }
 .health-source-lane { display: grid; grid-template-columns: 1fr 1fr 1fr auto; align-items: center; gap: 8px; padding: 12px 0; border-block: 1px solid var(--border); color: var(--muted); font-size: .82rem; }
 .health-source-lane span { display: flex; align-items: center; gap: 6px; }
 .health-source-lane strong { color: var(--brand-cyan); text-transform: capitalize; }
-.health-ledger { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border-bottom: 1px solid var(--border); }
+.health-ledger { grid-template-columns: repeat(auto-fit, minmax(min(100%, 11em), 1fr)); gap: 0; border-bottom: 1px solid var(--border); }
 .health-ledger .metric-card { padding: 12px; border: 0; border-right: 1px solid var(--border); border-radius: 0; background: transparent; }
-.health-history-ledger { margin-top: 20px; border-top: 1px solid var(--border); }
-.health-history-ledger .table-row { border-inline: 0; border-radius: 0; }
+.health-history-ledger { margin-top: 20px; }
+.health-history-ledger .table-row { padding-inline: 0; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; }
 @media (max-width: 760px) {
-  .training-lane-page .weekly-gym-grid-v42 { padding-left: 0; }
-  .training-lane-page .weekly-gym-grid-v42 button { grid-template-columns: 96px minmax(0, 1fr); grid-template-areas: "state title" "state meta" "state selection"; gap: 3px 10px; min-height: 74px; padding: 12px 8px; align-items: start; }
-  .training-lane-page .weekly-gym-grid-v42 .weekly-queue-status { grid-area: state; align-self: center; display: flex; align-items: center; justify-content: flex-start; gap: 6px; font-size: .68rem; line-height: 1.15; text-align: left; overflow-wrap: normal; word-break: normal; white-space: nowrap; }
-  .training-lane-page .weekly-gym-grid-v42 .weekly-queue-status svg { margin: 0; }
-  .training-lane-page .weekly-gym-grid-v42 .weekly-queue-title { grid-area: title; min-width: 0; line-height: 1.3; overflow-wrap: anywhere; }
-  .training-lane-page .weekly-gym-grid-v42 .weekly-queue-meta { grid-area: meta; min-width: 0; font-size: .76rem; line-height: 1.35; overflow-wrap: anywhere; white-space: normal; }
-  .training-lane-page .weekly-gym-grid-v42 .weekly-queue-selection { grid-area: selection; justify-self: start; font-size: .72rem; }
 }
-@media (max-width: 620px) { .today-ledger, .health-ledger { grid-template-columns: 1fr; } .today-next-action { align-items: stretch; flex-direction: column; } .today-next-action .primary-btn { width: 100%; } .progress-metric-strip { overflow-x: auto; } .progress-metric-strip .ds-metric-card { min-width: 120px; } .health-source-lane { grid-template-columns: 1fr; } }
+@media (max-width: 620px) { .today-ledger { grid-template-columns: 1fr; } .today-next-action { align-items: stretch; flex-direction: column; } .today-next-action .primary-btn { width: 100%; } .health-source-lane { grid-template-columns: 1fr; } }
 
 /* Fase 2: + série / − série durante o treino. Alvo de toque >= 44px, cabe em 360px. */
 .set-adjust-v50 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  padding: 10px;
+  padding: 12px;
   border-top: 1px solid rgba(255,255,255,.06);
 }
 
