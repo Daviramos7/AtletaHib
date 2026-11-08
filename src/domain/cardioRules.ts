@@ -1,4 +1,32 @@
-export const CARDIO_RECOMMENDED_CAP_SECONDS = 20 * 60;
+// Teto RECOMENDADO de cardio por sessão. Valor real acima disso é preservado (só gera aviso),
+// mas nunca vira meta. Fonte única: todo clamp/aviso de cardio deriva daqui.
+export const CARDIO_RECOMMENDED_CAP_SECONDS = 25 * 60;
+export const CARDIO_RECOMMENDED_CAP_MINUTES = CARDIO_RECOMMENDED_CAP_SECONDS / 60;
+
+export type CardioIntensity = 'leve' | 'moderado';
+
+export interface CardioPrescription {
+  minMinutes: number;
+  maxMinutes: number;
+  intensity: CardioIntensity;
+}
+
+export function clampCardioMinutes(value: number) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(Math.max(Math.round(value), 0), CARDIO_RECOMMENDED_CAP_MINUTES);
+}
+
+/** Lê a prescrição de cardio salva no dia do plano. Null quando o plano é antigo ou incompleto. */
+export function cardioPrescriptionFromDay(day: any): CardioPrescription | null {
+  const min = numericOrNull(day?.cardio_min_minutes);
+  const max = numericOrNull(day?.cardio_max_minutes);
+  if (min === null && max === null) return null;
+  const maxMinutes = clampCardioMinutes(max ?? min ?? 0);
+  const minMinutes = Math.min(clampCardioMinutes(min ?? max ?? 0), maxMinutes);
+  if (maxMinutes <= 0) return null;
+  const intensity: CardioIntensity = day?.cardio_intensity === 'moderado' ? 'moderado' : 'leve';
+  return { minMinutes, maxMinutes, intensity };
+}
 
 export function buildCardioTruth(sessions: any[] = []) {
   const distances = sessions.map((row) => numericOrNull(row.distance_km)).filter(isNumber);

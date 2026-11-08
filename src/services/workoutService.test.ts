@@ -37,8 +37,8 @@ describe('persistência do cardio_plan da Academia', () => {
   });
 
   it.each([
-    [25, 20],
-    [60, 20],
+    [25, 25],
+    [60, 25],
     [20, 20],
     [10, 10],
   ])('normaliza payload.cardio_plan de %i para %i minutos antes do insert', async (input, output) => {

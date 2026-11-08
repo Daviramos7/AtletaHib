@@ -30,22 +30,15 @@ export async function createTrainingPlanFromProfile(userId, profile, options: { 
   const client = requireSupabase();
   const template = buildTrainingPlanFromProfile(profile);
 
-  if (options.deactivatePrevious) {
-    const { error: deactivateError } = await client
-      .from('training_plans')
-      .update({ is_active: false })
-      .eq('user_id', userId)
-      .eq('is_active', true);
-    if (deactivateError) throw deactivateError;
-  }
-
+  // O plano novo nasce INATIVO e só é ativado depois que todos os dias e exercícios
+  // foram gravados. Se algo falhar no meio, o plano atual continua ativo e intacto.
   const { data: plan, error: planError } = await client
     .from('training_plans')
     .insert({
       user_id: userId,
       name: template.name,
       objective: template.objective,
-      is_active: true,
+      is_active: false,
     })
     .select('*')
     .single();
@@ -69,6 +62,25 @@ export async function createTrainingPlanFromProfile(userId, profile, options: { 
       const { error: exError } = await client.from('exercise_entries').insert(rows);
       if (exError) throw exError;
     }
+  }
+
+  // Ativa antes de arquivar: no pior caso ficam dois ativos e a leitura pega o mais recente.
+  const { error: activateError } = await client
+    .from('training_plans')
+    .update({ is_active: true })
+    .eq('id', plan.id)
+    .eq('user_id', userId);
+  if (activateError) throw activateError;
+
+  if (options.deactivatePrevious) {
+    // Arquiva o anterior (não apaga): histórico de sessões e séries segue apontando para ele.
+    const { error: deactivateError } = await client
+      .from('training_plans')
+      .update({ is_active: false })
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .neq('id', plan.id);
+    if (deactivateError) throw deactivateError;
   }
 
   return getActiveTrainingPlan(userId);
@@ -164,7 +176,26 @@ function normalizeTrainingDayPayload(payload: any) {
     day_kind: dayKind,
     cardio_required: cardioRequired,
     cardio_options: cardioRequired ? normalizeCardioOptions(payload.cardio_options ?? payload.cardioOptions) : [],
+    ...normalizeCardioPrescriptionPayload(payload, cardioRequired),
   };
+}
+
+// Só envia a prescrição quando o chamador a informou: update parcial não apaga o que já existe.
+function normalizeCardioPrescriptionPayload(payload: any, cardioRequired: boolean) {
+  const touched = ['cardio_min_minutes', 'cardio_max_minutes', 'cardio_intensity'].some((key) => payload[key] !== undefined);
+  if (!touched) return {};
+  if (!cardioRequired) return { cardio_min_minutes: null, cardio_max_minutes: null, cardio_intensity: null };
+  const min = boundedMinutesOrNull(payload.cardio_min_minutes);
+  const max = boundedMinutesOrNull(payload.cardio_max_minutes);
+  const intensity = ['leve', 'moderado'].includes(payload.cardio_intensity) ? payload.cardio_intensity : null;
+  if (min !== null && max !== null && min > max) return { cardio_min_minutes: max, cardio_max_minutes: min, cardio_intensity: intensity };
+  return { cardio_min_minutes: min, cardio_max_minutes: max, cardio_intensity: intensity };
+}
+
+function boundedMinutesOrNull(value: any) {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Math.round(Number(value));
+  return Number.isFinite(parsed) && parsed >= 1 && parsed <= 90 ? parsed : null;
 }
 
 export function normalizeExercisePayload(payload: any) {

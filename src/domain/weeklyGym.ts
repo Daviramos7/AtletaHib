@@ -1,5 +1,6 @@
 import { calculateReadiness, dateKeyInTimeZone } from './readiness';
 import { getExerciseMetadata } from './exerciseCatalog';
+import { WEEKLY_STRENGTH_MIN_VALID, weekStateFor, type WeekState } from './weeklyPlanRules';
 
 export type WeeklyGymStatus = 'pending' | 'recommended' | 'completed' | 'not_ideal';
 
@@ -10,6 +11,8 @@ export interface WeeklyGymPlanDay {
   weekdayNumber?: number;
   day_kind?: string;
   type?: string;
+  session_split?: string | null;
+  sequence_order?: number | null;
   exercise_entries?: Array<Record<string, any>>;
 }
 
@@ -43,6 +46,9 @@ export interface WeeklyGymQueue {
   recommended: WeeklyGymQueueItem | null;
   completedBaseCount: number;
   targetCount: number;
+  /** Mínimo para a semana ser válida (2). Abaixo disso a semana só está "em andamento", nunca "atrasada". */
+  minimumValidCount: number;
+  weekState: WeekState;
   extraCount: number;
   checkinMissing: boolean;
   readiness: ReturnType<typeof calculateReadiness>;
@@ -194,6 +200,8 @@ export function buildWeeklyGymQueue({
     recommended,
     completedBaseCount,
     targetCount: strengthDays.length,
+    minimumValidCount: Math.min(WEEKLY_STRENGTH_MIN_VALID, strengthDays.length),
+    weekState: weekStateFor(completedBaseCount, strengthDays.length),
     extraCount,
     checkinMissing: !checkin,
     readiness,
@@ -222,7 +230,7 @@ export function countUniqueBaseSessionsByWeek(sessions: WeeklyGymSession[], time
 function recoveryForDay(day: WeeklyGymPlanDay, muscles: string[], planDays: WeeklyGymPlanDay[], sessions: WeeklyGymSession[], sets: Array<Record<string, any>>, now: Date) {
   const dayById = new Map<string, WeeklyGymPlanDay>(planDays.map((item) => [String(item.id), item]));
   const muscleSet = new Set(muscles);
-  const split = splitForTitle(day.title);
+  const split = sessionSplitForDay(day);
   const recent: Array<{ muscle: string; ageHours: number }> = [];
   let sets7d = 0;
 
@@ -241,7 +249,7 @@ function recoveryForDay(day: WeeklyGymPlanDay, muscles: string[], planDays: Week
     if (ageHours < 0 || ageHours > 72) continue;
     const sessionDay = dayById.get(String(session.training_day_id ?? ''));
     if (!sessionDay) continue;
-    const overlap = musclesForDay(sessionDay).filter((muscle) => muscleSet.has(muscle) || splitForTitle(sessionDay.title) === split);
+    const overlap = musclesForDay(sessionDay).filter((muscle) => muscleSet.has(muscle) || (split !== 'mixed' && sessionSplitForDay(sessionDay) === split));
     overlap.forEach((muscle) => recent.push({ muscle, ageHours }));
   }
 
@@ -281,28 +289,27 @@ function isStrengthCompleted(session: WeeklyGymSession) {
 }
 
 function compareLogicalPlanDays(a: WeeklyGymPlanDay, b: WeeklyGymPlanDay) {
-  const aOrder = titleOrder(a.title);
-  const bOrder = titleOrder(b.title);
-  return aOrder - bOrder || mondayIndex(preferredWeekday(a)) - mondayIndex(preferredWeekday(b));
+  return sequenceOrder(a) - sequenceOrder(b) || mondayIndex(preferredWeekday(a)) - mondayIndex(preferredWeekday(b));
 }
 
 function compareRecommendation(a: WeeklyGymQueueItem, b: WeeklyGymQueueItem) {
   return b.score - a.score || a.sequenceOrder - b.sequenceOrder;
 }
 
-function titleOrder(title: string) {
-  const value = normalize(title);
-  if (value.includes('superior a')) return 1;
-  if (value.includes('inferior a')) return 2;
-  if (value.includes('superior b')) return 3;
-  if (value.includes('inferior b')) return 4;
-  return 50;
+// Identidade estável: nunca lê o título, que o usuário pode renomear no editor.
+function sequenceOrder(day: WeeklyGymPlanDay) {
+  const explicit = Number(day.sequence_order);
+  return Number.isInteger(explicit) && explicit > 0 ? explicit : 50;
 }
 
-function splitForTitle(title: string) {
-  const value = normalize(title);
-  if (value.includes('superior')) return 'upper';
-  if (value.includes('inferior')) return 'lower';
+export function sessionSplitForDay(day: WeeklyGymPlanDay): 'upper' | 'lower' | 'mixed' {
+  if (day.session_split === 'upper' || day.session_split === 'lower') return day.session_split;
+  if (day.session_split === 'full_body') return 'mixed';
+  // Plano antigo (sem session_split): deriva dos músculos dos exercícios via catálogo.
+  const muscles = musclesForDay(day).filter((muscle) => muscle !== 'core');
+  if (!muscles.length) return 'mixed';
+  if (muscles.every((muscle) => muscleBelongsToSplit(muscle, 'upper'))) return 'upper';
+  if (muscles.every((muscle) => muscleBelongsToSplit(muscle, 'lower'))) return 'lower';
   return 'mixed';
 }
 

@@ -66,6 +66,9 @@ export default function PlanEditorView(props: any) {
         notes: dayForm.notes,
         day_kind: dayForm.day_kind,
         cardio_options: parseCardioOptions(dayForm.cardio_options_text),
+        cardio_min_minutes: dayForm.cardio_min_minutes,
+        cardio_max_minutes: dayForm.cardio_max_minutes,
+        cardio_intensity: dayForm.cardio_intensity,
       });
       await refreshPlan();
       onError?.('Dia do plano atualizado.');
@@ -212,6 +215,24 @@ export default function PlanEditorView(props: any) {
               <small>Formato: Nome | descrição. Uma opção por linha.</small>
             </label>
           )}
+
+          {isCardioEnabled && (
+            <>
+              <label>Cardio mínimo (min)
+                <input type="number" inputMode="numeric" min={1} max={90} value={dayForm.cardio_min_minutes} onChange={(event) => setDayForm({ ...dayForm, cardio_min_minutes: event.target.value })} />
+              </label>
+              <label>Cardio máximo (min)
+                <input type="number" inputMode="numeric" min={1} max={90} value={dayForm.cardio_max_minutes} onChange={(event) => setDayForm({ ...dayForm, cardio_max_minutes: event.target.value })} />
+              </label>
+              <label>Intensidade do cardio
+                <select value={dayForm.cardio_intensity} onChange={(event) => setDayForm({ ...dayForm, cardio_intensity: event.target.value })}>
+                  <option value="">Não definida</option>
+                  <option value="leve">Leve</option>
+                  <option value="moderado">Moderado</option>
+                </select>
+              </label>
+            </>
+          )}
         </div>
       </section>
 
@@ -325,6 +346,9 @@ function buildDayForm(day) {
       day_kind: 'strength',
       notes: '',
       cardio_options_text: '',
+      cardio_min_minutes: '',
+      cardio_max_minutes: '',
+      cardio_intensity: '',
     };
   }
 
@@ -333,6 +357,9 @@ function buildDayForm(day) {
     day_kind: resolveDayKind(day),
     notes: day.notes ?? '',
     cardio_options_text: cardioOptionsToText(day.cardio_options),
+    cardio_min_minutes: day.cardio_min_minutes ?? '',
+    cardio_max_minutes: day.cardio_max_minutes ?? '',
+    cardio_intensity: day.cardio_intensity ?? '',
   };
 }
 

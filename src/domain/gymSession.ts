@@ -1,5 +1,6 @@
 import { dateKeyInTimeZone } from './readiness';
 import { exerciseTracking, isDurationExercise } from './exerciseTracking';
+import { cardioPrescriptionFromDay, clampCardioMinutes } from './cardioRules';
 
 export type StrengthStatus = 'active' | 'completed';
 export type CardioStatus = 'not_planned' | 'pending' | 'awaiting_import' | 'completed' | 'skipped';
@@ -30,19 +31,21 @@ export function buildCardioPlanSnapshot({ selectedDay, selectedChoice, recommend
 
   const text = String(selectedChoice ?? 'Cardio pós-treino');
   const parsedMinutes = parseFirstNumber(text);
+  const prescription = cardioPrescriptionFromDay(selectedDay);
+  const moderate = prescription?.intensity === 'moderado';
   return normalizeCardioPlanSnapshot({
     planned: true,
     activity_label: text || 'Cardio pós-treino',
-    target_minutes: finiteOrNull(recommendedMinutes) ?? (parsedMinutes || 10),
-    intensity: 'leve',
-    target_rpe: '5–6',
-    notes: 'Ritmo conversável; a execução real deve vir do relógio quando disponível.',
+    target_minutes: finiteOrNull(recommendedMinutes) ?? prescription?.maxMinutes ?? (parsedMinutes || 10),
+    intensity: prescription?.intensity ?? 'leve',
+    target_rpe: moderate ? '6–7' : '5–6',
+    notes: `${moderate ? 'Moderado, sem tiro' : 'Ritmo conversável, sem tiro'}; a execução real deve vir do relógio quando disponível.`,
   });
 }
 
 export function clampCardioPrescriptionMinutes(value: unknown) {
   const parsed = nullableNumber(value);
-  return parsed === null ? null : Math.min(Math.max(Math.round(parsed), 0), 20);
+  return parsed === null ? null : clampCardioMinutes(parsed);
 }
 
 export function normalizeCardioPlanSnapshot(plan: Partial<CardioPlanSnapshot> | null | undefined): CardioPlanSnapshot {

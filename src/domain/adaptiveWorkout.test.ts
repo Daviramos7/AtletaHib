@@ -1,3 +1,4 @@
+import { CARDIO_RECOMMENDED_CAP_MINUTES } from './cardioRules';
 import { describe, expect, it } from 'vitest';
 import {
   buildAdaptiveWorkoutRecommendation,
@@ -139,9 +140,41 @@ describe('motor de treino adaptativo', () => {
     expect(long.estimatedMinutes.total).toBeLessThanOrEqual(50);
   });
 
-  it('13. nunca recomenda cardio acima de 20 minutos', () => {
+  it('13. nunca recomenda cardio acima do teto central', () => {
     const result = recommend({ checkin: morning({ available_minutes: 120 }) });
-    expect(result.cardioGuidance.minutes).toBeLessThanOrEqual(20);
+    expect(result.cardioGuidance.minutes).toBeLessThanOrEqual(CARDIO_RECOMMENDED_CAP_MINUTES);
+    const prescribed = recommend({ checkin: morning({ available_minutes: 120 }), cardioPrescription: { minMinutes: 30, maxMinutes: 60, intensity: 'moderado' } });
+    expect(prescribed.cardioGuidance.minutes).toBeLessThanOrEqual(CARDIO_RECOMMENDED_CAP_MINUTES);
+  });
+
+  describe('plano de 3 treinos: sessão de até 90 min', () => {
+    it('respeita 90 min disponíveis (o clamp antigo cortava em 50)', () => {
+      expect(recommend({ checkin: morning({ available_minutes: 90 }) }).effectiveAvailableMinutes).toBe(90);
+      expect(recommend({ checkin: morning({ available_minutes: 120 }) }).effectiveAvailableMinutes).toBe(90);
+    });
+
+    it('sem tempo no check-in, usa a duração-alvo do dia do plano', () => {
+      expect(recommend({ checkin: morning({ available_minutes: null }), sessionTargetMinutes: 90 }).effectiveAvailableMinutes).toBe(90);
+    });
+
+    it('sem check-in e sem alvo, mantém o fallback de 45 min', () => {
+      expect(recommend({ checkin: morning({ available_minutes: null }) }).effectiveAvailableMinutes).toBe(45);
+    });
+
+    it('com prontidão boa, prescreve o máximo do dia (quarta: 25 min moderado)', () => {
+      const result = recommend({ checkin: morning({ available_minutes: 90 }), cardioPrescription: { minMinutes: 20, maxMinutes: 25, intensity: 'moderado' } });
+      expect(result.cardioGuidance.minutes).toBe(25);
+      expect(result.cardioGuidance.intensity).toContain('moderado');
+    });
+
+    it('com tempo apertado, corta acessório e cardio, nunca o principal', () => {
+      const exercises = BASE.map((exercise) => ({ ...exercise, exercise_role: ['leg', 'chest', 'row'].includes(exercise.id) ? 'main' : 'accessory' }));
+      const result = recommend({ checkin: morning({ available_minutes: 20 }), baseExercises: exercises, cardioPrescription: { minMinutes: 15, maxMinutes: 20, intensity: 'leve' } });
+      const mains = result.adaptedExercises.filter((item) => ['leg', 'chest', 'row'].includes(String(item.exercise.id)));
+      expect(mains).toHaveLength(3);
+      mains.forEach((item) => expect(item.targetSets).toBe(item.baseSets));
+      expect(result.cardioGuidance.minutes).toBe(0);
+    });
   });
 
   it('14. dado ausente permanece ausente e não vira zero', () => {

@@ -87,8 +87,29 @@ describe('snapshots planejados e realizados', () => {
     expect(buildCardioPlanSnapshot({ selectedDay: { day_kind: 'strength_cardio' }, selectedChoice: 'Esteira 15 min' })).toMatchObject({ planned: true, activity_label: 'Esteira 15 min', target_minutes: 15 });
   });
 
-  it('limita a 20 minutos uma prescrição textual de 25 minutos', () => {
-    expect(buildCardioPlanSnapshot({ selectedDay: { day_kind: 'strength_cardio' }, selectedChoice: 'Esteira 25 min' }).target_minutes).toBe(20);
+  it('aceita até o teto central (25 min) numa prescrição textual', () => {
+    expect(buildCardioPlanSnapshot({ selectedDay: { day_kind: 'strength_cardio' }, selectedChoice: 'Esteira 25 min' }).target_minutes).toBe(25);
+  });
+
+  it('limita ao teto central uma prescrição textual de 40 minutos', () => {
+    expect(buildCardioPlanSnapshot({ selectedDay: { day_kind: 'strength_cardio' }, selectedChoice: 'Esteira 40 min' }).target_minutes).toBe(25);
+  });
+
+  it('usa a prescrição fixa do dia (duração e intensidade) no snapshot', () => {
+    const snapshot = buildCardioPlanSnapshot({
+      selectedDay: { day_kind: 'strength_cardio', cardio_min_minutes: 20, cardio_max_minutes: 25, cardio_intensity: 'moderado' },
+      selectedChoice: 'Cardio moderado no final',
+    });
+    expect(snapshot).toMatchObject({ planned: true, target_minutes: 25, intensity: 'moderado', target_rpe: '6–7' });
+  });
+
+  it('a recomendação do dia (prontidão) vence a prescrição máxima', () => {
+    const snapshot = buildCardioPlanSnapshot({
+      selectedDay: { day_kind: 'strength_cardio', cardio_min_minutes: 15, cardio_max_minutes: 20, cardio_intensity: 'leve' },
+      selectedChoice: 'Cardio leve no final',
+      recommendedMinutes: 5,
+    });
+    expect(snapshot).toMatchObject({ target_minutes: 5, intensity: 'leve' });
   });
 
   it.each([
@@ -97,8 +118,9 @@ describe('snapshots planejados e realizados', () => {
     [5, 5],
     [10, 10],
     [20, 20],
-    [25, 20],
-    [60, 20],
+    [25, 25],
+    [26, 25],
+    [60, 25],
   ])('normaliza prescrição pronta de %j min para %j min', (input, output) => {
     expect(normalizeCardioPlanSnapshot({ planned: true, target_minutes: input }).target_minutes).toBe(output);
   });

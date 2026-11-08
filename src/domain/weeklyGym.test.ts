@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildWeeklyGymQueue, countUniqueBaseSessionsByWeek, getLocalWeek, selectionKindFor } from './weeklyGym';
+import { buildWeeklyGymQueue, countUniqueBaseSessionsByWeek, getLocalWeek, selectionKindFor, sessionSplitForDay } from './weeklyGym';
+import { weekStateFor } from './weeklyPlanRules';
 
 const TZ = 'America/Sao_Paulo';
 const NOW = new Date('2026-08-19T10:00:00-03:00');
@@ -188,6 +189,93 @@ describe('aderência sem inflação por extras', () => {
       session('upper-b', '2026-08-20T08:00:00-03:00'),
       { ...session('upper-a', '2026-08-21T08:00:00-03:00'), selection_kind: 'extra' },
     ], TZ)).toBe(3);
+  });
+});
+
+// Semana de 2026-08-17 (seg) a 2026-08-23 (dom). NOW = quarta 19/08.
+const THREE = [
+  { ...day('lower', 'Inferior', 2, ['Agachamento goblet', 'Leg press 45°']), session_split: 'lower', sequence_order: 1 },
+  { ...day('upper', 'Superior', 3, ['Supino máquina', 'Puxada na frente']), session_split: 'upper', sequence_order: 2 },
+  { ...day('full', 'Full body', 5, ['Leg press 45°', 'Puxada triângulo']), session_split: 'full_body', sequence_order: 3 },
+];
+
+function threeQueue(workoutSessions: any[] = [], now = NOW, planDays: any[] = THREE) {
+  return buildWeeklyGymQueue({ planDays, workoutSessions, completedSets: [], checkin: CHECKIN, now, timeZone: TZ });
+}
+
+describe('plano de 3 treinos: semana sem dívida', () => {
+  it('meta base é 3 e o mínimo válido é 2', () => {
+    const result = threeQueue();
+    expect(result.targetCount).toBe(3);
+    expect(result.minimumValidCount).toBe(2);
+    expect(result.weekState).toBe('in_progress');
+  });
+
+  it('semana com 2 treinos é válida, não atrasada', () => {
+    const result = threeQueue([
+      session('lower', '2026-08-18T17:30:00-03:00'),
+      session('upper', '2026-08-19T20:45:00-03:00'),
+    ], new Date('2026-08-23T20:00:00-03:00'));
+    expect(result.completedBaseCount).toBe(2);
+    expect(result.weekState).toBe('valid');
+  });
+
+  it('semana com os 3 treinos fica completa', () => {
+    const result = threeQueue([
+      session('lower', '2026-08-18T17:30:00-03:00'),
+      session('upper', '2026-08-19T20:45:00-03:00'),
+      session('full', '2026-08-21T21:30:00-03:00'),
+    ], new Date('2026-08-22T10:00:00-03:00'));
+    expect(result.weekState).toBe('complete');
+  });
+
+  it('treino perdido na semana anterior não vira dívida na seguinte', () => {
+    // Semana anterior: só Inferior feito. A nova começa zerada e pela sequência do início.
+    const lastWeek = [session('lower', '2026-08-11T17:30:00-03:00')];
+    const result = threeQueue(lastWeek, new Date('2026-08-18T09:00:00-03:00'));
+    expect(result.completedBaseCount).toBe(0);
+    expect(result.targetCount).toBe(3);
+    expect(result.items.every((item) => item.completionCount === 0)).toBe(true);
+    expect(result.recommended?.day.id).toBe('lower');
+  });
+
+  it('não empilha: dois treinos no mesmo dia não criam meta extra', () => {
+    const result = threeQueue([
+      session('lower', '2026-08-21T17:30:00-03:00'),
+      session('upper', '2026-08-21T19:00:00-03:00'),
+    ], new Date('2026-08-21T21:00:00-03:00'));
+    expect(result.targetCount).toBe(3);
+    expect(result.weekState).toBe('valid');
+  });
+});
+
+describe('identidade estável da sessão', () => {
+  it('ordena por sequence_order, não pelo título', () => {
+    const renamed = THREE.map((item, index) => ({ ...item, title: ['Zeta', 'Alfa', 'Meio'][index] }));
+    expect(threeQueue([], NOW, renamed).items.map((item) => item.day.id)).toEqual(['lower', 'upper', 'full']);
+  });
+
+  it('renomear o dia não muda o split', () => {
+    expect(sessionSplitForDay({ ...THREE[1], title: 'Inferior pesado (nome errado)' })).toBe('upper');
+  });
+
+  it('plano antigo sem session_split deriva o split dos músculos, não do nome', () => {
+    expect(sessionSplitForDay(day('x', 'Superior A', 1, ['Leg press 45°', 'Cadeira flexora']))).toBe('lower');
+    expect(sessionSplitForDay(day('y', 'Inferior B', 1, ['Supino máquina', 'Remada baixa']))).toBe('upper');
+    expect(sessionSplitForDay(day('z', 'Qualquer', 1, ['Supino máquina', 'Leg press 45°']))).toBe('mixed');
+  });
+});
+
+describe('weekStateFor', () => {
+  it.each([
+    [0, 3, 'in_progress'],
+    [1, 3, 'in_progress'],
+    [2, 3, 'valid'],
+    [3, 3, 'complete'],
+    [0, 0, 'in_progress'],
+    [1, 1, 'complete'],
+  ])('%i de %i → %s', (done, target, state) => {
+    expect(weekStateFor(done, target)).toBe(state);
   });
 });
 

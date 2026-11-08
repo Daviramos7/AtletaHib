@@ -2,12 +2,14 @@ import { requireSupabase } from '../lib/supabaseClient';
 import { setVolumeKg } from '../domain/exerciseTracking';
 import { calculateReadiness } from '../domain/readiness';
 import { countUniqueBaseSessionsByWeek } from '../domain/weeklyGym';
+import { WEEKLY_STRENGTH_BASE_TARGET, WEEKLY_STRENGTH_MIN_VALID } from '../domain/weeklyPlanRules';
 import { localDayRangeIso } from '../utils/dates';
 
 const DEFAULT_TARGETS = {
   minMealLoggedDays7: 5,
   minWaterHitDays7: 4,
-  minStrengthSessions7: 3,
+  // 2 treinos já fazem a semana valer: abaixo disso é prioridade, 2 não é atraso.
+  minStrengthSessions7: WEEKLY_STRENGTH_MIN_VALID,
   minCardioSessions7: 2,
   idealCardioSessions7: 3,
   minCheckinDays7: 4,
@@ -363,7 +365,7 @@ function buildWeeklyReportExport({
       main_goal: profile?.objective ?? 'emagrecimento e condicionamento',
       kcal_goal: stats.kcalGoal,
       water_goal_ml: stats.waterGoal,
-      strength_goal_weekly: profile?.weekly_strength_days ?? 4,
+      strength_goal_weekly: Math.min(Number(profile?.weekly_strength_days ?? WEEKLY_STRENGTH_BASE_TARGET), WEEKLY_STRENGTH_BASE_TARGET),
       cardio_goal_weekly: profile?.weekly_cardio_days ?? 3,
       target_weight_kg: profile?.target_weight_kg ?? null,
       current_weight_kg: profile?.current_weight_kg ?? null,

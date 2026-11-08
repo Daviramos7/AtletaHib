@@ -15,6 +15,8 @@ import { localDateKey } from '../utils/dates';
 import { exerciseTracking, formatSetExecution, hasSetExecution, initialTrackingValues, isDurationExercise } from '../domain/exerciseTracking';
 import { buildAdaptiveWorkoutRecommendation, selectWorkoutVariant } from '../domain/adaptiveWorkout';
 import { buildWeeklyGymQueue, selectionKindFor } from '../domain/weeklyGym';
+import { cardioPrescriptionFromDay } from '../domain/cardioRules';
+import { WEEKLY_STRENGTH_BASE_TARGET } from '../domain/weeklyPlanRules';
 import { buildCardioPlanSnapshot, buildStrengthPlanSnapshot, deriveGymSessionLifecycle, plannedVsRealized } from '../domain/gymSession';
 import { resetPersonalizedTrainingPlan } from '../services/trainingService';
 import {
@@ -84,6 +86,8 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
     completedSets: strengthSets,
     baseExercises: strengthEntries,
     cardioPlanned: isCardioDay(selectedDay),
+    cardioPrescription: cardioPrescriptionFromDay(selectedDay),
+    sessionTargetMinutes: selectedDay?.target_minutes ?? null,
     now: new Date(),
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   }), [checkin, selectedDay, sleepSessions, strengthEntries, strengthSets]);
@@ -463,16 +467,16 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
     }
 
     const confirmed = window.confirm(
-      'Gerar um novo plano Upper/Lower? O plano ativo atual será arquivado. O histórico de treinos, séries, cargas e repetições será preservado.',
+      'Gerar o plano de 3 treinos (Ter Inferior, Qua Superior, Sex Full body)? O plano ativo atual será arquivado. O histórico de treinos, séries, cargas e repetições será preservado.',
     );
     if (!confirmed) return;
 
     try {
       setRegeneratingPlan(true);
-      await resetPersonalizedTrainingPlan(userId, { ...profile, weekly_strength_days: 4 });
+      await resetPersonalizedTrainingPlan(userId, { ...profile, weekly_strength_days: WEEKLY_STRENGTH_BASE_TARGET });
       setSelectedDayId(null);
       await refreshBoot?.();
-      onError?.('Plano atualizado: novo Upper/Lower gerado e ativado. O plano anterior foi arquivado e o histórico foi preservado.');
+      onError?.('Plano atualizado: plano de 3 treinos gerado e ativado. O plano anterior foi arquivado e o histórico foi preservado.');
     } catch (err) {
       onError?.(err.message);
     } finally {
@@ -850,7 +854,7 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
       )}
 
       {startedAt || persistedWorkoutSessionId ? (
-        <details className="simple-panel gym-secondary-details"><summary>Esta semana · {weeklyQueue.completedBaseCount} de {weeklyQueue.targetCount} concluídos</summary><WeeklyGymQueueCard queue={weeklyQueue} selectedDayId={selectedDay?.id} activePlanDayId={sessionPlanDayId} onSelect={selectDay} /></details>
+        <details className="simple-panel gym-secondary-details"><summary>Esta semana · {weeklyQueue.completedBaseCount} de {weeklyQueue.targetCount} concluídos{weeklyQueue.weekState === 'valid' ? ' · semana válida' : ''}</summary><WeeklyGymQueueCard queue={weeklyQueue} selectedDayId={selectedDay?.id} activePlanDayId={sessionPlanDayId} onSelect={selectDay} /></details>
       ) : (
         <>
           <div className="gym-inline-actions"><button className="ghost-btn" type="button" onClick={() => onNavigate?.('register', { registerTab: 'json', returnTo: 'gym' })}>Importar treino do relógio</button></div>
@@ -861,6 +865,12 @@ export default function GymModeView({ userId, profile, trainingPlan, onError, re
   );
 }
 
+function weekStateCopy(queue) {
+  if (queue.weekState === 'complete') return 'Semana completa. Dias flexíveis, de segunda a domingo.';
+  if (queue.weekState === 'valid') return `Semana válida com ${queue.completedBaseCount} treinos. O próximo é bônus, não atraso.`;
+  return `Meta base de ${queue.targetCount}; ${queue.minimumValidCount} já fazem a semana valer. Treino perdido não vira dívida.`;
+}
+
 function WeeklyGymQueueCard({ queue, selectedDayId, activePlanDayId, onSelect }) {
   return (
     <section className="simple-panel weekly-gym-queue-v42">
@@ -868,7 +878,7 @@ function WeeklyGymQueueCard({ queue, selectedDayId, activePlanDayId, onSelect })
         <div>
           <p className="eyebrow">Esta semana</p>
           <h3>{queue.completedBaseCount} de {queue.targetCount} treinos concluídos</h3>
-          <p className="muted-text">Dias flexíveis, de segunda a domingo.</p>
+          <p className="muted-text">{weekStateCopy(queue)}</p>
         </div>
         {queue.extraCount > 0 && <span className="pill"><Plus size={14} aria-hidden="true" /> {queue.extraCount} {queue.extraCount === 1 ? 'extra' : 'extras'}</span>}
       </div>
@@ -878,7 +888,8 @@ function WeeklyGymQueueCard({ queue, selectedDayId, activePlanDayId, onSelect })
       <div className="weekly-gym-grid-v42">
         {queue.items.map((item) => {
           const active = String(activePlanDayId ?? selectedDayId) === String(item.day.id);
-          const label = item.status === 'completed' ? 'Concluído' : item.status === 'recommended' ? 'Recomendado' : item.status === 'not_ideal' ? 'Não ideal hoje' : 'Pendente';
+          // Com a semana já válida, o que falta é opcional, nunca atraso.
+          const label = item.status === 'completed' ? 'Concluído' : queue.weekState === 'valid' ? 'Opcional' : item.status === 'recommended' ? 'Recomendado' : item.status === 'not_ideal' ? 'Não ideal hoje' : 'A fazer';
           const StatusIcon = item.status === 'completed' ? CheckCircle2 : item.status === 'recommended' ? ArrowRight : item.status === 'not_ideal' ? AlertTriangle : Circle;
           return (
             <button key={item.day.id} type="button" aria-pressed={active} disabled={Boolean(activePlanDayId) && String(activePlanDayId) !== String(item.day.id)} className={`${active ? 'active' : ''} status-${item.status}`} onClick={() => onSelect(item.day)}>

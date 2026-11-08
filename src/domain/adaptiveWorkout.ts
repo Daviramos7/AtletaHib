@@ -5,6 +5,8 @@ import {
   type ExerciseRole,
   type MuscleGroup,
 } from './exerciseCatalog';
+import { clampCardioMinutes, type CardioPrescription } from './cardioRules';
+import { SESSION_FALLBACK_MINUTES, clampSessionMinutes } from './weeklyPlanRules';
 import {
   calculateReadiness,
   dateKeyInTimeZone as readinessDateKeyInTimeZone,
@@ -95,6 +97,10 @@ export interface AdaptiveWorkoutInput {
   completedSets?: CompletedStrengthSet[];
   baseExercises?: AdaptiveBaseExercise[];
   cardioPlanned?: boolean;
+  /** Prescrição fixa do dia no plano. Sem ela, vale a regra genérica por prontidão. */
+  cardioPrescription?: CardioPrescription | null;
+  /** Duração-alvo da sessão no plano (até 90 min). Usada quando o check-in não informa tempo. */
+  sessionTargetMinutes?: number | null;
   now?: Date | string | number;
   timeZone?: string;
 }
@@ -123,10 +129,11 @@ export function buildAdaptiveWorkoutRecommendation(input: AdaptiveWorkoutInput):
   const checkin = input.checkin ?? null;
   const recentMuscleLoad = calculateRecentMuscleLoad(input.completedSets ?? [], now);
   const baseAdapted = baseExercises.map(toAdaptedExercise);
-  const effectiveAvailableMinutes = clamp(toOptionalNumber(checkin?.available_minutes) ?? 45, 20, 50);
+  const effectiveAvailableMinutes = clampSessionMinutes(toOptionalNumber(checkin?.available_minutes) ?? toOptionalNumber(input.sessionTargetMinutes) ?? SESSION_FALLBACK_MINUTES);
+  const prescription = input.cardioPlanned ? input.cardioPrescription ?? null : null;
 
   if (!isValidMorningCheckin(checkin, today)) {
-    const estimates = estimateWorkoutSession(baseAdapted, input.cardioPlanned ? 10 : 0);
+    const estimates = estimateWorkoutSession(baseAdapted, input.cardioPlanned ? prescription?.minMinutes ?? 10 : 0);
     return {
       checkinValid: false,
       readinessLevel: 'aguardando_checkin',
@@ -173,7 +180,7 @@ export function buildAdaptiveWorkoutRecommendation(input: AdaptiveWorkoutInput):
     recentMuscleLoad,
     workoutMode,
   });
-  const initialCardioMinutes = recommendedCardioMinutes(readiness.level, Boolean(input.cardioPlanned), effectiveAvailableMinutes, workoutMode);
+  const initialCardioMinutes = recommendedCardioMinutes(readiness.level, Boolean(input.cardioPlanned), effectiveAvailableMinutes, workoutMode, prescription);
   const fitted = fitWorkoutToTime(adaptedExercises, initialCardioMinutes, effectiveAvailableMinutes);
   adaptedExercises = fitted.exercises;
 
@@ -190,7 +197,7 @@ export function buildAdaptiveWorkoutRecommendation(input: AdaptiveWorkoutInput):
     recommendations: adaptations.length > 0 ? adaptations : ['Treino-base completo, com progressão gradual apenas se a execução estiver limpa.'],
     volumeAdjustment: volumeAdjustmentForLevel(readiness.level, workoutMode),
     intensityGuidance: intensityForLevel(readiness.level, workoutMode),
-    cardioGuidance: buildCardioGuidance(fitted.cardioMinutes, readiness.level, Boolean(input.cardioPlanned)),
+    cardioGuidance: buildCardioGuidance(fitted.cardioMinutes, readiness.level, Boolean(input.cardioPlanned), prescription),
     warnings: readiness.warnings,
     adaptedExercises,
     estimatedMinutes: fitted.estimate,
@@ -254,7 +261,7 @@ export function estimateWorkoutSession(exercises: AdaptedExercise[], cardioMinut
   }, 0);
   const operationalMinutes = active.length > 0 ? SETUP_MARGIN_MINUTES + Math.max(active.length - 1, 0) * TRANSITION_MINUTES : 0;
   const strength = Math.round(exerciseMinutes + operationalMinutes);
-  const cardio = clamp(Math.round(cardioMinutes), 0, 20);
+  const cardio = clampCardioMinutes(cardioMinutes);
   const total = strength + cardio;
   const rounded = total > 0 ? Math.max(5, Math.round(total / 5) * 5) : 0;
   return { strength, cardio, total, label: `~${rounded} min` };
@@ -331,7 +338,7 @@ function adaptExercises(input: {
 
 function fitWorkoutToTime(exercises: AdaptedExercise[], cardioInput: number, availableMinutes: number) {
   const result = exercises.map((item) => ({ ...item, exercise: { ...item.exercise } }));
-  let cardioMinutes = clamp(Math.round(cardioInput), 0, 20);
+  let cardioMinutes = clampCardioMinutes(cardioInput);
   let estimate = estimateWorkoutSession(result, cardioMinutes);
 
   if (estimate.total > availableMinutes && cardioMinutes > 0) {
@@ -343,9 +350,9 @@ function fitWorkoutToTime(exercises: AdaptedExercise[], cardioInput: number, ava
   reduceSetsForTime(result, 'accessory', 1, availableMinutes, cardioMinutes);
   removeExercisesForTime(result, 'accessory', availableMinutes, cardioMinutes);
   reduceSetsForTime(result, 'secondary', 1, availableMinutes, cardioMinutes);
-  reduceSetsForTime(result, 'main', 1, availableMinutes, cardioMinutes);
   removeExercisesForTime(result, 'secondary', availableMinutes, cardioMinutes);
-  removeExercisesForTime(result, 'main', availableMinutes, cardioMinutes);
+  // Principais nunca são cortados por tempo. Se ainda não couber, a estimativa
+  // fica acima do disponível e a UI avisa (timeConstraintSatisfied = false).
   estimate = estimateWorkoutSession(result, cardioMinutes);
 
   return { exercises: result, cardioMinutes, estimate };
@@ -390,17 +397,24 @@ function describeAdaptations(adapted: AdaptedExercise[], base: AdaptiveBaseExerc
   return unique(messages);
 }
 
-function recommendedCardioMinutes(level: ReadinessLevel, planned: boolean, available: number, mode: 'normal' | 'retorno') {
+function recommendedCardioMinutes(level: ReadinessLevel, planned: boolean, available: number, mode: 'normal' | 'retorno', prescription: CardioPrescription | null = null) {
   if (!planned || level === 'recuperacao') return 0;
+  if (prescription) {
+    if (level === 'baixa') return Math.min(5, prescription.minMinutes);
+    if (level === 'moderada' || mode === 'retorno') return prescription.minMinutes;
+    return prescription.maxMinutes;
+  }
   if (level === 'baixa') return 5;
   if (level === 'moderada' || mode === 'retorno') return Math.min(8, Math.max(5, available - 35));
   return Math.min(15, Math.max(5, available - 35));
 }
 
-function buildCardioGuidance(minutes: number, level: ReadinessLevel, planned: boolean) {
+function buildCardioGuidance(minutes: number, level: ReadinessLevel, planned: boolean, prescription: CardioPrescription | null = null) {
   if (!planned) return { minutes: 0, intensity: 'opcional', text: 'Sem cardio obrigatório no plano-base de hoje.' };
   if (minutes <= 0) return { minutes: 0, intensity: 'recuperação', text: 'Sem cardio hoje; preserve recuperação.' };
-  const intensity = level === 'boa' ? 'leve a moderado, RPE 5–6' : 'leve, ritmo conversável';
+  const intensity = prescription
+    ? (prescription.intensity === 'moderado' && level === 'boa' ? 'moderado, RPE 6–7, sem tiro' : 'leve, ritmo conversável, sem tiro')
+    : level === 'boa' ? 'leve a moderado, RPE 5–6' : 'leve, ritmo conversável';
   return { minutes, intensity, text: `${minutes} min em ${intensity}. Evolua controle e qualidade, não duração.` };
 }
 
