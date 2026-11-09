@@ -17,14 +17,14 @@
       #app-splash.is-leaving { opacity: 0; pointer-events: none; }
       #app-splash.is-fast { transition-duration: 120ms; }
       #app-splash .app-splash-lockup { display: flex; align-items: center; gap: 12px; }
-      #app-splash svg { display: block; width: 76px; height: 61.8px; overflow: visible; animation: app-splash-settle 220ms cubic-bezier(.65, 0, .35, 1) 960ms both; }
-      #app-splash .s-dot { transform-box: fill-box; transform-origin: center; animation: app-splash-dot 300ms cubic-bezier(.2, .8, .2, 1) 0ms both, app-splash-hold 1.6s ease-in-out 1450ms infinite; }
+      #app-splash svg { display: block; width: 76px; height: 61.8px; overflow: visible; animation: app-splash-settle 220ms cubic-bezier(.65, 0, .35, 1) 1230ms both; }
+      #app-splash .s-dot { transform-box: fill-box; transform-origin: center; animation: app-splash-dot 500ms cubic-bezier(.16, 1, .3, 1) 0ms both, app-splash-hold 1.6s ease-in-out 1720ms infinite; }
       #app-splash .s-stroke path { stroke-dasharray: 1 2; stroke-dashoffset: 0; }
-      #app-splash .s-arco-esquerda { animation: app-splash-draw 254ms cubic-bezier(.5, 0, .7, .7) 200ms both; }
-      #app-splash .s-arco-cima { animation: app-splash-draw 192ms linear 454ms both; }
-      #app-splash .s-curva-s { animation: app-splash-draw 334ms cubic-bezier(.3, .3, .5, 1) 646ms both; }
-      #app-splash img { display: block; width: 200px; height: 33.8px; animation: app-splash-name 330ms cubic-bezier(.2, .7, .2, 1) 1120ms both; }
-      @keyframes app-splash-dot { from { transform: scale(2.2); opacity: 0; } 40% { opacity: 1; } to { transform: scale(1); opacity: 1; } }
+      #app-splash .s-arco-esquerda { animation: app-splash-draw 254ms cubic-bezier(.5, 0, .7, .7) 470ms both; }
+      #app-splash .s-arco-cima { animation: app-splash-draw 192ms linear 724ms both; }
+      #app-splash .s-curva-s { animation: app-splash-draw 334ms cubic-bezier(.3, .3, .5, 1) 916ms both; }
+      #app-splash img { display: block; width: 200px; height: 33.8px; animation: app-splash-name 330ms cubic-bezier(.2, .7, .2, 1) 1390ms both; }
+      @keyframes app-splash-dot { from { transform: scale(var(--dot-from, 90)); } to { transform: scale(1); } }
       @keyframes app-splash-draw { from { stroke-dashoffset: 1.05; } to { stroke-dashoffset: 0; } }
       @keyframes app-splash-settle { from { transform: translateX(106.0px) scale(1.5132); } to { transform: none; } }
       @keyframes app-splash-name { from { clip-path: inset(0 100% 0 0); transform: translateX(-6px); } to { clip-path: inset(0 0 0 0); transform: none; } }
@@ -49,6 +49,10 @@
         var again = false;
         try { again = sessionStorage.getItem('atleta-abertura') === '1'; sessionStorage.setItem('atleta-abertura', '1'); } catch (e) {}
         if (again) el.classList.add('is-static');
+        // Escala inicial da bolinha: do centro dela até o canto mais distante da tela, com folga.
+        var w = window.innerWidth, h = window.innerHeight, px = w / 2 + -15.77, py = h / 2 + 8.07;
+        var far = Math.max(Math.hypot(px, py), Math.hypot(w - px, py), Math.hypot(px, h - py), Math.hypot(w - px, h - py));
+        el.style.setProperty('--dot-from', (far / 13.600 * 1.04).toFixed(2));
         var gone = false, ready = false;
         function remove() { if (el.parentNode) el.parentNode.removeChild(el); }
         function leave(fast) {
@@ -61,7 +65,7 @@
           setTimeout(remove, 400);
         }
         function introDone() {
-          if (!el.getAnimations) return new Promise(function (ok) { setTimeout(ok, again ? 0 : 1450); });
+          if (!el.getAnimations) return new Promise(function (ok) { setTimeout(ok, again ? 0 : 1720); });
           var finite = el.getAnimations({ subtree: true }).filter(function (a) {
             var t = a.effect && a.effect.getTiming();
             return t && t.iterations !== Infinity;

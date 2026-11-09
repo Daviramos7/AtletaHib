@@ -64,6 +64,12 @@ const nameRevealed = (page: Page) => page.locator('#app-splash img').evaluate((e
   return clip === 'none' || /^inset\(([^)]*)\)$/.test(clip) && clip.slice(6, -1).split(' ').every((v) => parseFloat(v) === 0);
 });
 
+/** No quadro atual, a bolinha está por cima de cada canto da tela? (sup. esq., sup. dir., inf. esq., inf. dir.) */
+const dotCoversScreen = (page: Page) => page.evaluate(() => {
+  const w = window.innerWidth; const h = window.innerHeight;
+  return [[0, 0], [w - 1, 0], [0, h - 1], [w - 1, h - 1]].map(([x, y]) => document.elementFromPoint(x, y)?.classList.contains('s-dot') ?? false);
+});
+
 const drawn = (page: Page, part: string) => page.locator(`#app-splash .s-${part}`).evaluate((el) => Number(getComputedStyle(el).strokeDashoffset.replace('px', '')));
 
 test('desenha peça por peça na ordem e no sentido certos, emendando com a splash do Android', async ({ browser, baseURL }) => {
@@ -84,30 +90,33 @@ test('desenha peça por peça na ordem e no sentido certos, emendando com a spla
   expect(ends['curva-s'].start[1]).toBeLessThan(ends['curva-s'].end[1]);
   expect(ends['curva-s'].end[0]).toBeGreaterThan(ends['curva-s'].start[0]);
 
-  // Começo: nada desenhado; símbolo com 115px centrado (o tamanho do ícone na splash do Android).
+  // Começo: bolinha cobrindo a tela inteira, traços sem desenhar; o símbolo (a caixa dele) com
+  // 115px centrado, o tamanho do ícone na splash do Android.
   await freezeAt(page, 0);
   const symbol = await page.locator('#app-splash svg').boundingBox();
   expect(Math.abs(symbol!.width - 115)).toBeLessThanOrEqual(1);
   expect(Math.abs(symbol!.x + symbol!.width / 2 - VIEW.width / 2)).toBeLessThanOrEqual(1);
   expect(Math.abs(symbol!.y + symbol!.height / 2 - VIEW.height / 2)).toBeLessThanOrEqual(1);
-  expect(await page.locator('#app-splash .s-dot').evaluate((el) => Number(getComputedStyle(el).opacity))).toBe(0);
+  expect(await dotCoversScreen(page)).toEqual([true, true, true, true]);
   for (const part of ['arco-esquerda', 'arco-cima', 'curva-s']) expect(await drawn(page, part)).toBeGreaterThanOrEqual(1);
 
   // Bolinha assentada antes dos traços; depois um traço de cada vez, emendando.
-  await freezeAt(page, 300);
+  await freezeAt(page, 470);
+  expect(await drawn(page, 'arco-esquerda')).toBeGreaterThanOrEqual(1);
+  await freezeAt(page, 500);
   expect(await page.locator('#app-splash .s-dot').evaluate((el) => getComputedStyle(el).transform)).toMatch(/^(none|matrix\(1, 0, 0, 1, 0, 0\))$/);
-  await freezeAt(page, 454);
+  await freezeAt(page, 724);
   expect(await drawn(page, 'arco-esquerda')).toBe(0);
   expect(await drawn(page, 'arco-cima')).toBeGreaterThanOrEqual(1);
-  await freezeAt(page, 646);
+  await freezeAt(page, 916);
   expect(await drawn(page, 'arco-cima')).toBe(0);
   expect(await drawn(page, 'curva-s')).toBeGreaterThanOrEqual(1);
-  await freezeAt(page, 980);
+  await freezeAt(page, 1250);
   expect(await drawn(page, 'curva-s')).toBe(0);
   expect(await page.locator('#app-splash img').evaluate((el) => getComputedStyle(el).clipPath)).toMatch(/inset\(0px 100%/);
 
   // Fim: logo completo centrado, nome à direita do símbolo, sem encostar nele.
-  await freezeAt(page, 1450);
+  await freezeAt(page, 1720);
   const final = await page.locator('#app-splash svg').boundingBox();
   const name = await page.locator('#app-splash img').boundingBox();
   expect(name!.x).toBeGreaterThan(final!.x + final!.width);
@@ -115,6 +124,27 @@ test('desenha peça por peça na ordem e no sentido certos, emendando com a spla
   expect(await nameRevealed(page)).toBe(true);
   await context.close();
 });
+
+for (const viewport of [{ width: 320, height: 568 }, { width: 412, height: 915 }, { width: 1440, height: 900 }]) {
+  test(`1º quadro: a bolinha cobre a tela inteira em ${viewport.width}x${viewport.height} e encolhe até o lugar dela`, async ({ browser, baseURL }) => {
+    const context = await browser.newContext({ viewport, reducedMotion: 'no-preference' });
+    const page = await context.newPage();
+    await installSyntheticSupabase(context, baseURL!, buildScenario({ today: TODAY }));
+    await page.route(`${SYNTHETIC_SUPABASE_URL}/rest/v1/**`, () => new Promise(() => {}));
+    await page.goto('/', { waitUntil: 'commit' });
+    await page.locator('#app-splash svg').waitFor();
+    await freezeAt(page, 0);
+    expect(await dotCoversScreen(page)).toEqual([true, true, true, true]);
+    // A meio caminho já não cobre (zoom out contínuo) e no fim tem o tamanho normal.
+    await freezeAt(page, 250);
+    expect(await dotCoversScreen(page)).not.toEqual([true, true, true, true]);
+    await freezeAt(page, 500);
+    const dot = await page.locator('#app-splash .s-dot').boundingBox();
+    const symbol = await page.locator('#app-splash svg').boundingBox();
+    expect(Math.abs(dot!.width / symbol!.width - (2 * 95.2) / 805)).toBeLessThan(0.005);
+    await context.close();
+  });
+}
 
 test('dados rápidos: toca a animação inteira uma vez e sai assim que ela termina', async ({ browser, baseURL }) => {
   const { context, page } = await open(browser, baseURL!);

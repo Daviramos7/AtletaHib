@@ -8,7 +8,7 @@ Por que inline no index.html: pinta no 1º quadro, antes do JavaScript do app, e
 splash do Android (mesmo fundo, símbolo começando com 115px no centro = 48% do ícone maskable
 de 240dp, ver scripts/gerar-icones.py).
 
-Sequência (1,45s): bolinha entra com zoom out; o traço desenha o arco da esquerda (de baixo
+Sequência (1,72s): a bolinha começa cobrindo a tela inteira e dá zoom out até o lugar dela; o traço desenha o arco da esquerda (de baixo
 para cima), o arco de cima (da esquerda para a direita) e a curva em S (de cima até a ponta),
 com a mesma velocidade de caneta nas emendas; o símbolo assenta à esquerda e o nome aparece da
 esquerda para a direita. Quem decide quando sair é o app (src/lib/splash.ts → ready()).
@@ -35,12 +35,15 @@ GAP = 12               # px CSS entre símbolo e nome
 WORDMARK_PIXELS = 650  # largura do PNG do nome (~3,25x, a densidade do Poco)
 
 # Linha do tempo (ms). Traços: 780ms divididos pelo comprimento (377, 285, 495 no SVG).
-DOT = (0, 300)
-STROKES = {'arco-esquerda': (200, 454), 'arco-cima': (454, 646), 'curva-s': (646, 980)}
+# A bolinha começa cobrindo a tela inteira e encolhe até o lugar dela; os traços só começam
+# depois que ela praticamente assentou. Daí em diante, o mesmo ritmo de antes.
+DOT = (0, 500)
+STROKES = {'arco-esquerda': (470, 724), 'arco-cima': (724, 916), 'curva-s': (916, 1250)}
 # O nome só começa quando o símbolo já quase assentou: antes disso o texto nasceria por cima dele.
-SETTLE = (960, 1180)
-NAME = (1120, 1450)
-INTRO_MS = 1450
+SETTLE = (1230, 1450)
+NAME = (1390, 1720)
+INTRO_MS = 1720
+DOT_FALLBACK_SCALE = 90  # se o script inline não rodar: cobre até ~1200px de raio
 
 
 def wordmark() -> Image.Image:
@@ -100,11 +103,11 @@ def build() -> str:
       #app-splash.is-fast {{ transition-duration: 120ms; }}
       #app-splash .app-splash-lockup {{ display: flex; align-items: center; gap: {GAP}px; }}
       #app-splash svg {{ display: block; width: {SYMBOL}px; height: {symbol_h:.1f}px; overflow: visible; animation: app-splash-settle {ms(SETTLE[1] - SETTLE[0])} cubic-bezier(.65, 0, .35, 1) {ms(SETTLE[0])} both; }}
-      #app-splash .s-dot {{ transform-box: fill-box; transform-origin: center; animation: app-splash-dot {ms(DOT[1] - DOT[0])} cubic-bezier(.2, .8, .2, 1) {ms(DOT[0])} both, app-splash-hold 1.6s ease-in-out {ms(INTRO_MS)} infinite; }}
+      #app-splash .s-dot {{ transform-box: fill-box; transform-origin: center; animation: app-splash-dot {ms(DOT[1] - DOT[0])} cubic-bezier(.16, 1, .3, 1) {ms(DOT[0])} both, app-splash-hold 1.6s ease-in-out {ms(INTRO_MS)} infinite; }}
       #app-splash .s-stroke path {{ stroke-dasharray: 1 2; stroke-dashoffset: 0; }}
 {stroke_rules}
       #app-splash img {{ display: block; width: {WORDMARK}px; height: {wordmark_h:.1f}px; animation: app-splash-name {ms(NAME[1] - NAME[0])} cubic-bezier(.2, .7, .2, 1) {ms(NAME[0])} both; }}
-      @keyframes app-splash-dot {{ from {{ transform: scale(2.2); opacity: 0; }} 40% {{ opacity: 1; }} to {{ transform: scale(1); opacity: 1; }} }}
+      @keyframes app-splash-dot {{ from {{ transform: scale(var(--dot-from, {DOT_FALLBACK_SCALE})); }} to {{ transform: scale(1); }} }}
       @keyframes app-splash-draw {{ from {{ stroke-dashoffset: 1.05; }} to {{ stroke-dashoffset: 0; }} }}
       @keyframes app-splash-settle {{ from {{ transform: translateX({start_shift:.1f}px) scale({start_scale:.4f}); }} to {{ transform: none; }} }}
       @keyframes app-splash-name {{ from {{ clip-path: inset(0 100% 0 0); transform: translateX(-6px); }} to {{ clip-path: inset(0 0 0 0); transform: none; }} }}
@@ -126,6 +129,13 @@ def build_markup() -> str:
     uri = 'data:image/png;base64,' + base64.b64encode(buffer.getvalue()).decode()
     wordmark_h = WORDMARK * image.height / image.width
     path_tags = ''.join(f'<path class="s-{name}" pathLength="1" d="{paths[name]}"/>' for name in STROKES)
+    # No 1º quadro o símbolo está centrado com START_SYMBOL px: posição e raio da bolinha em px CSS
+    # em relação ao centro da tela.
+    vx, vy, vw, vh = (float(v) for v in view_box.split())
+    unit = START_SYMBOL / vw
+    dot_dx = (float(cx) - (vx + vw / 2)) * unit
+    dot_dy = (float(cy) - (vy + vh / 2)) * unit
+    dot_r = float(r) * unit
     return f'''<!-- abertura-tela:inicio (gerado por scripts/gerar-abertura.py) -->
     <div id="app-splash" aria-hidden="true"><div class="app-splash-lockup"><svg viewBox="{view_box}" aria-hidden="true"><circle class="s-dot" cx="{cx}" cy="{cy}" r="{r}" fill="#b8ff00"/><g class="s-stroke" fill="none" stroke="#b8ff00" stroke-width="{stroke}" stroke-linecap="round">{path_tags}</g></svg><img alt="" width="{WORDMARK}" height="{wordmark_h:.0f}" decoding="sync" src="{uri}"/></div></div>
     <script>
@@ -137,6 +147,10 @@ def build_markup() -> str:
         var again = false;
         try {{ again = sessionStorage.getItem('atleta-abertura') === '1'; sessionStorage.setItem('atleta-abertura', '1'); }} catch (e) {{}}
         if (again) el.classList.add('is-static');
+        // Escala inicial da bolinha: do centro dela até o canto mais distante da tela, com folga.
+        var w = window.innerWidth, h = window.innerHeight, px = w / 2 + {dot_dx:.2f}, py = h / 2 + {dot_dy:.2f};
+        var far = Math.max(Math.hypot(px, py), Math.hypot(w - px, py), Math.hypot(px, h - py), Math.hypot(w - px, h - py));
+        el.style.setProperty('--dot-from', (far / {dot_r:.3f} * 1.04).toFixed(2));
         var gone = false, ready = false;
         function remove() {{ if (el.parentNode) el.parentNode.removeChild(el); }}
         function leave(fast) {{
