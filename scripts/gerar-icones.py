@@ -1,4 +1,4 @@
-"""Gera os ícones do PWA e o logo da tela de abertura a partir do símbolo.
+"""Gera os ícones do PWA a partir do símbolo.
 
 Uso (na raiz do projeto): python scripts/gerar-icones.py
 
@@ -11,7 +11,7 @@ Lanczos (anti-aliasing de verdade em todo tamanho).
 Tamanho do símbolo no maskable: o Android 12+ abre o PWA com o ícone maskable desenhado em
 240dp e recortado num círculo de 160dp (os 66,7% centrais). O símbolo ocupa 48% da largura
 do ícone, então cabe inteiro nesse círculo e na zona segura de qualquer máscara. A tela de
-abertura do app (index.html) usa o mesmo tamanho: 0,48 x 240 = 115 px.
+abertura do app (scripts/gerar-abertura.py) começa com o símbolo nesse tamanho: 0,48 x 240 = 115 px.
 """
 from pathlib import Path
 
@@ -24,7 +24,6 @@ LIME = (184, 255, 0)          # --brand-lime
 BACKGROUND = (7, 10, 9)       # manifest background_color / theme_color #070a09
 SUPER = 4                     # desenha em 4x e reduz
 MASKABLE_SYMBOL = 0.48        # largura do símbolo / largura do ícone maskable
-SPLASH_CSS_WIDTH = 115        # px CSS do logo na tela de abertura (0,48 x 240dp)
 
 
 def smooth_mask() -> Image.Image:
@@ -56,17 +55,6 @@ def render(mask: Image.Image, size: int, symbol_ratio: float, background) -> Ima
     return out.resize((size, size), Image.LANCZOS)
 
 
-def splash_logo(mask: Image.Image) -> Image.Image:
-    """Logo da tela de abertura: só o símbolo, fundo transparente, 3x os px CSS (telas 3x+)."""
-    width = SPLASH_CSS_WIDTH * 3
-    canvas_w = width * SUPER
-    canvas_h = round(mask.height * canvas_w / mask.width)
-    shape = mask.resize((canvas_w, canvas_h), Image.LANCZOS)
-    color = Image.new('RGBA', (canvas_w, canvas_h), LIME + (255,))
-    color.putalpha(shape)
-    return color.resize((width, round(canvas_h / SUPER)), Image.LANCZOS)
-
-
 def main() -> None:
     mask = smooth_mask()
     outputs = {
@@ -79,7 +67,6 @@ def main() -> None:
         'atleta-hib-any-1024.png': render(mask, 1024, 0.80, None),
         # iOS preenche transparência de preto e arredonda sozinho: ícone opaco com respiro.
         'atleta-hib-apple-touch-180.png': render(mask, 180, 0.62, BACKGROUND),
-        'atleta-hib-splash.png': splash_logo(mask),
     }
     for name, image in outputs.items():
         image.save(OUT / name, optimize=True)
