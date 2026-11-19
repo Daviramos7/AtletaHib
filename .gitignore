@@ -46,3 +46,6 @@ build/
 *.tsbuildinfo
 
 .claude/skills/
+
+# Artefatos de QA visual gerados por e2e/ e scripts/ (ficam só no disco local)
+evidence/
