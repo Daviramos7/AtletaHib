@@ -46,3 +46,11 @@ build/
 *.tsbuildinfo
 
 .claude/skills/
+
+# Artefatos de QA visual gerados por e2e/ e scripts/ (ficam só no disco local)
+evidence/
+
+# Notas de sessão e auditorias pontuais (ficam só no disco local)
+docs/missoes/
+V2_PATCH_README.md
+scripts/audit-v41*.ps1
